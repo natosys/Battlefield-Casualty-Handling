@@ -182,6 +182,11 @@ report(identical(split_shut[3],
                  "| Hold window, R2E theatre entry deferred | +0.50 [+0.10, +0.90] | 0.010 |") &&
          length(split_shut) == 3L,
        "and is printed in the resolved table alone: %s", split_shut[3])
+marks <- vapply(list(hold[first, ], hold[deferred, ], hold[!first & !deferred, ][1, ]),
+                res_holm_mark, character(1))
+report(identical(marks, c(RES_HOLM_MARK, "", "")),
+       paste("a paired cell is marked where its interval excludes zero but it fails the Holm",
+             "adjustment, and only there"))
 no_holm <- hold
 no_holm$p_holm <- NULL
 write.csv(no_holm, file.path(toy_dir, "hold_window", "hold_window_paired.csv"), row.names = FALSE)

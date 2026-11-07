@@ -503,9 +503,9 @@ build_surgical_team_paired <- function(data_dir, suffix = "") {
       x <- d[d$to == a & d$response == r[[2]], ]
       if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
                                       r[[2]], a, nrow(x)), call. = FALSE)
-      sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
-              res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
-              res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE))
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
     }, character(1)))
   })
   res_table(c("Paired difference against the shipped establishment", arms), rows)
@@ -632,9 +632,9 @@ build_icu_bed_paired <- function(data_dir, suffix = "") {
       x <- d[d$to == a & d$response == r[[2]], ]
       if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
                                       r[[2]], a, nrow(x)), call. = FALSE)
-      sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
-              res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
-              res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE))
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
     }, character(1)))
   })
   res_table(c("Paired difference against the shipped establishment", arms), rows)
@@ -770,9 +770,9 @@ build_triage_split_paired <- function(data_dir, suffix = "") {
       x <- d[d$to == a & d$response == r[[2]], ]
       if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
                                       r[[2]], a, nrow(x)), call. = FALSE)
-      sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
-              res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
-              res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE))
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
     }, character(1)))
   })
   res_table(c("Paired difference against the shipped split", arms), rows)
@@ -844,8 +844,9 @@ build_hold_window <- function(data_dir, suffix = "") {
     b <- s[s$response == r[2] & s$window_min == 60, "mean"]
     d <- p[p$response == r[2], ]
     c(r[1], res_num(a, 2L), res_num(b, 2L),
-      sprintf("%s [%s, %s]", res_num(d$difference, 2L, plus = TRUE),
-              res_num(d$ci_lower, 2L, plus = TRUE), res_num(d$ci_upper, 2L, plus = TRUE)))
+      paste0(sprintf("%s [%s, %s]", res_num(d$difference, 2L, plus = TRUE),
+                     res_num(d$ci_lower, 2L, plus = TRUE), res_num(d$ci_upper, 2L, plus = TRUE)),
+             res_holm_mark(d)))
   })
   res_table(c("Measure", "Window 0", "Window 60 min", "Difference"), rows, rule = "spaced")
 }
@@ -1099,8 +1100,9 @@ build_policy_grid_paired <- function(data_dir, stem) {
     cells <- vapply(cols, function(cl) {
       x <- d[d$to == a & d$response == cl, ]
       stopifnot(nrow(x) == 1L)
-      sprintf("%s [%s, %s]", res_num(x$difference, 1L, TRUE, TRUE),
-              res_num(x$ci_lower, 1L, TRUE, TRUE), res_num(x$ci_upper, 1L, TRUE, TRUE))
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference, 1L, TRUE, TRUE),
+                     res_num(x$ci_lower, 1L, TRUE, TRUE), res_num(x$ci_upper, 1L, TRUE, TRUE)),
+             res_holm_mark(x))
     }, character(1))
     c(sprintf("%s d, %s beds", sub("d_.*", "", a), sub(".*_([0-9]+)b$", "\\1", a)), cells)
   })
@@ -1393,8 +1395,9 @@ build_icu_gate <- function(data_dir, suffix = "") {
     dp <- as.integer(r[4])
     c(r[1], res_ci(a$mean, a$ci_lower, a$ci_upper, dp, sc, big = TRUE),
       res_ci(b$mean, b$ci_lower, b$ci_upper, dp, sc, big = TRUE),
-      sprintf("%s [%s, %s]", res_num(d$difference * sc, dp, TRUE, TRUE),
-              res_num(d$ci_lower * sc, dp, TRUE, TRUE), res_num(d$ci_upper * sc, dp, TRUE, TRUE)))
+      paste0(sprintf("%s [%s, %s]", res_num(d$difference * sc, dp, TRUE, TRUE),
+                     res_num(d$ci_lower * sc, dp, TRUE, TRUE),
+                     res_num(d$ci_upper * sc, dp, TRUE, TRUE)), res_holm_mark(d)))
   })
   res_table(c("Measure", "Without the rule", "With the rule", "Paired difference"), rows)
 }
@@ -1523,6 +1526,23 @@ res_resolved <- function(hit) {
     stop("paired-difference file carries no p_holm column", call. = FALSE)
   }
   !res_spans_zero(hit) && !is.na(hit$p_holm) && hit$p_holm <= RES_HOLM_ALPHA
+}
+
+#' Marker a paired difference carries where it excludes zero but fails the Holm adjustment
+#'
+#' @details A dagger, written as an escape so the source stays ASCII. A table
+#'   cell carrying it reports an interval that excludes zero for a difference the
+#'   experiment's family of comparisons does not resolve (res_resolved()), so a
+#'   reader of the cell, and of any sentence quoting it, sees the distinction.
+RES_HOLM_MARK <- "\u2020"
+
+#' The Holm marker for one paired difference, or nothing
+#'
+#' @param hit One paired-difference row, carrying `p_holm`.
+#' @return RES_HOLM_MARK where the interval excludes zero and the difference is
+#'   not resolved, otherwise the empty string.
+res_holm_mark <- function(hit) {
+  if (!res_spans_zero(hit) && !res_resolved(hit)) RES_HOLM_MARK else ""
 }
 
 #' A Holm-adjusted p-value as one cell
@@ -2863,8 +2883,9 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
       "0 (the shipped setting)"
     } else {
       g <- p[p$to == arm & p$response == "total_rtd", ]
-      sprintf("%s [%s, %s]", res_num(g$difference, 1L, TRUE, TRUE),
-              res_num(g$ci_lower, 1L, TRUE, TRUE), res_num(g$ci_upper, 1L, TRUE, TRUE))
+      paste0(sprintf("%s [%s, %s]", res_num(g$difference, 1L, TRUE, TRUE),
+                     res_num(g$ci_lower, 1L, TRUE, TRUE), res_num(g$ci_upper, 1L, TRUE, TRUE)),
+             res_holm_mark(g))
     }
     is_baseline <- arm == sprintf("%dd_%db", POLICY_GRID_BASELINE_DAYS, base_beds)
     per_bed <- if (b > base_beds && !is_baseline) {
@@ -3001,8 +3022,9 @@ build_interval_grid_paired <- function(data_dir, stem) {
     cells <- vapply(cols, function(cl) {
       x <- d[d$to == a & d$response == cl, ]
       stopifnot(nrow(x) == 1L)
-      sprintf("%s [%s, %s]", res_num(x$difference, 1L, TRUE, TRUE),
-              res_num(x$ci_lower, 1L, TRUE, TRUE), res_num(x$ci_upper, 1L, TRUE, TRUE))
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference, 1L, TRUE, TRUE),
+                     res_num(x$ci_lower, 1L, TRUE, TRUE), res_num(x$ci_upper, 1L, TRUE, TRUE)),
+             res_holm_mark(x))
     }, character(1))
     p <- as.integer(regmatches(a, regexec("^([0-9]+)s_([0-9]+)d_([0-9]+)b$", a))[[1]][2:4])
     c(interval_grid_label(p[1], p[2], p[3]), cells)

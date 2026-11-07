@@ -27,7 +27,7 @@
 #   2. Each tracked evidence set, the shipped configuration's and the
 #      high-intensity profile's, carries every documented arm at the documented
 #      replication count numbered from one and the documented responses, with
-#      the summary, the paired differences, the pooled treated cohort and the
+#      the summary, the paired differences, the treated cohort rate and the
 #      queue classification each the reduction of the evidence beside them.
 #   3. The shipped arm reproduces the shipped configuration: replication by
 #      replication it equals the R2E intensive care bed sweep's shipped arm, run
@@ -236,10 +236,10 @@ for (label in names(SUFFIXES)) {
   report(nrow(paired) == length(others) * length(TRIAGE_SWEEP_PAIRED_RESPONSES),
          "%s: the paired file has one row per arm and response (%d)", label, nrow(paired))
 
-  again <- triage_treated_pooled(rows)
+  again <- triage_treated_rate(rows)
   again <- again[match(treated$arm, again$arm), ]
   report(numerics_agree(treated, again[, names(treated)]),
-         "%s: the treated cohort file is the pooled reduction of the replications", label)
+         "%s: the treated cohort file is the per-replication reduction of the replications", label)
 
   series_files <- file.path(
     EVIDENCE_DIR,

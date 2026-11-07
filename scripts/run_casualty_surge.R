@@ -206,7 +206,7 @@ print_count_row <- function(response, label, digits = 1) {
   invisible(NULL)
 }
 
-#' Print a died-of-wounds rate row (pooled proportion, percent)
+#' Print a died-of-wounds rate row (mean of the per-replication rates, percent)
 #'
 #' @param origin "ordinary" or "event".
 #' @param label Row label.

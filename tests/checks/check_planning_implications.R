@@ -22,7 +22,8 @@
 # figure cannot differ from the evidence it cites; that no figure is typed
 # outside a span and that every paragraph or table row carrying one links the
 # section of the results paper it comes from; that the lever table covers
-# every lever the results paper reports and labels each; and that no design or
+# every lever the results paper reports and labels each, none measured on a
+# quoted difference that fails the Holm adjustment; and that no design or
 # provenance content has crept back in. It also asserts that the half-widths
 # behind the resolution table are the ones the experiments' own scripts sized
 # their replication counts against, and that no comparison it lists as
@@ -233,6 +234,14 @@ if (length(at) == 1L) {
     length(cells) == length(LEVER_COLUMNS) && nzchar(cells[3])
   }, logical(1))]
   report(length(unpriced) == 0L, "every lever row states a cost (%d without)", length(unpriced))
+  # A quoted paired difference carrying the Holm marker excludes zero without
+  # being resolved, so a cell labelled measured cannot rest on one.
+  on_holm_failure <- unlist(lapply(parsed, function(cells) {
+    cells[grepl("**Measured**", cells, fixed = TRUE) & grepl(RES_HOLM_MARK, cells, fixed = TRUE)]
+  }))
+  report(length(on_holm_failure) == 0L,
+         "no lever is labelled measured on a difference failing the Holm adjustment (%d cells)",
+         length(on_holm_failure))
 
   needed <- character(0)
   for (heading in COVERED_SECTIONS) {

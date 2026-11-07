@@ -16,7 +16,7 @@
 # The two arms are not the same realisation. Introducing the hold shifts
 # simmer's single global random stream from the first hold onward, so the two
 # arms drift into different casualty streams rather than sharing one; pairing
-# on a common control seed removes none of the between-run variance this
+# on a common control seed removes little of the between-run variance this
 # implies (docs/Methods.md, "The R2B Pre-Open Hold Window"). Each
 # replication is reduced to one row of the response set inside the forked
 # worker that produced it, on the arrangement R/policy_sweep.R and R/airlift.R

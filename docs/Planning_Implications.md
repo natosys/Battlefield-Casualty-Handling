@@ -93,9 +93,9 @@ Not every finding rests on the same strength of evidence. Each lever therefore c
 
 | Label | Meaning |
 |---|---|
-| **Measured** | The effect is established. Direction and approximate size are both supported. |
+| **Measured** | The effect is established. Direction and approximate size are both supported; where the effect is a paired difference, it survives Holm's adjustment across every comparison of its experiment at a family-wise level of 5% ([Methods: Interval Methods](Methods.md#interval-methods)). |
 | **Direction only** | The effect points the way expected and the mechanism is confirmed, but its size is not established. |
-| **Unresolved** | The available compute could not separate the effect from random variation. Figures are bounds, not estimates. |
+| **Unresolved** | The available compute could not separate the effect from random variation, including a paired difference whose interval excludes zero but which fails Holm's adjustment. Figures are bounds, not estimates. |
 | **Untested** | The simulation cannot evaluate the option as presently built. |
 
 Two readings of the results paper govern every statement below. Where two intervals overlap the simulation has not established a difference, and the gap between the two averages should not be acted on. And the interval describes how precisely an average is known, not how much one campaign varies: the campaigns themselves spread many times more widely than the average is uncertain, so a system sized against the average under-provides for the campaign that arrives ([Results: scenario totals](Results.md#comparative-scenario-analysis)).

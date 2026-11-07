@@ -237,7 +237,7 @@ if (!is.null(stability)) {
             scenario_output_path(OUTPUT_DIR, "triage_sweep_stability", opt$scenario),
             row.names = FALSE)
 }
-write.csv(triage_treated_pooled(per_replication),
+write.csv(triage_treated_rate(per_replication),
           scenario_output_path(OUTPUT_DIR, "triage_sweep_treated_cohort", opt$scenario),
           row.names = FALSE)
 message(sprintf(paste("Triage sweep responses, summary, paired differences, stability and",

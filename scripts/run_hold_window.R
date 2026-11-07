@@ -20,7 +20,7 @@
 # seeds from R's PRNG, though not the same casualty stream: R/hold_window.R's
 # header and docs/Methods.md's "The R2B Pre-Open Hold Window"
 # record why introducing the hold shifts the stream from the first hold
-# onward, which is why the paired difference is valid but no more precise than
+# onward, which is why the paired difference is valid but little more precise than
 # an unpaired one.
 #
 # --refresh-baseline is the only way to write the tracked data/hold_window/,

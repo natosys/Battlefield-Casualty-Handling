@@ -387,7 +387,7 @@ triage_stability <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS) {
 #'   bound is clamped at zero. The post-operative share is the ratio of the
 #'   arm's summed expected deaths, a property of the arm rather than an
 #'   estimate needing an interval.
-triage_treated_pooled <- function(rows) {
+triage_treated_rate <- function(rows) {
   do.call(rbind, lapply(unique(rows$arm), function(a) {
     x <- rows[rows$arm == a, ]
     rates <- x$treated_dow_rate[!is.na(x$treated_dow_rate)]

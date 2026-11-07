@@ -238,7 +238,7 @@ write.csv(summary_rows,
           scenario_output_path(OUTPUT_DIR, "saturation_sweep", opt$scenario),
           row.names = FALSE)
 if (!is.null(paired)) {
-  write.csv(paired,
+  write.csv(holm_adjust(paired),
             scenario_output_path(OUTPUT_DIR, "saturation_sweep_paired", opt$scenario),
             row.names = FALSE)
 }

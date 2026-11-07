@@ -20,8 +20,8 @@
 # seeds from R's PRNG, though not the same casualty stream: R/hold_window.R's
 # header and docs/Methods.md's "The R2B Pre-Open Hold Window"
 # record why introducing the hold shifts the stream from the first hold
-# onward, and why the paired difference is reported anyway as the more precise
-# of the two comparisons available.
+# onward, which is why the paired difference is valid but no more precise than
+# an unpaired one.
 #
 # --refresh-baseline is the only way to write the tracked data/hold_window/,
 # and it runs the documented protocol (30 replications x 360 days x 2 arms at
@@ -149,7 +149,7 @@ write.csv(per_replication,
 write.csv(summary_rows,
           scenario_output_path(OUTPUT_DIR, "hold_window_summary", opt$scenario),
           row.names = FALSE)
-write.csv(paired,
+write.csv(holm_adjust(paired),
           scenario_output_path(OUTPUT_DIR, "hold_window_paired", opt$scenario),
           row.names = FALSE)
 message(sprintf("Hold window responses, summary and paired differences written to %s",

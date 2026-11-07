@@ -555,10 +555,13 @@ summarise_policy <- function(rows, arm_column = "policy_days") {
 #' @return One-row data frame of response, from, to, n_pairs, mean difference,
 #'   its 95% interval and the paired t-test's p-value.
 #'
-#' @details The difference is taken within replication rather than between arm
-#'   means, the arms sharing a seed vector, which removes the campaign-to-
-#'   campaign variance that would otherwise swamp it. A response absent in
-#'   either arm of a pair drops that pair rather than the whole comparison.
+#' @details The difference is taken within replication, the arms sharing a
+#'   seed vector. They do not share a casualty stream, a changed setting
+#'   altering the draws a replication takes, and the measured correlation
+#'   between two arms within a replication is about zero (docs/Methods.md,
+#'   Independence of Replications), so the paired interval is valid but no
+#'   narrower than an unpaired one would be. A response absent in either arm of
+#'   a pair drops that pair rather than the whole comparison.
 #'
 #'   `n_pairs` is reported so that a difference resting on few pairs is visible,
 #'   and the p-value so that a difference the count cannot establish is reported

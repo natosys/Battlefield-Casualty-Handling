@@ -283,6 +283,34 @@ block_means <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS) {
   out[order(out$series, out$subject, out$block), ]
 }
 
+#' Mean of each response over each block of the campaign, within each replication
+#'
+#' @param series Long-horizon series as returned by run_long_horizon(), carrying
+#'   `replication`, `day`, `series`, `subject` and `value`.
+#' @param block_days Block length in days (default LONG_HORIZON_BLOCK_DAYS).
+#' @return Data frame of replication, series, subject, block and value, the
+#'   replication's own mean over the block's days.
+#'
+#' @details The per-replication counterpart of block_means(), from which
+#'   classify_stability() takes one late-half slope per replication, so that the
+#'   interval on the trend is taken across replications, the project's unit of
+#'   analysis, rather than across serially correlated blocks.
+replication_block_means <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS) {
+  series$block <- floor((series$day - 1L) / block_days) + 1L
+  aggregate(value ~ replication + series + subject + block, data = series, FUN = mean)
+}
+
+#' Least-squares slope of a set of points
+#'
+#' @param x Abscissae.
+#' @param y Ordinates.
+#' @return The slope, zero where `y` does not vary.
+ols_slope <- function(x, y) {
+  vx <- sum((x - mean(x))^2)
+  if (vx == 0) return(0)
+  sum((x - mean(x)) * (y - mean(y))) / vx
+}
+
 #' Smallest per-block drift, as a share of a response's own level, that is
 #' reported as a trend rather than as flat
 #'
@@ -309,9 +337,41 @@ STABILITY_DRIFT_THRESHOLD <- 0.01
 #'   would otherwise be read from.
 STABILITY_SETTLE_SDS <- 2
 
+#' Late-half slope of one response and its 95% interval
+#'
+#' @param d The response's cross-replication block means, in block order.
+#' @param late The late-half rows of `d`.
+#' @param rep_blocks Per-replication block means, or NULL.
+#' @return A list of `slope` and the two-element `ci`.
+#'
+#' @details With at least two replications of the response in `rep_blocks`, the
+#'   slope is the mean of the per-replication least-squares slopes over the late
+#'   blocks and the interval the Student $t$ interval across them; otherwise the
+#'   least-squares fit to the late block means and its interval.
+late_trend <- function(d, late, rep_blocks) {
+  own <- if (is.null(rep_blocks)) NULL else
+    rep_blocks[rep_blocks$series == d$series[1] & rep_blocks$subject == d$subject[1] &
+                 rep_blocks$block %in% late$block, ]
+  if (!is.null(own) && length(unique(own$replication)) >= 2) {
+    slopes <- vapply(split(own, own$replication), function(r) ols_slope(r$block, r$value),
+                     numeric(1))
+    k <- length(slopes)
+    m <- mean(slopes)
+    e <- qt(0.975, df = k - 1) * sd(slopes) / sqrt(k)
+    return(list(slope = m, ci = c(m - e, m + e)))
+  }
+  fit <- lm(mean ~ block, data = late)
+  list(slope = unname(coef(fit)["block"]), ci = unname(confint(fit)["block", ]))
+}
+
 #' Classify each response as converged, drifting or degenerate over the horizon
 #'
 #' @param blocks Per-block means as returned by block_means().
+#' @param rep_blocks Per-replication block means of the same responses, as
+#'   replication_block_means() returns them, or NULL. Where given, and a response
+#'   carries at least two replications, the late slope and its interval are taken
+#'   across replications; otherwise from a least-squares fit to `blocks` alone,
+#'   which is the case for a series that is itself one replication.
 #' @return Data frame of series, subject, first, last, late_mean, slope,
 #'   ci_lower, ci_upper, drift_per_block, settles_by_block and stability, one
 #'   row per response.
@@ -327,6 +387,12 @@ STABILITY_SETTLE_SDS <- 2
 #'   expected and is not evidence against convergence; what distinguishes the
 #'   two is whether the response is still moving once that opening has passed.
 #'
+#'   With `rep_blocks`, the late slope is the mean of one least-squares slope
+#'   per replication over the same late blocks, and its interval the Student $t$
+#'   interval across replications: the replication is the unit of analysis, and
+#'   a fit to the cross-replication block means would take its interval across
+#'   blocks whose values carry from one to the next.
+#'
 #'   `stability` is "degenerate" where the response never moved, which carries
 #'   no information about convergence and would otherwise be reported as a
 #'   perfectly determined zero trend; "converged" where the late slope's
@@ -340,7 +406,7 @@ STABILITY_SETTLE_SDS <- 2
 #'   the deviation being the response's own across the late blocks, and is NA for a
 #'   drifting or degenerate response. For a converged response it is the
 #'   quantity a warm-up period would be read from.
-classify_stability <- function(blocks) {
+classify_stability <- function(blocks, rep_blocks = NULL) {
   parts <- split(blocks, list(blocks$series, blocks$subject), drop = TRUE)
   out <- do.call(rbind, lapply(parts, function(d) {
     d <- d[order(d$block), ]
@@ -380,9 +446,9 @@ classify_stability <- function(blocks) {
       return(row_for(0, c(0, 0), 0, as.integer(ceiling(n / 2)), "converged"))
     }
 
-    fit   <- lm(mean ~ block, data = late)
-    ci    <- unname(confint(fit)["block", ])
-    slope <- unname(coef(fit)["block"])
+    trend <- late_trend(d, late, rep_blocks)
+    slope <- trend$slope
+    ci    <- trend$ci
     drift <- slope / max(abs(level), .Machine$double.eps)
 
     converged <- (ci[1] < 0 && ci[2] > 0) || abs(drift) < STABILITY_DRIFT_THRESHOLD

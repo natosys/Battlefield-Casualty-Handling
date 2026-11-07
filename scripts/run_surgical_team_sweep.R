@@ -225,7 +225,7 @@ write.csv(per_replication,
 write.csv(summary_rows,
           scenario_output_path(OUTPUT_DIR, "surgical_team_sweep_summary", opt$scenario),
           row.names = FALSE)
-write.csv(paired,
+write.csv(holm_adjust(paired),
           scenario_output_path(OUTPUT_DIR, "surgical_team_sweep_paired", opt$scenario),
           row.names = FALSE)
 if (!is.null(stability)) {

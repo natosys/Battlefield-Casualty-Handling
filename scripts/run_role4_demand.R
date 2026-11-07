@@ -128,7 +128,8 @@ if ("intensity" %in% arms) {
   # rather than an assumption.
   stability <- do.call(rbind, lapply(ROLE4_DEMAND_SCENARIOS, function(scenario) {
     d <- series[series$scenario == scenario & series$series == "census", ]
-    cbind(scenario = scenario, classify_stability(block_means(d)), row.names = NULL)
+    cbind(scenario = scenario, classify_stability(block_means(d), replication_block_means(d)),
+          row.names = NULL)
   }))
 
   gz <- gzfile(file.path(OUTPUT_DIR, "role4_demand_series.csv.gz"), "w")

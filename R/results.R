@@ -679,7 +679,7 @@ TRIAGE_STABILITY_ROWS <- c(
 #'
 #' @details The split row restates each arm's priority shares, the remainder
 #'   divided 20:15 between Priority 2 and Priority 3. The treated-cohort rate is
-#'   pooled over the arm's replications with its exact binomial interval, and
+#'   the mean of the per-replication rates with its Student t interval, and
 #'   the post-operative share is that of the arm's expected deaths, both read
 #'   from the treated cohort file; the classifications are read from the
 #'   stability file the sweep wrote from its own daily series.
@@ -734,7 +734,7 @@ build_triage_split <- function(data_dir, suffix = "") {
   rows <- c(
     list(c("Priority split (%, P1 / P2 / P3)", split_cells)),
     lapply(TRIAGE_ROWS[1:3], one),
-    list(c("Treated-cohort died-of-wounds rate (pooled, exact interval)",
+    list(c("Treated-cohort died-of-wounds rate",
            vapply(arms, function(a) {
              x <- treated(a)
              sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower,
@@ -1495,12 +1495,43 @@ res_resolution_hits <- function(data_dir) {
   })
 }
 
+#' Family-wise level at which a paired difference counts as resolved
+#'
+#' @details The Holm adjustment is applied within each paired-difference file,
+#'   one experiment at one intensity (holm_adjust(), R/analysis_common.R); a
+#'   difference is resolved when its interval excludes zero and its adjusted
+#'   p-value is at most this level. Restated here rather than read from that
+#'   module, `R/results.R` being base R alone.
+RES_HOLM_ALPHA <- 0.05
+
 #' Whether a paired difference's interval contains zero
 #'
 #' @param hit One paired-difference row.
-#' @return TRUE where the 95% interval spans zero, so the difference is not resolved.
+#' @return TRUE where the 95% interval spans zero.
 res_spans_zero <- function(hit) {
   hit$ci_lower <= 0 && hit$ci_upper >= 0
+}
+
+#' Whether a paired difference is resolved
+#'
+#' @param hit One paired-difference row, carrying `p_holm`.
+#' @return TRUE where the interval excludes zero and the Holm-adjusted p-value is
+#'   at most RES_HOLM_ALPHA; an error where the file carries no adjusted p-value,
+#'   so a file written before the adjustment cannot pass as resolved.
+res_resolved <- function(hit) {
+  if (!"p_holm" %in% names(hit)) {
+    stop("paired-difference file carries no p_holm column", call. = FALSE)
+  }
+  !res_spans_zero(hit) && !is.na(hit$p_holm) && hit$p_holm <= RES_HOLM_ALPHA
+}
+
+#' A Holm-adjusted p-value as one cell
+#'
+#' @param p The adjusted p-value.
+#' @return Three decimal places, or "<0.001".
+res_p_cell <- function(p) {
+  if (is.na(p)) return("not tested")
+  if (p < 0.001) "<0.001" else sprintf("%.3f", p)
 }
 
 #' A paired difference and its interval as one cell
@@ -1515,45 +1546,50 @@ res_paired_cell <- function(hit) {
 #' Resolution of the paired differences the experiments leave open
 #'
 #' @param data_dir The data directory.
-#' @return The table lines: each difference whose interval contains zero, with the
-#'   half-width its experiment sized it against and the replications that half-width
-#'   requires.
+#' @return The table lines: each difference not resolved, with its Holm-adjusted
+#'   p-value, the half-width its experiment sized it against and the replications
+#'   that half-width requires.
 #'
-#' @details A comparison whose interval excludes zero is resolved at the replications
-#'   run, so it is left out here and printed by `build_resolved()` instead. The split is
-#'   taken from the evidence on every render, so a re-run that resolves a difference
-#'   moves it between the tables rather than leaving it listed as open.
+#' @details A comparison is resolved where its interval excludes zero and it
+#'   survives the Holm adjustment within its experiment (res_resolved()), and is then
+#'   left out here and printed by `build_resolved()` instead. The split is taken from
+#'   the evidence on every render, so a re-run that resolves a difference moves it
+#'   between the tables rather than leaving it listed as open.
 build_resolution <- function(data_dir) {
-  hits <- Filter(function(h) res_spans_zero(h$hit), res_resolution_hits(data_dir))
+  hits <- Filter(function(h) !res_resolved(h$hit), res_resolution_hits(data_dir))
   rows <- lapply(hits, function(h) {
-    c(h$spec[[7]], res_paired_cell(h$hit), res_num(h$spec[[6]], 1L),
-      res_num(h$hit$reps_needed, 0L, big = TRUE))
+    c(h$spec[[7]], res_paired_cell(h$hit), res_p_cell(h$hit$p_holm),
+      res_num(h$spec[[6]], 1L), res_num(h$hit$reps_needed, 0L, big = TRUE))
   })
-  res_table(c("Comparison", "Paired difference", "Half-width sought", "Replications needed"),
-            rows)
+  res_table(c("Comparison", "Paired difference", "Holm-adjusted p", "Half-width sought",
+              "Replications needed"), rows)
 }
 
 #' The paired differences the experiments resolved
 #'
 #' @param data_dir The data directory.
-#' @return The table lines: each comparison of `RESOLUTION_ROWS` whose 95% interval
-#'   excludes zero, with its difference and interval.
+#' @return The table lines: each comparison of `RESOLUTION_ROWS` that is resolved,
+#'   with its difference, interval and Holm-adjusted p-value.
 build_resolved <- function(data_dir) {
-  hits <- Filter(function(h) !res_spans_zero(h$hit), res_resolution_hits(data_dir))
-  rows <- lapply(hits, function(h) c(h$spec[[7]], res_paired_cell(h$hit)))
-  res_table(c("Comparison", "Paired difference"), rows)
+  hits <- Filter(function(h) res_resolved(h$hit), res_resolution_hits(data_dir))
+  rows <- lapply(hits, function(h) {
+    c(h$spec[[7]], res_paired_cell(h$hit), res_p_cell(h$hit$p_holm))
+  })
+  res_table(c("Comparison", "Paired difference", "Holm-adjusted p"), rows)
 }
 
-#' Rows of a printed resolution table whose interval excludes zero
+#' Rows of a printed resolution table that are resolved
 #'
 #' @param text A document as one string.
 #' @param span The name of the generated span holding the table.
-#' @return The comparison labels of every row whose printed interval excludes zero;
-#'   empty where every interval contains it. An error where the span is absent.
+#' @return The comparison labels of every row whose printed interval excludes zero
+#'   and whose printed Holm-adjusted p-value is at most RES_HOLM_ALPHA; empty where
+#'   no row is resolved. An error where the span is absent.
 #'
-#' @details Reads the interval as the document prints it rather than from the
-#'   evidence, so a row typed or rendered into the table is caught whatever produced it.
-res_resolution_excluding_zero <- function(text, span = "resolution") {
+#' @details Reads the interval and the adjusted p-value as the document prints
+#'   them rather than from the evidence, so a row typed or rendered into the table
+#'   is caught whatever produced it.
+res_resolution_resolved_rows <- function(text, span = "resolution") {
   open <- sprintf("<!-- GEN %s -->", span)
   at <- regexpr(open, text, fixed = TRUE)
   if (at < 0L) stop(sprintf("no '%s' span in the document", span), call. = FALSE)
@@ -1566,10 +1602,17 @@ res_resolution_excluding_zero <- function(text, span = "resolution") {
   #' @param x The bound as printed, signed with a plus or a minus sign.
   #' @return The bound as a numeric.
   bound <- function(x) as.numeric(gsub(",", "", gsub("\u2212", "-", sub("^\\+", "", x))))
+  #' Parse one printed adjusted p-value
+  #'
+  #' @param x The p-value as printed, a decimal or "<0.001".
+  #' @return The p-value as a numeric, NA where it is not printed as one.
+  p_of <- function(x) if (identical(x, "<0.001")) 0 else suppressWarnings(as.numeric(x))
   out <- character(0)
   for (r in rows) {
     ci <- regmatches(r[2], regexec("\\[([^]]+), ([^]]+)\\]", r[2]))[[1]]
-    if (length(ci) != 3L || bound(ci[2]) > 0 || bound(ci[3]) < 0) out <- c(out, r[1])
+    excludes <- length(ci) != 3L || bound(ci[2]) > 0 || bound(ci[3]) < 0
+    p <- if (length(r) >= 3L) p_of(r[3]) else NA_real_
+    if (excludes && !is.na(p) && p <= RES_HOLM_ALPHA) out <- c(out, r[1])
   }
   out
 }

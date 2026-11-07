@@ -175,33 +175,37 @@ summarise_casualty_surge_counts <- function(rows) {
   }))
 }
 
-#' Pooled died-of-wounds rate and its exact binomial interval
+#' Died-of-wounds rate across replications and its Student t interval
 #'
 #' @param n_col Name of the column carrying each replication's count at risk.
 #' @param dow_col Name of the column carrying each replication's death count.
 #' @param rows Per-replication responses carrying both columns.
-#' @return One-row data frame of n, dow, rate, ci_lower and ci_upper.
+#' @return One-row data frame of n and dow (the totals over the replications),
+#'   n_reps (the replications with anyone at risk), rate, ci_lower and ci_upper.
 #'
-#' @details The rate is pooled across replications rather than averaged
-#'   per-replication, on the convention `tests/checks/check_dow_calibration.R` and
-#'   `tests/checks/check_airlift_collapse_protocol.R` both use for a count too rare
-#'   to summarise one replication at a time: a died-of-wounds count of a
-#'   handful per 62-replication arm leaves most individual replications with
-#'   zero deaths, so a mean and standard deviation taken across replications
-#'   would describe the noise in which replications drew a death rather than
-#'   the rate itself. `binom.test()`'s exact Clopper-Pearson interval is used
-#'   rather than a normal approximation, which would be unstable at these
-#'   counts and could extend below zero.
+#' @details The rate is the mean of the per-replication rates with the Student
+#'   $t$ interval across replications, the project's default: the replication is
+#'   the unit of analysis, and casualties within one campaign are not independent
+#'   trials, so a binomial interval on the pooled count would be too narrow. A
+#'   replication with nobody at risk (an event rate in the background-only arm)
+#'   contributes no rate. The lower bound is clamped at zero, a mortality rate
+#'   being non-negative. At the sustained horizon every replication of an
+#'   injected arm carries thousands at risk, so the mean of the rates and the
+#'   pooled rate agree closely.
 casualty_surge_dow_rate <- function(rows, n_col, dow_col) {
   n   <- sum(rows[[n_col]])
   dow <- sum(rows[[dow_col]])
-  if (n == 0) {
-    return(data.frame(n = 0L, dow = 0L, rate = NA_real_,
+  at_risk <- rows[[n_col]] > 0
+  rates <- rows[[dow_col]][at_risk] / rows[[n_col]][at_risk]
+  k <- length(rates)
+  if (k == 0) {
+    return(data.frame(n = n, dow = dow, n_reps = 0L, rate = NA_real_,
                       ci_lower = NA_real_, ci_upper = NA_real_))
   }
-  test <- binom.test(dow, n)
-  data.frame(n = n, dow = dow, rate = dow / n,
-             ci_lower = test$conf.int[1], ci_upper = test$conf.int[2])
+  m <- mean(rates)
+  e <- if (k > 1) qt(0.975, df = k - 1) * sd(rates) / sqrt(k) else 0
+  data.frame(n = n, dow = dow, n_reps = k, rate = m,
+             ci_lower = max(0, m - e), ci_upper = m + e)
 }
 
 # ── Event size sweep ────────────────────────────────────────────────────────
@@ -286,7 +290,8 @@ run_casualty_surge_size_measurement <- function(size,
 #' @param rows Per-replication responses from
 #'   run_casualty_surge_size_measurement(), bound across sizes.
 #' @return Data frame of size, n_reps, mean events, largest realised event,
-#'   pooled event and ordinary died-of-wounds rates with exact intervals, and
+#'   event and ordinary died-of-wounds rates with Student t intervals across
+#'   replications, and
 #'   the mean and 95% interval of each `peak_queue_<n>` response.
 summarise_casualty_surge_size <- function(rows) {
   peaks <- grep("^peak_queue_", names(rows), value = TRUE)

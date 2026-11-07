@@ -372,26 +372,31 @@ triage_stability <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS) {
   }))
 }
 
-#' Treated-cohort died-of-wounds rate of each arm, pooled over its replications
+#' Treated-cohort died-of-wounds rate of each arm across its replications
 #'
 #' @param rows Per-replication responses of every arm, carrying `arm`,
-#'   `treated_n`, `treated_dow`, `expected_early` and `expected_late`.
-#' @return One row per arm: the pooled rate, an exact binomial interval on it,
-#'   and the share of expected deaths accrued after surgery.
+#'   `treated_n`, `treated_dow`, `treated_dow_rate`, `expected_early` and
+#'   `expected_late`.
+#' @return One row per arm: the cohort and death totals, the mean of the
+#'   per-replication rates with its Student $t$ interval, and the share of
+#'   expected deaths accrued after surgery.
 #'
-#' @details Pooled rather than averaged per replication, so a replication's
-#'   weight is its cohort, as the calibration measures the rate; the interval is
-#'   the Clopper-Pearson one, which cannot extend below zero.
+#' @details The interval is taken across replications, the project's unit of
+#'   analysis, as the calibration measures the rate, rather than across
+#'   casualties, which are not independent trials within one campaign; the lower
+#'   bound is clamped at zero. The post-operative share is the ratio of the
+#'   arm's summed expected deaths, a property of the arm rather than an
+#'   estimate needing an interval.
 triage_treated_pooled <- function(rows) {
   do.call(rbind, lapply(unique(rows$arm), function(a) {
     x <- rows[rows$arm == a, ]
-    n <- sum(x$treated_n)
-    d <- sum(x$treated_dow)
-    ci <- if (n > 0) stats::binom.test(d, n)$conf.int else c(NA_real_, NA_real_)
+    rates <- x$treated_dow_rate[!is.na(x$treated_dow_rate)]
+    k <- length(rates)
+    m <- if (k > 0) mean(rates) else NA_real_
+    e <- if (k > 1) qt(0.975, df = k - 1) * sd(rates) / sqrt(k) else 0
     expected <- sum(x$expected_early) + sum(x$expected_late)
-    data.frame(arm = a, treated_n = n, treated_dow = d,
-               rate = if (n > 0) d / n else NA_real_,
-               ci_lower = ci[1], ci_upper = ci[2],
+    data.frame(arm = a, treated_n = sum(x$treated_n), treated_dow = sum(x$treated_dow),
+               rate = m, ci_lower = max(0, m - e), ci_upper = m + e,
                post_op_share = if (expected > 0) sum(x$expected_late) / expected else NA_real_,
                stringsAsFactors = FALSE)
   }))

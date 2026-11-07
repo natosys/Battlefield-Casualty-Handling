@@ -263,17 +263,17 @@ cat("\n-- the resolution table's half-widths are those the experiments sized aga
 #' A document with one resolved comparison typed into its resolution table
 #'
 #' @param doc The document as one string.
-#' @return The document with a row whose interval excludes zero appended to the table.
+#' @return The document with a resolved row appended to the table.
 inject_resolved_row <- function(doc) {
-  row <- "| Injected | +1.00 [+0.10, +1.90] | 1.0 | 9 |"
+  row <- "| Injected | +1.00 [+0.10, +1.90] | 0.010 | 1.0 | 9 |"
   sub("(<!-- GEN resolution -->\n(\\|[^\n]*\n)+)", paste0("\\1", row, "\n"), doc, perl = TRUE)
 }
-open_rows <- res_resolution_excluding_zero(text)
+open_rows <- res_resolution_resolved_rows(text)
 report(length(open_rows) == 0L,
-       "every row of the resolution table has an interval spanning zero (excluding: %s)",
+       "no row of the resolution table is resolved after the Holm adjustment (resolved: %s)",
        paste(open_rows, collapse = "; "))
-report(identical(res_resolution_excluding_zero(inject_resolved_row(text)), "Injected"),
-       "a row whose interval excludes zero, injected into the table, is caught")
+report(identical(res_resolution_resolved_rows(inject_resolved_row(text)), "Injected"),
+       "a resolved row, injected into the table, is caught")
 
 
 for (spec in RESOLUTION_ROWS) {

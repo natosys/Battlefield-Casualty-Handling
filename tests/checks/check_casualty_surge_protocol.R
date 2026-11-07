@@ -357,21 +357,24 @@ single_tc <- single[single$response == "total_casualties", ]
 report(nrow(single_tc) == 1 && single_tc$ci_lower == 4 && single_tc$ci_upper == 4,
        "a single-replication response carries an interval equal to its mean")
 
-# 6 deaths of 2000 at risk: an exact binomial (Clopper-Pearson) 95% interval
-# on that proportion is computable independently of the function under test.
-known_dow <- data.frame(n_ordinary = c(1000, 1000), dow_ordinary = c(3, 3))
+# Rates of 2, 4 and 3 per 1,000 in three replications, and a fourth with nobody
+# at risk: the mean rate is 0.003 and the Student t interval across the three
+# replications at risk is 0.003 +/- qt(0.975, 2) * 0.001 / sqrt(3), computable
+# independently of the function under test.
+known_dow <- data.frame(n_ordinary = c(1000, 1000, 1000, 0), dow_ordinary = c(2, 4, 3, 0))
 dow_rate_computed <- casualty_surge_dow_rate(known_dow, "n_ordinary", "dow_ordinary")
-expected_test <- binom.test(6, 2000)
-report(dow_rate_computed$n == 2000 && dow_rate_computed$dow == 6,
-       "the died-of-wounds rate pools counts across replications (n=%d, dow=%d)",
-       dow_rate_computed$n, dow_rate_computed$dow)
-report(abs(dow_rate_computed$rate - 6 / 2000) < TOL,
-       "the pooled rate is dow / n (%.6f against %.6f)", dow_rate_computed$rate, 6 / 2000)
-report(abs(dow_rate_computed$ci_lower - expected_test$conf.int[1]) < TOL &&
-         abs(dow_rate_computed$ci_upper - expected_test$conf.int[2]) < TOL,
-       "the interval is the exact binomial one ([%.6f, %.6f] against [%.6f, %.6f])",
-       dow_rate_computed$ci_lower, dow_rate_computed$ci_upper,
-       expected_test$conf.int[1], expected_test$conf.int[2])
+half <- qt(0.975, 2) * 0.001 / sqrt(3)
+report(dow_rate_computed$n == 3000 && dow_rate_computed$dow == 9 &&
+         dow_rate_computed$n_reps == 3,
+       "the totals are carried and a replication with nobody at risk adds no rate (n=%d, k=%d)",
+       dow_rate_computed$n, dow_rate_computed$n_reps)
+report(abs(dow_rate_computed$rate - 0.003) < TOL,
+       "the rate is the mean of the per-replication rates (%.6f against 0.003)",
+       dow_rate_computed$rate)
+report(abs(dow_rate_computed$ci_lower - (0.003 - half)) < TOL &&
+         abs(dow_rate_computed$ci_upper - (0.003 + half)) < TOL,
+       "the interval is the Student t one across replications ([%.6f, %.6f] against [%.6f, %.6f])",
+       dow_rate_computed$ci_lower, dow_rate_computed$ci_upper, 0.003 - half, 0.003 + half)
 
 # No casualties at risk in a subset (the background-only arm's event column)
 # is reported as not applicable rather than as a rate of zero.

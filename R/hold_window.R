@@ -16,7 +16,7 @@
 # The two arms are not the same realisation. Introducing the hold shifts
 # simmer's single global random stream from the first hold onward, so the two
 # arms drift into different casualty streams rather than sharing one; pairing
-# on a common control seed removes none of the between-run variance this
+# on a common control seed removes little of the between-run variance this
 # implies (docs/Methods.md, "The R2B Pre-Open Hold Window"). Each
 # replication is reduced to one row of the response set inside the forked
 # worker that produced it, on the arrangement R/policy_sweep.R and R/airlift.R
@@ -194,10 +194,10 @@ summarise_hold_window <- function(rows, arm_column = "window_min") {
 #'   its 95% interval and the paired t-test's p-value.
 #'
 #' @details The difference is taken within replication rather than between arm
-#'   means, which is the more precise comparison of the two even though the
-#'   arms do not share a casualty stream: it still removes whatever variance
-#'   the shared parent seed carries between the two draws of `sample.int()`,
-#'   and is reported alongside each arm's own interval rather than in place of
+#'   means. The arms do not share a casualty stream and their correlation
+#'   within a replication is about zero, so the paired interval is valid but
+#'   no narrower than an unpaired one; it is reported alongside each arm's own
+#'   interval rather than in place of
 #'   it. `n_pairs` is reported so that a difference resting on few pairs is
 #'   visible, and the p-value so that a difference the count cannot establish
 #'   is reported as unresolved rather than as absent.

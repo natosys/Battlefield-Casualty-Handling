@@ -352,3 +352,38 @@ r2b_leave_time <- function(combined) {
   ifelse(!is.na(departed), departed,
          ifelse(!is.na(echelon) & echelon == 2, returned, NA_real_))
 }
+
+#' Family-wise significance level the Holm adjustment controls
+HOLM_FAMILY_ALPHA <- 0.05
+
+#' Add the Holm-adjusted p-value to a file of paired differences
+#'
+#' @param paired Data frame of paired differences, one row per comparison,
+#'   carrying the unadjusted p-value in `p_column`.
+#' @param p_column Name of the unadjusted p-value column (default `p_value`).
+#' @return `paired` with a `p_holm` column; a row whose p-value is NA keeps an
+#'   NA adjusted value and is left out of the family.
+#'
+#' @details The family is every comparison in the file, which is one experiment
+#'   at one intensity, so the label "measured" a planner reads is controlled at
+#'   HOLM_FAMILY_ALPHA across every effect that experiment reports rather than
+#'   one effect at a time. Holm's step-down procedure (Aickin and Gensler, 1996)
+#'   orders the $m$ p-values and multiplies the $j$th smallest by $m - j + 1$,
+#'   carrying the running maximum so that the adjusted values keep their order;
+#'   it controls the family-wise error rate under any dependence between the
+#'   responses, which matters because queues, occupancy and deaths move
+#'   together, and it rejects everything Bonferroni does and more. A row whose
+#'   p-value is NA, a difference with no spread, is not a test and is not
+#'   counted in $m$.
+holm_adjust <- function(paired, p_column = "p_value") {
+  if (is.null(paired) || nrow(paired) == 0) return(paired)
+  if (!p_column %in% names(paired)) {
+    stop(sprintf("holm_adjust: no '%s' column to adjust", p_column), call. = FALSE)
+  }
+  p <- paired[[p_column]]
+  tested <- !is.na(p)
+  adjusted <- rep(NA_real_, length(p))
+  adjusted[tested] <- stats::p.adjust(p[tested], method = "holm")
+  paired$p_holm <- adjusted
+  paired
+}

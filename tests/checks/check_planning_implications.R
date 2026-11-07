@@ -22,7 +22,8 @@
 # figure cannot differ from the evidence it cites; that no figure is typed
 # outside a span and that every paragraph or table row carrying one links the
 # section of the results paper it comes from; that the lever table covers
-# every lever the results paper reports and labels each; and that no design or
+# every lever the results paper reports and labels each, none measured on a
+# quoted difference that fails the Holm adjustment; and that no design or
 # provenance content has crept back in. It also asserts that the half-widths
 # behind the resolution table are the ones the experiments' own scripts sized
 # their replication counts against, and that no comparison it lists as
@@ -233,6 +234,14 @@ if (length(at) == 1L) {
     length(cells) == length(LEVER_COLUMNS) && nzchar(cells[3])
   }, logical(1))]
   report(length(unpriced) == 0L, "every lever row states a cost (%d without)", length(unpriced))
+  # A quoted paired difference carrying the Holm marker excludes zero without
+  # being resolved, so a cell labelled measured cannot rest on one.
+  on_holm_failure <- unlist(lapply(parsed, function(cells) {
+    cells[grepl("**Measured**", cells, fixed = TRUE) & grepl(RES_HOLM_MARK, cells, fixed = TRUE)]
+  }))
+  report(length(on_holm_failure) == 0L,
+         "no lever is labelled measured on a difference failing the Holm adjustment (%d cells)",
+         length(on_holm_failure))
 
   needed <- character(0)
   for (heading in COVERED_SECTIONS) {
@@ -263,17 +272,17 @@ cat("\n-- the resolution table's half-widths are those the experiments sized aga
 #' A document with one resolved comparison typed into its resolution table
 #'
 #' @param doc The document as one string.
-#' @return The document with a row whose interval excludes zero appended to the table.
+#' @return The document with a resolved row appended to the table.
 inject_resolved_row <- function(doc) {
-  row <- "| Injected | +1.00 [+0.10, +1.90] | 1.0 | 9 |"
+  row <- "| Injected | +1.00 [+0.10, +1.90] | 0.010 | 1.0 | 9 |"
   sub("(<!-- GEN resolution -->\n(\\|[^\n]*\n)+)", paste0("\\1", row, "\n"), doc, perl = TRUE)
 }
-open_rows <- res_resolution_excluding_zero(text)
+open_rows <- res_resolution_resolved_rows(text)
 report(length(open_rows) == 0L,
-       "every row of the resolution table has an interval spanning zero (excluding: %s)",
+       "no row of the resolution table is resolved after the Holm adjustment (resolved: %s)",
        paste(open_rows, collapse = "; "))
-report(identical(res_resolution_excluding_zero(inject_resolved_row(text)), "Injected"),
-       "a row whose interval excludes zero, injected into the table, is caught")
+report(identical(res_resolution_resolved_rows(inject_resolved_row(text)), "Injected"),
+       "a resolved row, injected into the table, is caught")
 
 
 for (spec in RESOLUTION_ROWS) {

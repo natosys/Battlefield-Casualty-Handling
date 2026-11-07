@@ -154,7 +154,7 @@ write.csv(per_replication,
 write.csv(summary_rows,
           scenario_output_path(OUTPUT_DIR, "icu_gate_summary", opt$scenario),
           row.names = FALSE)
-write.csv(paired,
+write.csv(holm_adjust(paired),
           scenario_output_path(OUTPUT_DIR, "icu_gate_paired", opt$scenario),
           row.names = FALSE)
 message(sprintf("Intensive care gate responses, summary and paired differences written to %s",

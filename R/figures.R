@@ -430,7 +430,7 @@ plot_casualty_surge_size <- function(size_df) {
     geom_point(size = 2) +
     labs(title = "Died-of-Wounds Rate against Casualty Surge Event Size",
          subtitle = sprintf(paste("%d replications per size over 360 days;",
-                                  "pooled exact binomial 95%% intervals"), max(size_df$n_reps)),
+                                  "Student t 95%% intervals across replications"), max(size_df$n_reps)),
          x = "Casualties per event (0 = no events injected)", y = "Died of wounds (%)",
          color = NULL, fill = NULL) +
     theme_minimal(base_size = 13) +

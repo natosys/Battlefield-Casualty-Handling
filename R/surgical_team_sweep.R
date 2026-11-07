@@ -276,7 +276,8 @@ run_surgical_measurement <- function(n_iterations = SURGICAL_SWEEP_REPLICATIONS,
 #'   day, the drift per block and `converged`, `drifting` or `degenerate`.
 #'
 #' @details The classification is classify_stability()'s, on the block means
-#'   block_means() takes of the arm's own replications, so the verdict is the
+#'   of the arm's own replications with the late slope taken within each
+#'   replication and its interval across them, so the verdict is the
 #'   one the sustained-operations section reaches for the shipped establishment.
 #'   The shortfall per day is the late slope divided by the block length, with
 #'   the slope's interval, as `docs/Methods.md` defines it.
@@ -290,8 +291,9 @@ surgical_stability <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS,
                  SURGICAL_SWEEP_MIN_BLOCKS), call. = FALSE)
   }
   do.call(rbind, lapply(unique(queue$arm), function(a) {
-    blocks <- block_means(queue[queue$arm == a, ], block_days)
-    st <- classify_stability(blocks)
+    own <- queue[queue$arm == a, ]
+    st <- classify_stability(block_means(own, block_days),
+                             replication_block_means(own, block_days))
     st$arm <- a
     st$shortfall_per_day <- st$slope / block_days
     st$shortfall_lower <- st$ci_lower / block_days

@@ -412,6 +412,7 @@ seconds.
 | `check_screen_cache.R` | slow | 7 s | a screen's point cache resumes what it recorded |
 | `check_screen_order.R` | slow | 159 s | a screen evaluates its design in order, exactly once |
 | `check_sensitivity_protocol.R` | slow | 3 s | the sensitivity screens' documented design is the design their tracked run metadata records |
+| `check_statistical_method.R` | fast | 6 s | the Holm adjustment and the per-replication stability classification are correct, and every tracked paired file is adjusted |
 | `check_structure_tables.R` | fast | 5 s | the two structure tables list every module and script they claim to |
 | `check_surge_event_size.R` | fast | 10 s | a casualty surge event never exceeds the configured size, however close together events start |
 | `check_surgery_delivery_response.R` | slow | 20 s | the screens measure surgical delivery, and no duplicate theatre response remains |

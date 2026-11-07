@@ -383,9 +383,9 @@ if (!all(file.exists(stability_path, blocks_path))) {
 
   # The figures the section's prose states, each read from the tracked set.
   conv <- stability[stability$stability == "converged", ]
-  report(nrow(conv) == 26 && max(conv$settles_by_block) == 8 &&
-           sum(conv$settles_by_block <= 2) == 13,
-         "26 responses converge, all settle by block 8 and 13 by block 2 (found %d, %d, %d)",
+  report(nrow(conv) == 28 && max(conv$settles_by_block) == 8 &&
+           sum(conv$settles_by_block <= 2) == 15,
+         "28 responses converge, all settle by block 8 and 15 by block 2 (found %d, %d, %d)",
          nrow(conv), max(conv$settles_by_block), sum(conv$settles_by_block <= 2))
 
   mod <- stability[stability$scenario == "moderate_intensity" &
@@ -393,13 +393,16 @@ if (!all(file.exists(stability_path, blocks_path))) {
                      stability$subject %in% c("R2E holding beds", "R2E post-operative overflow",
                                               "system"), ]
   hold <- mod[mod$subject == "R2E holding beds", ]
-  rising <- mod[mod$subject != "R2E holding beds", ]
+  overflow <- mod[mod$subject == "R2E post-operative overflow", ]
+  backlog <- mod[mod$subject == "system", ]
   report(nrow(mod) == 3 && identical(hold$stability, "converged") &&
            hold$ci_lower < 0 && hold$ci_upper > 0 &&
-           all(rising$stability == "drifting") && all(rising$ci_lower > 0),
-         paste("the moderate-intensity R2E holding queue converges on a late slope whose",
-               "interval spans zero, while the post-operative overflow census and the",
-               "evacuation backlog drift on late slopes whose intervals exclude it"))
+           identical(overflow$stability, "converged") &&
+           overflow$ci_lower < 0 && overflow$ci_upper > 0 &&
+           identical(backlog$stability, "drifting") && backlog$ci_lower > 0,
+         paste("the moderate-intensity R2E holding queue and post-operative overflow census",
+               "converge on late slopes whose intervals span zero, while the evacuation",
+               "backlog drifts on a late slope whose interval excludes it"))
 
   #' Mean casualty arrivals per day in one block of one scenario
   #'

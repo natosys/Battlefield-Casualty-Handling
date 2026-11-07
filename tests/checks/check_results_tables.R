@@ -22,8 +22,9 @@
 # with its builders is not two copies of one error), and that nothing in
 # Results.md states a figure outside a span or an interpretation the document
 # disclaims. It also asserts that the resolution table lists no comparison
-# whose interval excludes zero, such a comparison being resolved rather than
-# open. The protocol checks read the tables this document prints, so each
+# that is resolved, its interval excluding zero and its Holm-adjusted p-value
+# within the family-wise level, such a comparison belonging in the resolved
+# table rather than the open one. The protocol checks read the tables this document prints, so each
 # experiment's table is asserted against its tracked evidence there.
 
 invisible(Sys.setlocale("LC_CTYPE", "C.UTF-8"))
@@ -138,7 +139,7 @@ for (d in c("hold_window", "icu_gate", "policy")) {
 #' @return The path written, invisibly; called for its side effect.
 write_toy_paired <- function(path, keys, extra = NULL) {
   d <- cbind(keys, n_pairs = 30L, difference = 0.5, ci_lower = -1, ci_upper = 2,
-             p_value = 0.4, reps_needed = 1234L)
+             p_value = 0.4, p_holm = 0.8, reps_needed = 1234L)
   if (!is.null(extra)) d <- cbind(d, extra)
   write.csv(d, file.path(toy_dir, path), row.names = FALSE)
 }
@@ -153,39 +154,59 @@ resolution <- build_resolution(toy_dir)
 report(length(resolution) == length(RESOLUTION_ROWS) + 2L,
        "the resolution table has one row per comparison (%d lines)", length(resolution))
 report(identical(res_cells(resolution[3]),
-                 c("Hold window, R2E first surgeries", "+0.50 [\u22121.00, +2.00]", "2.0",
-                   "1,234")),
-       "a resolution row prints the difference, the half-width and the replications: %s",
+                 c("Hold window, R2E first surgeries", "+0.50 [\u22121.00, +2.00]", "0.800",
+                   "2.0", "1,234")),
+       paste("a resolution row prints the difference, the Holm-adjusted p-value, the",
+             "half-width and the replications: %s"),
        resolution[3])
 report(inherits(try(build_resolution(file.path(toy_dir, "missing")), silent = TRUE), "try-error"),
        "a resolution table over absent evidence is an error rather than an empty table")
 
 hold <- read.csv(file.path(toy_dir, "hold_window", "hold_window_paired.csv"))
-hold[hold$response == "r2e_first_surgeries", c("ci_lower", "ci_upper")] <- c(0.1, 0.9)
+# The first surgeries row's interval excludes zero but its adjusted p-value does
+# not clear the family-wise level, so it stays open; the deferral row clears both.
+first <- hold$response == "r2e_first_surgeries"
+deferred <- hold$response == "r2e_theatre_deferred"
+hold[first, c("ci_lower", "ci_upper", "p_holm")] <- c(0.1, 0.9, 0.2)
+hold[deferred, c("ci_lower", "ci_upper", "p_holm")] <- c(0.1, 0.9, 0.01)
 write.csv(hold, file.path(toy_dir, "hold_window", "hold_window_paired.csv"), row.names = FALSE)
 split_open <- build_resolution(toy_dir)
 split_shut <- build_resolved(toy_dir)
+report(any(grepl("R2E first surgeries", split_open, fixed = TRUE)),
+       paste("a comparison whose interval excludes zero but whose Holm-adjusted p-value",
+             "exceeds the level stays in the resolution table"))
 report(length(split_open) == length(RESOLUTION_ROWS) + 1L &&
-         !any(grepl("R2E first surgeries", split_open, fixed = TRUE)),
-       "a comparison whose interval excludes zero leaves the resolution table")
-report(identical(split_shut[3], "| Hold window, R2E first surgeries | +0.50 [+0.10, +0.90] |") &&
+         !any(grepl("R2E theatre entry deferred", split_open, fixed = TRUE)),
+       "a comparison that survives the Holm adjustment leaves the resolution table")
+report(identical(split_shut[3],
+                 "| Hold window, R2E theatre entry deferred | +0.50 [+0.10, +0.90] | 0.010 |") &&
          length(split_shut) == 3L,
        "and is printed in the resolved table alone: %s", split_shut[3])
+marks <- vapply(list(hold[first, ], hold[deferred, ], hold[!first & !deferred, ][1, ]),
+                res_holm_mark, character(1))
+report(identical(marks, c(RES_HOLM_MARK, "", "")),
+       paste("a paired cell is marked where its interval excludes zero but it fails the Holm",
+             "adjustment, and only there"))
+no_holm <- hold
+no_holm$p_holm <- NULL
+write.csv(no_holm, file.path(toy_dir, "hold_window", "hold_window_paired.csv"), row.names = FALSE)
+report(inherits(try(build_resolution(toy_dir), silent = TRUE), "try-error"),
+       "a paired file without a Holm-adjusted p-value is an error, not read as resolved")
 
 #' A document with one resolved comparison typed into its resolution table
 #'
 #' @param doc The document as one string.
-#' @return The document with a row whose interval excludes zero appended to the table.
+#' @return The document with a resolved row appended to the table.
 inject_resolved_row <- function(doc) {
-  row <- "| Injected | +1.00 [+0.10, +1.90] | 1.0 | 9 |"
+  row <- "| Injected | +1.00 [+0.10, +1.90] | 0.010 | 1.0 | 9 |"
   sub("(<!-- GEN resolution -->\n(\\|[^\n]*\n)+)", paste0("\\1", row, "\n"), doc, perl = TRUE)
 }
-open_rows <- res_resolution_excluding_zero(text)
+open_rows <- res_resolution_resolved_rows(text)
 report(length(open_rows) == 0L,
-       "every row of the resolution table has an interval spanning zero (excluding: %s)",
+       "no row of the resolution table is resolved after the Holm adjustment (resolved: %s)",
        paste(open_rows, collapse = "; "))
-report(identical(res_resolution_excluding_zero(inject_resolved_row(text)), "Injected"),
-       "a row whose interval excludes zero, injected into the table, is caught")
+report(identical(res_resolution_resolved_rows(inject_resolved_row(text)), "Injected"),
+       "a resolved row, injected into the table, is caught")
 
 write.csv(data.frame(gate_enabled = c(1, 1, 0), icu_pathway_n = c(100, 300, 5),
                      icu_pathway_dow = c(1, 1, 0), hold_pathway_n = c(1000, 3000, 7),
@@ -299,14 +320,15 @@ contains_zero <- function(pool, col) {
   b <- as.numeric(gsub("\u2212", "-", regmatches(cell, gregexpr("-?\u2212?[0-9.]+", cell))[[1]]))
   length(b) == 3L && b[2] <= 0 && b[3] >= 0
 }
-zero_moderate <- c("R2E operating theatres", "R2E holding beds")
-growing_moderate <- c("R2E staging overflow", "Strategic evacuation backlog")
+zero_moderate <- c("R2E operating theatres", "R2E holding beds", "R2E post-operative overflow",
+                   "R2E staging overflow")
+growing_moderate <- "Strategic evacuation backlog"
 zero_high <- c("R2E operating theatres", "R2E holding beds", "R2E post-operative overflow")
 growing_high <- c("R2E staging overflow", "Strategic evacuation backlog")
 report(all(vapply(zero_moderate, contains_zero, logical(1), col = 2L)) &&
          !any(vapply(growing_moderate, contains_zero, logical(1), col = 2L)),
-       paste("at moderate intensity the theatre and holding intervals contain zero and the",
-             "staging and airlift intervals do not, as the prose states"))
+       paste("at moderate intensity the theatre, holding, post-operative and staging intervals",
+             "contain zero and the airlift interval does not, as the prose states"))
 report(all(vapply(zero_high, contains_zero, logical(1), col = 4L)) &&
          !any(vapply(growing_high, contains_zero, logical(1), col = 4L)),
        paste("at high intensity the theatre, holding and post-operative intervals contain zero",

@@ -65,6 +65,7 @@ check_scenario_protocol.R,8
 check_screen_cache.R,7
 check_screen_order.R,159
 check_sensitivity_protocol.R,3
+check_statistical_method.R,6
 check_structure_tables.R,5
 check_surge_event_size.R,10
 check_surgery_delivery_response.R,20

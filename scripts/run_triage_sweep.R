@@ -229,7 +229,7 @@ write.csv(per_replication,
 write.csv(summary_rows,
           scenario_output_path(OUTPUT_DIR, "triage_sweep_summary", opt$scenario),
           row.names = FALSE)
-write.csv(paired,
+write.csv(holm_adjust(paired),
           scenario_output_path(OUTPUT_DIR, "triage_sweep_paired", opt$scenario),
           row.names = FALSE)
 if (!is.null(stability)) {
@@ -237,7 +237,7 @@ if (!is.null(stability)) {
             scenario_output_path(OUTPUT_DIR, "triage_sweep_stability", opt$scenario),
             row.names = FALSE)
 }
-write.csv(triage_treated_pooled(per_replication),
+write.csv(triage_treated_rate(per_replication),
           scenario_output_path(OUTPUT_DIR, "triage_sweep_treated_cohort", opt$scenario),
           row.names = FALSE)
 message(sprintf(paste("Triage sweep responses, summary, paired differences, stability and",

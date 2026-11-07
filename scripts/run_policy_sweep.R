@@ -405,7 +405,7 @@ write.csv(per_replication,
 write.csv(summary_rows, file.path(OUTPUT_DIR, sprintf("%s.csv", OUTPUT_STEM)),
           row.names = FALSE)
 if (!is.null(paired)) {
-  write.csv(paired, file.path(OUTPUT_DIR, sprintf("%s_paired.csv", OUTPUT_STEM)),
+  write.csv(holm_adjust(paired), file.path(OUTPUT_DIR, sprintf("%s_paired.csv", OUTPUT_STEM)),
             row.names = FALSE)
 }
 message(sprintf("Policy sweep responses, summary and paired differences written to %s",

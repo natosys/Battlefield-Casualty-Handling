@@ -117,7 +117,8 @@ blocks <- do.call(rbind, lapply(scenario_names, function(scenario) {
 }))
 
 stability <- do.call(rbind, lapply(scenario_names, function(scenario) {
-  st <- classify_stability(blocks[blocks$scenario == scenario, ])
+  st <- classify_stability(blocks[blocks$scenario == scenario, ],
+                           replication_block_means(series[series$scenario == scenario, ]))
   st$scenario <- scenario
   st
 }))

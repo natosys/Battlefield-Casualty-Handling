@@ -238,8 +238,7 @@ triage_treated_cohort <- function(attributes) {
 #'
 #' @details The responses are reduce_icu_bed_replication()'s (the policy
 #'   sweep's set and the overflow census) and the R2B counts
-#'   reduce_hold_window_replication() reads, with the R2E theatre queue
-#'   policy_theatre_queue() reads, and:
+#'   reduce_hold_window_replication() reads, and:
 #'   - `dow_per_wounded`, deaths of wounds over wounded-in-action arrivals;
 #'   - `first_incision_hours`, the completed-case mean time from arrival to the
 #'     first operation at R2B or R2E, KIA excluded, as the single-run pathway
@@ -278,7 +277,6 @@ reduce_triage_replication <- function(env, n_days, seed,
   row <- cbind(
     base, r2b,
     data.frame(
-      theatre_mean_queue = policy_theatre_queue(resources, n_days, window_days),
       wounded = wounded,
       dow_per_wounded = if (wounded == 0) NA_real_ else base$total_dow / wounded,
       first_incision_hours = if (length(incision) == 0) NA_real_ else mean(incision) / 60,

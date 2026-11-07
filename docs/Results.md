@@ -990,27 +990,115 @@ The R2E post-operative overflow census, intensive care occupancy, holding queue,
 
 ### Priority 1 Triage Share
 
-**Question.** Do the capacity, flow and mortality responses change when the Priority 1 share of the background triage split is lowered from the shipped 0.65 towards the comparator range, and does the treated-cohort died-of-wounds rate move with it? `[default and high_intensity, Priority 1 share 0.15 to 0.65 · 360 d · 30 replications · paired, closing 90 d]`
+**Question.** Do the capacity, flow and mortality responses change when the Priority 1 share of the background triage split is lowered from the shipped sixty-five per cent towards the comparator range, and does the treated-cohort died-of-wounds rate move with it? `[default and high_intensity, Priority 1 share fifteen to sixty-five per cent · 360 d · 30 replications · paired, closing 90 d]`
 
 Each arm is a Priority 1 share of the background split, the remainder divided between Priority 2 and Priority 3 in the shipped ratio of 20 to 15. The died-of-wounds parameters, the surgical need rates and the damage control rates are held at their shipped values, and the treated-cohort rate is pooled over each arm's replications with an exact binomial interval.
 
 <!-- GEN triage_split -->
+| Response | P1 15% | P1 30% | P1 45% | P1 65% (shipped) |
+|---|---|---|---|---|
+| Priority split (%, P1 / P2 / P3) | 15 / 49 / 36 | 30 / 40 / 30 | 45 / 31 / 24 | 65 / 20 / 15 |
+| Wounded in action | 2328.8 [2252.5, 2405.2] | 2348.0 [2271.8, 2424.3] | 2276.8 [2218.2, 2335.3] | 2303.9 [2246.5, 2361.3] |
+| Died of wounds | 17.23 [12.16, 22.30] | 15.83 [13.48, 18.19] | 17.47 [15.33, 19.60] | 21.17 [17.55, 24.79] |
+| Died of wounds per wounded in action (%) | 0.72 [0.54, 0.89] | 0.67 [0.58, 0.75] | 0.76 [0.68, 0.85] | 0.91 [0.77, 1.05] |
+| Treated-cohort died-of-wounds rate (pooled, exact interval) | 0.416% [0.380%, 0.454%] | 0.384% [0.350%, 0.421%] | 0.432% [0.395%, 0.471%] | 0.519% [0.479%, 0.561%] |
+| Expected deaths accrued after surgery (%) | 15% | 19% | 20% | 24% |
+| R2B surgeries | 756.8 [740.5, 773.0] | 789.1 [772.3, 805.9] | 790.8 [779.1, 802.4] | 824.8 [813.4, 836.2] |
+| Diverted from R2B, team off shift | 1064.9 [1037.9, 1091.9] | 1110.8 [1078.3, 1143.3] | 1128.4 [1102.4, 1154.4] | 1201.5 [1178.8, 1224.3] |
+| Diverted from R2B, theatre busy | 204.4 [188.8, 220.0] | 211.3 [195.7, 227.0] | 218.2 [206.0, 230.5] | 236.8 [220.9, 252.8] |
+| R2E first surgeries | 1459.3 [1415.6, 1503.0] | 1571.7 [1519.5, 1624.0] | 1643.6 [1602.6, 1684.5] | 1816.0 [1774.7, 1857.3] |
+| Time to first incision (hours) | 9.08 [6.74, 11.43] | 7.31 [6.65, 7.96] | 7.44 [6.55, 8.33] | 7.39 [6.03, 8.76] |
+| Casualties requiring surgery operated on (%) | 99.7 [99.6, 99.8] | 99.4 [98.7, 100.1] | 99.7 [99.6, 99.8] | 99.7 [99.6, 99.8] |
+| R2E theatre queue, late-half classification | converged at 0.76 | converged at 0.54 | converged at 0.76 | converged at 0.90 |
+| R2E post-operative overflow, late-half classification | converged at 3.98 | converged at 4.64 | converged at 5.02 | **drifting, +1.6%/block**, 4.7 to 5.6 |
+| R2E holding queue, late-half classification | converged at 41.0 | converged at 36.5 | converged at 29.8 | converged at 23.8 |
+| R2E staging overflow, late-half classification | converged at 17.9 | converged at 19.1 | converged at 21.0 | **drifting, +4.4%/block**, 16.8 to 34.2 |
+| R2E theatre mean queue | 0.56 [0.41, 0.71] | 0.54 [0.41, 0.67] | 0.86 [0.51, 1.22] | 0.97 [0.63, 1.31] |
+| R2E post-operative overflow census | 4.05 [3.79, 4.32] | 4.65 [4.30, 4.99] | 5.12 [4.79, 5.44] | 5.72 [5.36, 6.09] |
+| R2E holding mean queue | 41.18 [39.18, 43.19] | 37.77 [35.69, 39.84] | 30.42 [28.83, 32.00] | 24.38 [22.59, 26.16] |
+| R2E staging overflow census | 17.72 [16.83, 18.62] | 19.42 [18.36, 20.49] | 21.70 [19.28, 24.12] | 32.16 [26.87, 37.46] |
+| R2E ICU occupancy (%) | 81.1 [80.0, 82.2] | 84.0 [83.2, 84.8] | 85.3 [84.8, 85.9] | 86.8 [86.0, 87.6] |
+| Returns to duty | 2627.8 [2587.2, 2668.4] | 2466.6 [2431.5, 2501.6] | 2263.2 [2236.5, 2289.9] | 2062.4 [2031.8, 2093.0] |
+| Strategic evacuation decisions | 1814.9 [1771.0, 1858.9] | 1986.8 [1933.7, 2039.8] | 2098.3 [2054.9, 2141.7] | 2353.2 [2305.7, 2400.7] |
+| Critical airlift backlog at the close | 4.5 [3.0, 6.1] | 6.9 [5.4, 8.5] | 13.6 [9.5, 17.7] | 30.0 [20.8, 39.3] |
+| Role 4 peak ICU census | 29.2 [26.3, 32.1] | 47.8 [44.8, 50.8] | 58.3 [56.7, 59.9] | 63.8 [62.8, 64.8] |
 <!-- /GEN -->
 
 <!-- GEN triage_split_paired -->
+| Paired difference against the shipped split | P1 15% | P1 30% | P1 45% |
+|---|---|---|---|
+| Died of wounds | −3.93 [−10.45, +2.58] | −5.33 [−10.09, −0.58] | −3.70 [−8.21, +0.81] |
+| Died of wounds per wounded in action (%) | −0.19 [−0.42, +0.04] | −0.24 [−0.42, −0.06] | −0.14 [−0.32, +0.03] |
+| Diverted from R2B, team off shift | −136.6 [−174.2, −99.1] | −90.7 [−133.4, −48.1] | −73.1 [−109.2, −37.0] |
+| Diverted from R2B, theatre busy | −32.4 [−58.4, −6.4] | −25.5 [−47.3, −3.7] | −18.6 [−40.9, +3.7] |
+| Time to first incision (hours) | +1.69 [−1.17, +4.56] | −0.09 [−1.63, +1.46] | +0.04 [−1.69, +1.78] |
+| Casualties requiring surgery operated on (%) | −0.0 [−0.1, +0.1] | −0.3 [−1.0, +0.4] | +0.0 [−0.1, +0.1] |
+| R2E theatre mean queue | −0.41 [−0.81, −0.00] | −0.43 [−0.78, −0.07] | −0.10 [−0.61, +0.40] |
+| R2E post-operative overflow census | −1.67 [−2.13, −1.21] | −1.08 [−1.55, −0.61] | −0.61 [−1.13, −0.08] |
+| R2E holding mean queue | +16.81 [+14.19, +19.43] | +13.39 [+11.22, +15.56] | +6.04 [+3.73, +8.35] |
+| R2E staging overflow census | −14.44 [−19.87, −9.01] | −12.74 [−17.86, −7.61] | −10.46 [−16.08, −4.84] |
+| R2E ICU occupancy (%) | −5.7 [−7.1, −4.3] | −2.8 [−3.9, −1.7] | −1.5 [−2.5, −0.4] |
+| Returns to duty | +565.4 [+510.9, +619.8] | +404.2 [+368.9, +439.4] | +200.8 [+161.9, +239.8] |
+| Strategic evacuation decisions | −538.3 [−606.1, −470.4] | −366.4 [−439.3, −293.5] | −254.9 [−325.0, −184.8] |
+| Critical airlift backlog at the close | −25.5 [−35.0, −16.0] | −23.1 [−32.6, −13.6] | −16.4 [−26.6, −6.2] |
+| Role 4 peak ICU census | −34.6 [−37.9, −31.3] | −16.0 [−19.1, −12.8] | −5.5 [−7.4, −3.6] |
 <!-- /GEN -->
 
-At the shipped share the treated-cohort died-of-wounds rate was <!-- GEN cell:triage_split|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 65% (shipped)|full -->x<!-- /GEN -->, with <!-- GEN cell:triage_split|Expected deaths accrued after surgery (%)|P1 65% (shipped)|full -->x<!-- /GEN --> of the cohort's expected deaths accrued after surgery, and at a share of 0.15 it was <!-- GEN cell:triage_split|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 15%|full -->x<!-- /GEN -->, with <!-- GEN cell:triage_split|Expected deaths accrued after surgery (%)|P1 15%|full -->x<!-- /GEN -->; the base rates were fitted at the shipped share, to the anchor the calibration table states: <!-- GEN cell:dow_calibration|Shipped default|Historical anchor|full -->x<!-- /GEN -->. Lowering the share from 0.65 to 0.15 changed R2E first surgeries from <!-- GEN cell:triage_split|R2E first surgeries|P1 65% (shipped)|full -->x<!-- /GEN --> to <!-- GEN cell:triage_split|R2E first surgeries|P1 15%|full -->x<!-- /GEN -->, the post-operative overflow census by <!-- GEN cell:triage_split_paired|R2E post-operative overflow census|P1 15%|full -->x<!-- /GEN -->, the staging overflow census by <!-- GEN cell:triage_split_paired|R2E staging overflow census|P1 15%|full -->x<!-- /GEN -->, the critical airlift backlog at the close by <!-- GEN cell:triage_split_paired|Critical airlift backlog at the close|P1 15%|full -->x<!-- /GEN --> and the Role 4 peak intensive care census by <!-- GEN cell:triage_split_paired|Role 4 peak ICU census|P1 15%|full -->x<!-- /GEN -->, and changed the R2E holding queue by <!-- GEN cell:triage_split_paired|R2E holding mean queue|P1 15%|full -->x<!-- /GEN --> and returns to duty by <!-- GEN cell:triage_split_paired|Returns to duty|P1 15%|full -->x<!-- /GEN -->. The R2E theatre queue was classified <!-- GEN cell:triage_split|R2E theatre queue, late-half classification|P1 65% (shipped)|full -->x<!-- /GEN --> at the shipped share and <!-- GEN cell:triage_split|R2E theatre queue, late-half classification|P1 15%|full -->x<!-- /GEN --> at 0.15, the post-operative overflow <!-- GEN cell:triage_split|R2E post-operative overflow, late-half classification|P1 65% (shipped)|full -->x<!-- /GEN --> and <!-- GEN cell:triage_split|R2E post-operative overflow, late-half classification|P1 15%|full -->x<!-- /GEN -->, and the staging overflow <!-- GEN cell:triage_split|R2E staging overflow, late-half classification|P1 65% (shipped)|full -->x<!-- /GEN --> and <!-- GEN cell:triage_split|R2E staging overflow, late-half classification|P1 15%|full -->x<!-- /GEN -->. The paired differences in deaths of wounds at 0.15, 0.30 and 0.45 were <!-- GEN cell:triage_split_paired|Died of wounds|P1 15%|full -->x<!-- /GEN -->, <!-- GEN cell:triage_split_paired|Died of wounds|P1 30%|full -->x<!-- /GEN --> and <!-- GEN cell:triage_split_paired|Died of wounds|P1 45%|full -->x<!-- /GEN -->.
+At the shipped share the treated-cohort died-of-wounds rate was <!-- GEN cell:triage_split|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 65% (shipped)|full -->0.519% [0.479%, 0.561%]<!-- /GEN -->, with <!-- GEN cell:triage_split|Expected deaths accrued after surgery (%)|P1 65% (shipped)|full -->24%<!-- /GEN --> of the cohort's expected deaths accrued after surgery, and at a share of fifteen per cent it was <!-- GEN cell:triage_split|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 15%|full -->0.416% [0.380%, 0.454%]<!-- /GEN -->, with <!-- GEN cell:triage_split|Expected deaths accrued after surgery (%)|P1 15%|full -->15%<!-- /GEN -->; the base rates were fitted at the shipped share, to the anchor the calibration table states: <!-- GEN cell:dow_calibration|Shipped default|Historical anchor|full -->fitted to 0.46% (Ajax Bay, 30 days)<!-- /GEN -->. Lowering the share from sixty-five per cent to fifteen per cent changed R2E first surgeries from <!-- GEN cell:triage_split|R2E first surgeries|P1 65% (shipped)|full -->1816.0 [1774.7, 1857.3]<!-- /GEN --> to <!-- GEN cell:triage_split|R2E first surgeries|P1 15%|full -->1459.3 [1415.6, 1503.0]<!-- /GEN -->, the post-operative overflow census by <!-- GEN cell:triage_split_paired|R2E post-operative overflow census|P1 15%|full -->−1.67 [−2.13, −1.21]<!-- /GEN -->, the staging overflow census by <!-- GEN cell:triage_split_paired|R2E staging overflow census|P1 15%|full -->−14.44 [−19.87, −9.01]<!-- /GEN -->, the critical airlift backlog at the close by <!-- GEN cell:triage_split_paired|Critical airlift backlog at the close|P1 15%|full -->−25.5 [−35.0, −16.0]<!-- /GEN --> and the Role 4 peak intensive care census by <!-- GEN cell:triage_split_paired|Role 4 peak ICU census|P1 15%|full -->−34.6 [−37.9, −31.3]<!-- /GEN -->, and changed the R2E holding queue by <!-- GEN cell:triage_split_paired|R2E holding mean queue|P1 15%|full -->+16.81 [+14.19, +19.43]<!-- /GEN --> and returns to duty by <!-- GEN cell:triage_split_paired|Returns to duty|P1 15%|full -->+565.4 [+510.9, +619.8]<!-- /GEN -->. The R2E theatre queue was classified <!-- GEN cell:triage_split|R2E theatre queue, late-half classification|P1 65% (shipped)|full -->converged at 0.90<!-- /GEN --> at the shipped share and <!-- GEN cell:triage_split|R2E theatre queue, late-half classification|P1 15%|full -->converged at 0.76<!-- /GEN --> at fifteen per cent, the post-operative overflow <!-- GEN cell:triage_split|R2E post-operative overflow, late-half classification|P1 65% (shipped)|full -->**drifting, +1.6%/block**, 4.7 to 5.6<!-- /GEN --> and <!-- GEN cell:triage_split|R2E post-operative overflow, late-half classification|P1 15%|full -->converged at 3.98<!-- /GEN -->, and the staging overflow <!-- GEN cell:triage_split|R2E staging overflow, late-half classification|P1 65% (shipped)|full -->**drifting, +4.4%/block**, 16.8 to 34.2<!-- /GEN --> and <!-- GEN cell:triage_split|R2E staging overflow, late-half classification|P1 15%|full -->converged at 17.9<!-- /GEN -->. The paired differences in deaths of wounds at fifteen, thirty and forty-five per cent were <!-- GEN cell:triage_split_paired|Died of wounds|P1 15%|full -->−3.93 [−10.45, +2.58]<!-- /GEN -->, <!-- GEN cell:triage_split_paired|Died of wounds|P1 30%|full -->−5.33 [−10.09, −0.58]<!-- /GEN --> and <!-- GEN cell:triage_split_paired|Died of wounds|P1 45%|full -->−3.70 [−8.21, +0.81]<!-- /GEN -->.
 
 At high intensity the same four arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
 
 <!-- GEN triage_split_high -->
+| Response | P1 15% | P1 30% | P1 45% | P1 65% (shipped) |
+|---|---|---|---|---|
+| Priority split (%, P1 / P2 / P3) | 15 / 49 / 36 | 30 / 40 / 30 | 45 / 31 / 24 | 65 / 20 / 15 |
+| Wounded in action | 8517.8 [8380.7, 8654.8] | 8460.0 [8375.9, 8544.0] | 8496.7 [8392.8, 8600.6] | 8314.4 [8174.6, 8454.2] |
+| Died of wounds | 167.57 [151.58, 183.55] | 231.23 [215.37, 247.09] | 362.23 [333.09, 391.38] | 568.60 [500.55, 636.65] |
+| Died of wounds per wounded in action (%) | 1.95 [1.79, 2.11] | 2.72 [2.56, 2.89] | 4.25 [3.95, 4.55] | 6.77 [6.06, 7.48] |
+| Treated-cohort died-of-wounds rate (pooled, exact interval) | 1.645% [1.600%, 1.691%] | 2.287% [2.234%, 2.341%] | 3.593% [3.527%, 3.661%] | 5.744% [5.660%, 5.828%] |
+| Expected deaths accrued after surgery (%) | 24% | 28% | 23% | 18% |
+| R2B surgeries | 1717.2 [1699.7, 1734.8] | 1743.4 [1731.7, 1755.2] | 1777.2 [1760.0, 1794.4] | 1795.4 [1776.0, 1814.8] |
+| Diverted from R2B, team off shift | 3458.0 [3406.7, 3509.3] | 3560.7 [3524.8, 3596.6] | 3727.1 [3685.9, 3768.3] | 3825.8 [3770.0, 3881.7] |
+| Diverted from R2B, theatre busy | 1223.9 [1187.0, 1260.8] | 1285.6 [1259.6, 1311.6] | 1338.5 [1307.2, 1369.7] | 1375.3 [1337.9, 1412.8] |
+| R2E first surgeries | 5237.7 [5148.6, 5326.8] | 5537.4 [5479.6, 5595.1] | 5893.8 [5818.6, 5969.0] | 6159.3 [6060.2, 6258.4] |
+| Time to first incision (hours) | 28.14 [25.40, 30.87] | 33.43 [30.67, 36.20] | 47.16 [41.13, 53.19] | 71.06 [57.93, 84.19] |
+| Casualties requiring surgery operated on (%) | 99.3 [99.2, 99.5] | 99.1 [98.9, 99.4] | 99.0 [98.8, 99.3] | 98.6 [98.3, 98.8] |
+| R2E theatre queue, late-half classification | converged at 16.0 | **drifting, +5.5%/block**, 10.6 to 28.8 | **drifting, +8.1%/block**, 16.6 to 42.4 | converged at 71.0 |
+| R2E post-operative overflow, late-half classification | converged at 17.6 | converged at 18.5 | converged at 19.3 | converged at 19.8 |
+| R2E holding queue, late-half classification | converged at 118.9 | converged at 98.0 | converged at 77.2 | converged at 54.1 |
+| R2E staging overflow, late-half classification | **drifting, +11.6%/block**, 68.2 to 1,163.5 | **drifting, +10.8%/block**, 76.4 to 1,328.0 | **drifting, +11.0%/block**, 92.4 to 1,790.8 | **drifting, +11.2%/block**, 117.7 to 2,739.6 |
+| R2E theatre mean queue | 15.31 [11.84, 18.79] | 24.49 [18.73, 30.25] | 48.82 [32.59, 65.05] | 72.62 [51.40, 93.83] |
+| R2E post-operative overflow census | 17.50 [17.08, 17.91] | 18.77 [18.36, 19.18] | 19.41 [19.06, 19.76] | 19.79 [19.47, 20.12] |
+| R2E holding mean queue | 117.62 [114.28, 120.97] | 99.68 [96.43, 102.92] | 76.81 [74.85, 78.77] | 54.06 [52.01, 56.12] |
+| R2E staging overflow census | 1072.12 [1023.71, 1120.53] | 1216.10 [1163.58, 1268.62] | 1644.88 [1593.76, 1696.01] | 2515.75 [2474.07, 2557.42] |
+| R2E ICU occupancy (%) | 96.6 [96.4, 96.7] | 97.1 [96.9, 97.2] | 97.3 [97.2, 97.4] | 97.5 [97.4, 97.7] |
+| Returns to duty | 4700.1 [4633.5, 4766.7] | 4146.1 [4107.6, 4184.6] | 3603.4 [3561.4, 3645.5] | 2861.9 [2824.1, 2899.7] |
+| Strategic evacuation decisions | 5559.7 [5477.1, 5642.2] | 6036.8 [5983.6, 6090.0] | 6533.1 [6465.7, 6600.6] | 6927.6 [6858.9, 6996.2] |
+| Critical airlift backlog at the close | 26.9 [22.2, 31.6] | 808.0 [773.1, 842.9] | 1863.3 [1814.8, 1911.8] | 3022.2 [2974.9, 3069.4] |
+| Role 4 peak ICU census | 66.3 [65.4, 67.3] | 67.4 [66.7, 68.2] | 67.6 [66.8, 68.4] | 67.6 [66.9, 68.3] |
 <!-- /GEN -->
 
 <!-- GEN triage_split_paired_high -->
+| Paired difference against the shipped split | P1 15% | P1 30% | P1 45% |
+|---|---|---|---|
+| Died of wounds | −401.03 [−469.36, −332.70] | −337.37 [−406.14, −268.59] | −206.37 [−270.40, −142.33] |
+| Died of wounds per wounded in action (%) | −4.82 [−5.53, −4.10] | −4.05 [−4.76, −3.33] | −2.52 [−3.21, −1.84] |
+| Diverted from R2B, team off shift | −367.9 [−434.8, −301.0] | −265.1 [−328.4, −201.9] | −98.8 [−159.5, −38.1] |
+| Diverted from R2B, theatre busy | −151.4 [−200.6, −102.2] | −89.8 [−132.7, −46.8] | −36.9 [−80.0, +6.3] |
+| Time to first incision (hours) | −42.92 [−55.95, −29.90] | −37.63 [−51.11, −24.14] | −23.90 [−35.72, −12.09] |
+| Casualties requiring surgery operated on (%) | +0.8 [+0.5, +1.0] | +0.6 [+0.2, +1.0] | +0.5 [+0.1, +0.8] |
+| R2E theatre mean queue | −57.30 [−78.90, −35.70] | −48.12 [−71.01, −25.24] | −23.80 [−48.29, +0.70] |
+| R2E post-operative overflow census | −2.30 [−2.81, −1.79] | −1.02 [−1.47, −0.57] | −0.38 [−0.81, +0.05] |
+| R2E holding mean queue | +63.56 [+59.80, +67.32] | +45.61 [+41.52, +49.70] | +22.75 [+19.86, +25.63] |
+| R2E staging overflow census | −1443.63 [−1497.81, −1389.44] | −1299.64 [−1371.52, −1227.77] | −870.86 [−944.30, −797.42] |
+| R2E ICU occupancy (%) | −1.0 [−1.2, −0.7] | −0.4 [−0.6, −0.3] | −0.2 [−0.4, −0.1] |
+| Returns to duty | +1838.2 [+1771.7, +1904.7] | +1284.2 [+1239.5, +1328.9] | +741.5 [+691.1, +792.0] |
+| Strategic evacuation decisions | −1367.9 [−1455.1, −1280.7] | −890.7 [−982.6, −798.9] | −394.4 [−496.4, −292.4] |
+| Critical airlift backlog at the close | −2995.2 [−3042.1, −2948.3] | −2214.2 [−2272.0, −2156.3] | −1158.9 [−1231.9, −1085.9] |
+| Role 4 peak ICU census | −1.2 [−2.4, −0.1] | −0.1 [−1.2, +0.9] | +0.0 [−0.9, +1.0] |
 <!-- /GEN -->
 
-At the shipped share the high-intensity treated-cohort died-of-wounds rate was <!-- GEN cell:triage_split_high|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 65% (shipped)|full -->x<!-- /GEN --> and at 0.15 it was <!-- GEN cell:triage_split_high|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 15%|full -->x<!-- /GEN -->. The R2E theatre queue was classified <!-- GEN cell:triage_split_high|R2E theatre queue, late-half classification|P1 65% (shipped)|full -->x<!-- /GEN --> at the shipped share and <!-- GEN cell:triage_split_high|R2E theatre queue, late-half classification|P1 15%|full -->x<!-- /GEN --> at 0.15, the post-operative overflow <!-- GEN cell:triage_split_high|R2E post-operative overflow, late-half classification|P1 65% (shipped)|full -->x<!-- /GEN --> and <!-- GEN cell:triage_split_high|R2E post-operative overflow, late-half classification|P1 15%|full -->x<!-- /GEN -->, and the staging overflow <!-- GEN cell:triage_split_high|R2E staging overflow, late-half classification|P1 65% (shipped)|full -->x<!-- /GEN --> and <!-- GEN cell:triage_split_high|R2E staging overflow, late-half classification|P1 15%|full -->x<!-- /GEN -->. Lowering the share from 0.65 to 0.15 changed the R2E theatre queue by <!-- GEN cell:triage_split_paired_high|R2E theatre mean queue|P1 15%|full -->x<!-- /GEN -->, the critical airlift backlog at the close by <!-- GEN cell:triage_split_paired_high|Critical airlift backlog at the close|P1 15%|full -->x<!-- /GEN -->, the R2E holding queue by <!-- GEN cell:triage_split_paired_high|R2E holding mean queue|P1 15%|full -->x<!-- /GEN -->, deaths of wounds by <!-- GEN cell:triage_split_paired_high|Died of wounds|P1 15%|full -->x<!-- /GEN --> and returns to duty by <!-- GEN cell:triage_split_paired_high|Returns to duty|P1 15%|full -->x<!-- /GEN -->.
+At the shipped share the high-intensity treated-cohort died-of-wounds rate was <!-- GEN cell:triage_split_high|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 65% (shipped)|full -->5.744% [5.660%, 5.828%]<!-- /GEN --> and at fifteen per cent it was <!-- GEN cell:triage_split_high|Treated-cohort died-of-wounds rate (pooled, exact interval)|P1 15%|full -->1.645% [1.600%, 1.691%]<!-- /GEN -->. The R2E theatre queue was classified <!-- GEN cell:triage_split_high|R2E theatre queue, late-half classification|P1 65% (shipped)|full -->converged at 71.0<!-- /GEN --> at the shipped share and <!-- GEN cell:triage_split_high|R2E theatre queue, late-half classification|P1 15%|full -->converged at 16.0<!-- /GEN --> at fifteen per cent, the post-operative overflow <!-- GEN cell:triage_split_high|R2E post-operative overflow, late-half classification|P1 65% (shipped)|full -->converged at 19.8<!-- /GEN --> and <!-- GEN cell:triage_split_high|R2E post-operative overflow, late-half classification|P1 15%|full -->converged at 17.6<!-- /GEN -->, and the staging overflow <!-- GEN cell:triage_split_high|R2E staging overflow, late-half classification|P1 65% (shipped)|full -->**drifting, +11.2%/block**, 117.7 to 2,739.6<!-- /GEN --> and <!-- GEN cell:triage_split_high|R2E staging overflow, late-half classification|P1 15%|full -->**drifting, +11.6%/block**, 68.2 to 1,163.5<!-- /GEN -->. Lowering the share from sixty-five per cent to fifteen per cent changed the R2E theatre queue by <!-- GEN cell:triage_split_paired_high|R2E theatre mean queue|P1 15%|full -->−57.30 [−78.90, −35.70]<!-- /GEN -->, the critical airlift backlog at the close by <!-- GEN cell:triage_split_paired_high|Critical airlift backlog at the close|P1 15%|full -->−2995.2 [−3042.1, −2948.3]<!-- /GEN -->, the R2E holding queue by <!-- GEN cell:triage_split_paired_high|R2E holding mean queue|P1 15%|full -->+63.56 [+59.80, +67.32]<!-- /GEN -->, deaths of wounds by <!-- GEN cell:triage_split_paired_high|Died of wounds|P1 15%|full -->−401.03 [−469.36, −332.70]<!-- /GEN --> and returns to duty by <!-- GEN cell:triage_split_paired_high|Returns to duty|P1 15%|full -->+1838.2 [+1771.7, +1904.7]<!-- /GEN -->.
 
 ---
 

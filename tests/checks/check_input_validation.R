@@ -331,6 +331,16 @@ assert_rejects("an unknown generator distribution is named",
                validate_env_data_values(set_var(json, "generators", "dnbi_cbt", "distribution",
                                                 "gamma"), "edited.json"))
 
+assert_rejects("a post-definitive intensive care share above one is named",
+               paste("vars[r2eheavy]$post_definitive_icu: share must be a single number",
+                     "from 0 to 1, found 1.5"),
+               validate_env_data_values(set_var(json, "r2eheavy", "post_definitive_icu", "share",
+                                                1.5), "edited.json"))
+
+assert_accepts("a post-definitive intensive care share of zero is accepted",
+               validate_env_data_values(set_var(json, "r2eheavy", "post_definitive_icu", "share",
+                                                0), "edited.json"))
+
 # A scenario overlay replaces values, so a base configuration in order can be
 # disordered under one of its profiles; read_config() checks each profile.
 overlaid <- json

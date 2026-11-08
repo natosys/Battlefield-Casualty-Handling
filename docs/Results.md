@@ -1175,22 +1175,22 @@ The mean wait rose from <!-- GEN cell:airlift_reliability_high|Mean wait (days)|
 
 The panels of the figure above under the high-intensity profile, with the shipped value of each sweep marked by a dashed line.
 
-**Collapse classification.** Each airlift route was classified separately, the critical and standard seat pools filling independently. A route was classified as collapsed in a campaign where the backlog of casualties awaiting a place on it was still rising over the second half of the campaign, by the late-half trend rule of [Classifying Stability](Methods.md#classifying-stability); a casualty left the backlog on boarding or on dying. Utilisation is the route's demand over the campaign divided by the places its flown sorties opened. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
+**Collapse classification.** Each airlift route was classified separately, the critical and standard seat pools filling independently. A route was classified as collapsed in a campaign where the backlog of casualties awaiting a place on it was still rising over the second half of the campaign, by the late-half trend rule of [Classifying Stability](Methods.md#classifying-stability), and its late-half mean exceeded the places one sortie opens on the route; a casualty left the backlog on boarding or on dying. Utilisation is the route's demand over the campaign divided by the places its flown sorties opened. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
 
 <!-- GEN airlift_collapse -->
 | Route and sortie cancellation | Collapsed | Collapse rate (exact 95% interval) | Mean utilisation | Demand at or above places flown | Median closing backlog | Worst closing backlog |
 |---|---|---|---|---|---|---|
-| Critical, 0% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.83 | 0 of 30 | 21.3 | 71.8 |
-| Critical, 5% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.89 | 2 of 30 | 22.5 | 169.8 |
+| Critical, 0% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.83 | 0 of 30 | 21.3 | 71.8 |
+| Critical, 5% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.89 | 2 of 30 | 22.5 | 169.8 |
 | Critical, 10% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.92 | 2 of 30 | 27.9 | 217.9 |
 | Critical, 15% | 7 of 30 | 23.3% [9.9%, 42.3%] | 0.99 | 11 of 30 | 76.2 | 384.3 |
 | Critical, 20% | 13 of 30 | 43.3% [25.5%, 62.6%] | 1.07 | 22 of 30 | 126.8 | 379.2 |
 | Critical, 25% | 12 of 30 | 40.0% [22.7%, 59.4%] | 1.09 | 24 of 30 | 151.2 | 379.1 |
-| Standard, 0% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.30 | 0 of 30 | 7.2 | 8.2 |
+| Standard, 0% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.30 | 0 of 30 | 7.2 | 8.2 |
 | Standard, 5% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.32 | 0 of 30 | 7.4 | 9.5 |
-| Standard, 10% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.33 | 0 of 30 | 8.0 | 13.2 |
-| Standard, 15% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.35 | 0 of 30 | 9.8 | 16.7 |
-| Standard, 20% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.39 | 0 of 30 | 11.0 | 33.7 |
+| Standard, 10% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.33 | 0 of 30 | 8.0 | 13.2 |
+| Standard, 15% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.35 | 0 of 30 | 9.8 | 16.7 |
+| Standard, 20% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.39 | 0 of 30 | 11.0 | 33.7 |
 | Standard, 25% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.39 | 0 of 30 | 10.0 | 20.6 |
 <!-- /GEN -->
 
@@ -1198,7 +1198,7 @@ The panels of the figure above under the high-intensity profile, with the shippe
 
 The share of campaigns in which each route was classified as collapsed against sortie cancellation probability, with exact binomial 95% confidence intervals.
 
-The critical route collapsed in <!-- GEN cell:airlift_collapse|Critical, 0%|Collapsed|full -->2 of 30<!-- /GEN --> campaigns with no cancellation, <!-- GEN cell:airlift_collapse|Critical, 15%|Collapsed|full -->7 of 30<!-- /GEN --> at 15% and <!-- GEN cell:airlift_collapse|Critical, 25%|Collapsed|full -->12 of 30<!-- /GEN --> at 25%, its mean utilisation rising from <!-- GEN cell:airlift_collapse|Critical, 0%|Mean utilisation|full -->0.83<!-- /GEN --> to <!-- GEN cell:airlift_collapse|Critical, 25%|Mean utilisation|full -->1.09<!-- /GEN -->. Demand met or exceeded the critical places flown in <!-- GEN cell:airlift_collapse|Critical, 15%|Demand at or above places flown|full -->11 of 30<!-- /GEN --> campaigns at 15% cancellation. The standard route collapsed in <!-- GEN cell:airlift_collapse|Standard, 25%|Collapsed|full -->0 of 30<!-- /GEN --> campaigns at 25%, at a mean utilisation of <!-- GEN cell:airlift_collapse|Standard, 25%|Mean utilisation|full -->0.39<!-- /GEN -->.
+The critical route collapsed in <!-- GEN cell:airlift_collapse|Critical, 0%|Collapsed|full -->1 of 30<!-- /GEN --> campaigns with no cancellation, <!-- GEN cell:airlift_collapse|Critical, 15%|Collapsed|full -->7 of 30<!-- /GEN --> at 15% and <!-- GEN cell:airlift_collapse|Critical, 25%|Collapsed|full -->12 of 30<!-- /GEN --> at 25%, its mean utilisation rising from <!-- GEN cell:airlift_collapse|Critical, 0%|Mean utilisation|full -->0.83<!-- /GEN --> to <!-- GEN cell:airlift_collapse|Critical, 25%|Mean utilisation|full -->1.09<!-- /GEN -->. Demand met or exceeded the critical places flown in <!-- GEN cell:airlift_collapse|Critical, 15%|Demand at or above places flown|full -->11 of 30<!-- /GEN --> campaigns at 15% cancellation. The standard route collapsed in <!-- GEN cell:airlift_collapse|Standard, 25%|Collapsed|full -->0 of 30<!-- /GEN --> campaigns at 25%, at a mean utilisation of <!-- GEN cell:airlift_collapse|Standard, 25%|Mean utilisation|full -->0.39<!-- /GEN -->.
 
 **High-intensity profile.** The same classification under `high_intensity` `[high_intensity, sortie cancellation 0 to 25% · 360 d · 30 replications per arm · exact binomial interval]`:
 
@@ -1213,10 +1213,10 @@ The critical route collapsed in <!-- GEN cell:airlift_collapse|Critical, 0%|Coll
 | Critical, 25% | 30 of 30 | 100.0% [88.4%, 100.0%] | 3.56 | 30 of 30 | 2,854.7 | 3,330.8 |
 | Standard, 0% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.75 | 0 of 30 | 17.6 | 22.1 |
 | Standard, 5% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.79 | 0 of 30 | 19.3 | 38.1 |
-| Standard, 10% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.85 | 0 of 30 | 27.8 | 75.2 |
+| Standard, 10% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.85 | 0 of 30 | 27.8 | 75.2 |
 | Standard, 15% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.90 | 2 of 30 | 37.4 | 151.8 |
-| Standard, 20% | 7 of 30 | 23.3% [9.9%, 42.3%] | 0.96 | 6 of 30 | 80.5 | 227.7 |
-| Standard, 25% | 14 of 30 | 46.7% [28.3%, 65.7%] | 1.02 | 15 of 30 | 111.5 | 424.7 |
+| Standard, 20% | 6 of 30 | 20.0% [7.7%, 38.6%] | 0.96 | 6 of 30 | 80.5 | 227.7 |
+| Standard, 25% | 12 of 30 | 40.0% [22.7%, 59.4%] | 1.02 | 15 of 30 | 111.5 | 424.7 |
 <!-- /GEN -->
 
 Under `high_intensity` the critical route collapsed in <!-- GEN cell:airlift_collapse_high|Critical, 0%|Collapsed|full -->30 of 30<!-- /GEN --> campaigns with no cancellation, at a mean utilisation of <!-- GEN cell:airlift_collapse_high|Critical, 0%|Mean utilisation|full -->2.65<!-- /GEN -->, and the standard route in <!-- GEN cell:airlift_collapse_high|Standard, 0%|Collapsed|full -->0 of 30<!-- /GEN -->, at <!-- GEN cell:airlift_collapse_high|Standard, 0%|Mean utilisation|full -->0.75<!-- /GEN -->.

@@ -583,29 +583,40 @@ reduce_route_backlog <- function(env, n_days) {
 #' @param series Route series as reduce_route_backlog() returns them, carrying
 #'   `replication`.
 #' @param n_days Campaign length in days.
+#' @param sortie_places Named numeric vector of the places one sortie opens on
+#'   each route, keyed by the route labels of AIRLIFT_COLLAPSE_ROUTES, as
+#'   airlift_sortie_places() reads them from the configured airframe.
 #' @param window_days Length of the closing window the descriptive closing
 #'   backlog is averaged over (default AIRLIFT_COLLAPSE_WINDOW_DAYS).
 #' @param block_days Block length the trend is fitted over (default
 #'   LONG_HORIZON_BLOCK_DAYS).
-#' @return Data frame of replication, route, closing_backlog, slope_per_day,
-#'   stability, utilisation and collapsed, one row per replication and route.
+#' @return Data frame of replication, route, closing_backlog, late_backlog,
+#'   slope_per_day, stability, utilisation and collapsed, one row per
+#'   replication and route.
 #'
-#' @details A route is collapsed in a campaign when its backlog is still rising
-#'   over the second half of the campaign: classify_stability()
-#'   (R/long_horizon.R), the rule the sustained-operations protocol applies to
-#'   every pool, is applied to the replication's own block means of that
-#'   route's backlog, and a drifting backlog with a positive slope is
-#'   collapsed. A level threshold cannot make this distinction, because
-#'   casualties wait between weekly sorties whether or not the airlift keeps
-#'   up. `utilisation` is the route's demand over the campaign divided by the
+#' @details A route is collapsed in a campaign when two conditions hold. Its
+#'   backlog is still rising over the second half of the campaign:
+#'   classify_stability() (R/long_horizon.R), the rule the sustained-operations
+#'   protocol applies to every pool, is applied to the replication's own block
+#'   means of that route's backlog, and the backlog must be drifting with a
+#'   positive slope. And that late-half backlog must exceed the places one
+#'   sortie opens on the route, `late_backlog` being its mean over the late
+#'   blocks: a backlog the next sortie would clear in full has not outrun the
+#'   airlift, however its slope reads, and the drift rule, a fraction of the
+#'   backlog's own level, is met by a negligible slope where the level is
+#'   small. Neither condition suffices alone. A level threshold cannot tell a
+#'   collapse from the ordinary wait between weekly sorties, and a trend test
+#'   alone flags a route a third used. `utilisation` is the route's demand over the campaign divided by the
 #'   places its flown sorties opened, the quantity whose reaching one makes a
 #'   queue unable to settle; it is reported beside the classification rather
 #'   than replacing it, being an average that a run of cancellations late in
 #'   a campaign can leave below one while the backlog is still climbing.
-collapse_response <- function(series, n_days, window_days = AIRLIFT_COLLAPSE_WINDOW_DAYS,
+collapse_response <- function(series, n_days, sortie_places,
+                              window_days = AIRLIFT_COLLAPSE_WINDOW_DAYS,
                               block_days = LONG_HORIZON_BLOCK_DAYS) {
   empty <- data.frame(replication = integer(0), route = character(0),
-                      closing_backlog = numeric(0), slope_per_day = numeric(0),
+                      closing_backlog = numeric(0), late_backlog = numeric(0),
+                      slope_per_day = numeric(0),
                       stability = character(0), utilisation = numeric(0),
                       collapsed = logical(0))
   if (nrow(series) == 0) return(empty)
@@ -615,20 +626,43 @@ collapse_response <- function(series, n_days, window_days = AIRLIFT_COLLAPSE_WIN
     if (nrow(backlog) == 0) return(NULL)
     st <- classify_stability(block_means(backlog, block_days))
     places <- sum(d$value[d$series == "places_opened"])
+    route_places <- sortie_places[d$subject[1]]
+    if (is.na(route_places)) {
+      stop(sprintf("collapse_response: no sortie places given for route '%s'", d$subject[1]),
+           call. = FALSE)
+    }
     data.frame(
       replication     = d$replication[1],
       route           = d$subject[1],
       closing_backlog = mean(backlog$value[backlog$day > n_days - window_days]),
+      late_backlog    = st$late_mean,
       slope_per_day   = st$slope / block_days,
       stability       = st$stability,
       utilisation     = if (places > 0) sum(d$value[d$series == "decisions"]) / places else NA_real_,
-      collapsed       = st$stability == "drifting" && st$slope > 0
+      collapsed       = st$stability == "drifting" && st$slope > 0 &&
+        st$late_mean > route_places
     )
   }))
   if (is.null(out)) return(empty)
   out <- out[order(out$route, out$replication), ]
   rownames(out) <- NULL
   out
+}
+
+#' Places one sortie of the configured airframe opens on each airlift route
+#'
+#' @param role4 `env_data$vars$role4`, carrying the airframe selector and its
+#'   capacity blocks.
+#' @return Named numeric vector keyed by the route labels of
+#'   AIRLIFT_COLLAPSE_ROUTES: the airframe's critical and standard places.
+#'
+#' @details Read through resolve_ame_airframe() (R/environment.R) rather than
+#'   typed, so the collapse threshold follows the aircraft a configuration
+#'   flies.
+airlift_sortie_places <- function(role4) {
+  frame <- resolve_ame_airframe(role4)
+  stats::setNames(c(frame$critical_capacity, frame$standard_capacity),
+                  names(AIRLIFT_COLLAPSE_ROUTES))
 }
 
 #' Summarise one arm and route's collapse responses as the published table

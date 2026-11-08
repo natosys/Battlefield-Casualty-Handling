@@ -164,6 +164,10 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
                                      duration_of("r2e_recovery_hold_min"))
   post_definitive_bed_days <- stay_bed_days("post_definitive_hold_start",
                                             duration_of("post_definitive_min"))
+  # A casualty who needs no post-definitive intensive care recovers on the ward
+  # (post_definitive_icu.share below 1); that stay is part of the same episode.
+  post_definitive_bed_days <- post_definitive_bed_days +
+    stay_bed_days("post_definitive_ward_hold_start", duration_of("post_definitive_ward_min"))
   post_op_hold_bed_days <- stay_bed_days("r2e_post_op_hold_start",
                                          duration_of("r2e_post_op_min"))
 

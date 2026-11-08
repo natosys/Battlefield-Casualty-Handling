@@ -43,6 +43,7 @@ MODEL_ATTRIBUTE_KEYS <- c(
   "injury_time", "injury_type", "last_dow_t", "casualty_surge_event", "casualty_surge_event_id",
   "mortuary_treated", "overflow_since", "post_definitive_hold_start",
   "post_definitive_start", "post_definitive_min",
+  "post_definitive_ward", "post_definitive_ward_hold_start", "post_definitive_ward_min",
   "post_definitive_pathway", "post_definitive_total", "post_op_pathway", "priority", "r1_treated", "r2b",
   "r2b_bypass_reason", "r2b_bypass_time", "r2b_bypassed", "r2b_departure_time",
   "r2b_evac_wait_bed", "r2b_evac_wait_start", "r2b_hold_bypass",

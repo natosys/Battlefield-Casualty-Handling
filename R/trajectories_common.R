@@ -784,6 +784,21 @@ draw_post_definitive_icu <- function() {
   )
 }
 
+#' Share of operated casualties who need post-definitive intensive care
+#'
+#' @return `r2eheavy.post_definitive_icu.share`, a probability; 1 where the
+#'   configuration predates the field.
+#'
+#' @details At 1, the shipped value, every operated casualty needs the episode
+#'   and the trajectory is built without the draw that would decide it, so the
+#'   shipped random number stream is untouched. Below 1 each casualty owed the
+#'   episode is drawn as needing it with this probability (README Post-Definitive
+#'   Care).
+post_definitive_icu_share <- function() {
+  share <- env_data$vars$r2eheavy$post_definitive_icu$share
+  if (is.null(share)) 1 else share
+}
+
 #' The validated forward holding rule for post-operative intensive care at R2B
 #'
 #' @return Named list: `window_dcs` and `window_single` (minutes a casualty

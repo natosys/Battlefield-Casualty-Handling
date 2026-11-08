@@ -286,6 +286,30 @@ generator_rate_faults <- function(vars) {
   faults
 }
 
+#' Find a post-definitive intensive care share outside the unit interval
+#'
+#' @param vars The `vars` block of a parsed configuration.
+#' @return A character vector holding one fault message, or empty when the
+#'   share is absent or a single number from 0 to 1.
+#' @details An absent share reads as 1, every operated casualty needing the
+#'   episode, so a configuration saved before the field existed still runs.
+post_definitive_share_faults <- function(vars) {
+  r2e <- Filter(function(e) identical(e$elm, "r2eheavy"), vars)
+  for (acty in unlist(lapply(r2e, `[[`, "actys"), recursive = FALSE)) {
+    if (!identical(acty$acty, "post_definitive_icu")) next
+    vals <- setNames(lapply(acty$vals, `[[`, "val"),
+                     vapply(acty$vals, `[[`, character(1), "var"))
+    v <- vals$share
+    if (is.null(v)) next
+    if (!(is.numeric(v) && length(v) == 1L && is.finite(v) && v >= 0 && v <= 1)) {
+      return(sprintf(
+        "vars[r2eheavy]$post_definitive_icu: share must be a single number from 0 to 1, found %s",
+        paste(format(v), collapse = ", ")))
+    }
+  }
+  character(0)
+}
+
 #' Find the casualty surge events whose minimum casualties exceed the maximum
 #'
 #' @param vars The `vars` block of a parsed configuration.
@@ -326,7 +350,8 @@ surge_size_faults <- function(vars) {
 #'   above zero, every transport fleet with vehicles carries at least one
 #'   casualty per vehicle, every triangular distribution is ordered, no
 #'   casualty surge event's minimum exceeds its maximum, and every casualty
-#'   generation rate is a number of at least zero. Each would otherwise
+#'   generation rate is a number of at least zero, and the post-definitive
+#'   intensive care share lies from 0 to 1. Each would otherwise
 #'   run, and produce an empty pool, a casualty who can never be moved or a
 #'   draw outside its stated range, rather than fail, or fail inside the
 #'   arrival process without naming the field. Every fault is reported, not
@@ -356,7 +381,7 @@ validate_env_data_values <- function(data, source_label = "env_data.json") {
     }
   }
   problems <- c(problems, triangular_order_faults(data$vars), surge_size_faults(data$vars),
-                generator_rate_faults(data$vars))
+                generator_rate_faults(data$vars), post_definitive_share_faults(data$vars))
 
   if (length(problems) > 0) {
     stop(sprintf("validate_env_data_values: %s carries values the model cannot run:\n  - %s",

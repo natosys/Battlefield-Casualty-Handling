@@ -466,40 +466,113 @@ r2e_post_definitive_minutes <- function() {
 #'   2 = hold, 3 = overflow). The requirement is read before the placement, which
 #'   draws no random number of its own. The episode ends in its own
 #'   died-of-wounds check (r2e_post_definitive_dow_check()).
+#'
+#'   Where `post_definitive_icu.share` is below 1, a casualty owed the episode
+#'   is drawn as needing intensive care with that probability, and one who does
+#'   not recovers on the ward for the same requirement instead
+#'   (r2e_post_definitive_ward()). A casualty part-served forward in R2B
+#'   intensive care is taken as needing it, and no draw is taken. At the shipped
+#'   share of 1 the trajectory is built exactly as without the share, so no
+#'   draw is taken and the shipped stream is unchanged.
 r2e_post_definitive_care <- function(icu_beds, hold_beds, overflow, team_id, evac_team) {
   post_definitive_check <- r2e_post_definitive_dow_check(team_id, evac_team)
   stay <- r2e_placed_stay("R2E Post-Definitive Care", "post_definitive",
                           icu_beds, hold_beds, overflow)
+  share <- post_definitive_icu_share()
 
   # Branches on what the casualty owes this echelon:
   # - 1 an operation with post-definitive care still owed -> the placed stay
   # - 2 no operation, or released with the repair outstanding -> nothing
   # - 3 operated, the care served in full at R2B -> nothing, recorded as zero
-  trajectory("R2E Post-Definitive Care") %>%
+  # - 4 operated, drawn as not needing intensive care (share below 1 only)
+  #     -> ward recovery
+  options <- list(
+    trajectory("R2E Post-Definitive Stay") %>%
+      set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
+      join(stay) %>%
+      join(post_definitive_check),
+    trajectory("No Operation, No Post-Definitive Care"),
+    trajectory("Post-Definitive Care Served Forward in Full") %>%
+      set_attribute("post_definitive_min", 0)
+  )
+  # The ward arm exists only below the shipped share, so the shipped trajectory
+  # is the one built before the share existed.
+  if (share < 1) {
+    options <- c(options, list(r2e_post_definitive_ward(hold_beds, overflow,
+                                                        post_definitive_check)))
+  }
+  #' What the casualty owes this echelon, as the index of the arm to take
+  #'
+  #' @return 1 to 4, as the branch comment above sets out.
+  owed_option <- function() {
+    had_surgery <- get_attribute(env, "surgery")
+    if (is.na(had_surgery) || had_surgery != 1) return(2)
+    # A casualty released with the definitive repair outstanding has no
+    # post-definitive episode to serve: the episode this trajectory models
+    # follows a repair that has not happened.
+    outstanding <- get_attribute(env, "definitive_repair_outstanding")
+    if (!is.na(outstanding) && outstanding == 1) return(2)
+    # Served in full at R2B: nothing remains for this echelon. The
+    # attribute is set to zero so the casualty still reads as operated.
+    owed <- get_attribute(env, "post_definitive_total") - forward_served()
+    if (!is.na(owed) && owed <= 0) return(3)
+    # At the shipped share every casualty needs intensive care, and no draw
+    # is taken; below it, one part-served forward needs it without a draw.
+    if (share >= 1 || forward_served() > 0) return(1)
+    if (share <= 0 || stats::runif(1) >= share) return(4)
+    return(1)
+  }
+  do.call(branch, c(list(trajectory("R2E Post-Definitive Care"), option = owed_option,
+                         continue = rep(TRUE, length(options))), options))
+}
+
+#' Builds the ward recovery of a casualty who needs no post-definitive intensive care
+#'
+#' @param hold_beds             This R2E team's holding beds
+#' @param overflow              This R2E team's post-operative overflow resource
+#' @param post_definitive_check The died-of-wounds check the episode ends in
+#' @return Simmer trajectory serving the post-definitive requirement on the ward.
+#'
+#' @details Taken only where `post_definitive_icu.share` is below 1, for a
+#'   casualty drawn as not needing intensive care after the definitive repair.
+#'   The requirement is drawn as for the intensive care episode and served in a
+#'   holding bed, or in overflow when none is free. A holding bed is the care
+#'   this casualty needs, so it carries the reference post-operative multiplier
+#'   (post_op_r2e_icu()) rather than the holding-bed penalty a casualty who
+#'   needed intensive care carries there; overflow, below holding-bed standard,
+#'   carries that penalty (post_op_outside_icu()). The stay records
+#'   `post_definitive_ward_min`, `post_definitive_ward` (2 holding bed,
+#'   3 overflow) and, in a holding bed, `post_definitive_ward_hold_start`, and
+#'   leaves `post_definitive_pathway` unset, so every measure of intensive care
+#'   access or degraded care excludes it.
+r2e_post_definitive_ward <- function(hold_beds, overflow, post_definitive_check) {
+  # Branches on a holding bed being free at this instant:
+  # - 1 a holding bed is free -> the ward stay in that bed
+  # - 2 none                  -> the ward stay in overflow, with no bed
+  trajectory("R2E Post-Definitive Ward Recovery") %>%
+    set_attribute("post_definitive_ward_min", function() r2e_post_definitive_minutes()) %>%
     branch(
-      option = function() {
-        had_surgery <- get_attribute(env, "surgery")
-        if (is.na(had_surgery) || had_surgery != 1) return(2)
-        # A casualty released with the definitive repair outstanding has no
-        # post-definitive episode to serve: the episode this trajectory models
-        # follows a repair that has not happened.
-        outstanding <- get_attribute(env, "definitive_repair_outstanding")
-        if (!is.na(outstanding) && outstanding == 1) return(2)
-        # Served in full at R2B: nothing remains for this echelon. The
-        # attribute is set to zero so the casualty still reads as operated.
-        owed <- get_attribute(env, "post_definitive_total") - forward_served()
-        if (!is.na(owed) && owed <= 0) return(3)
-        return(1)
-      },
+      option = function() if (beds_free(hold_beds)) 1 else 2,
       continue = TRUE,
-      trajectory("R2E Post-Definitive Stay") %>%
-        set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
-        join(stay) %>%
-        join(post_definitive_check),
-      trajectory("No Operation, No Post-Definitive Care"),
-      trajectory("Post-Definitive Care Served Forward in Full") %>%
-        set_attribute("post_definitive_min", 0)
-    )
+      trajectory("R2E Post-Definitive Ward Recovery in a Holding Bed") %>%
+        set_attribute("post_definitive_ward", 2) %>%
+        simmer::select(hold_beds, policy = "first-available", id = 8) %>%
+        seize_selected(id = 8) %>%
+        set_attribute("post_definitive_ward_hold_start", function() now(env)) %>%
+        dow_placement(post_op_r2e_icu) %>%
+        timeout_from_attribute("post_definitive_ward_min") %>%
+        release_selected(id = 8),
+      trajectory("R2E Post-Definitive Ward Recovery in Overflow") %>%
+        set_attribute("post_definitive_ward", 3) %>%
+        seize(overflow, 1) %>%
+        overflow_enter() %>%
+        dow_placement(post_op_outside_icu) %>%
+        timeout_from_attribute("post_definitive_ward_min") %>%
+        release(overflow, 1) %>%
+        overflow_leave()
+    ) %>%
+    dow_placement(post_op_outside_icu) %>%
+    join(post_definitive_check)
 }
 
 #' Builds the deferred surgical pathway at R2E

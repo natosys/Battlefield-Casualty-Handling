@@ -33,8 +33,9 @@
 # fields the model indexes by being present and of the type it indexes them
 # with, plus the few values the model cannot run at all: an empty population
 # or echelon, a fleet that can carry nobody, a disordered triangular
-# distribution or casualty surge size, under the base configuration and each
-# scenario profile. Whether a rate or a probability is plausible is a
+# distribution or casualty surge size, and a casualty generation rate that is
+# negative or not a number, under the base configuration and each scenario
+# profile. Whether a rate or a probability is plausible is a
 # modelling question, checked where that parameter is read.
 
 suppressPackageStartupMessages({
@@ -309,6 +310,26 @@ scheduled <- set_var(scheduled, "casualty_surge", "schedule", "max_cas", list(40
 assert_rejects("a scheduled casualty surge event's disordered size is named by its index",
                "found 10 > 5 (event 2)",
                validate_env_data_values(scheduled, "edited.json"))
+
+assert_accepts("a casualty generation rate of zero, a stream switched off, is accepted",
+               validate_env_data_values(set_var(json, "generators", "kia_spt", "mean_daily", 0),
+                                        "edited.json"))
+
+assert_rejects("a negative casualty generation rate is named",
+               paste("vars[generators]$kia_spt: mean_daily must be a single number of at",
+                     "least zero, found -1"),
+               validate_env_data_values(set_var(json, "generators", "kia_spt", "mean_daily", -1),
+                                        "edited.json"))
+
+assert_rejects("a non-numeric daily rate spread is named",
+               "vars[generators]$wia_cbt: sd_daily must be a single number of at least zero",
+               validate_env_data_values(set_var(json, "generators", "wia_cbt", "sd_daily", "high"),
+                                        "edited.json"))
+
+assert_rejects("an unknown generator distribution is named",
+               "vars[generators]$dnbi_cbt: distribution must be 'lognormal' or 'exponential'",
+               validate_env_data_values(set_var(json, "generators", "dnbi_cbt", "distribution",
+                                                "gamma"), "edited.json"))
 
 # A scenario overlay replaces values, so a base configuration in order can be
 # disordered under one of its profiles; read_config() checks each profile.

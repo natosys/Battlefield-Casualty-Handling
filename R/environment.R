@@ -252,6 +252,40 @@ triangular_order_faults <- function(vars) {
   faults
 }
 
+#' Find the casualty generation rates the arrival generators cannot use
+#'
+#' @param vars The `vars` block of a parsed configuration.
+#' @return A character vector of fault messages, empty when every stream's
+#'   rate is usable.
+#' @details A stream's `mean_daily` and `sd_daily` must each be a single finite
+#'   number of at least zero, and `distribution`, where given, one of the two
+#'   the generators implement. A mean of zero is allowed: it switches the
+#'   stream off.
+generator_rate_faults <- function(vars) {
+  faults <- character(0)
+  generators <- Filter(function(e) identical(e$elm, "generators"), vars)
+  for (acty in unlist(lapply(generators, `[[`, "actys"), recursive = FALSE)) {
+    vals <- setNames(lapply(acty$vals, `[[`, "val"),
+                     vapply(acty$vals, `[[`, character(1), "var"))
+    for (key in intersect(c("mean_daily", "sd_daily"), names(vals))) {
+      v <- vals[[key]]
+      if (!(is.numeric(v) && length(v) == 1L && is.finite(v) && v >= 0)) {
+        faults <- c(faults, sprintf(
+          "vars[generators]$%s: %s must be a single number of at least zero, found %s",
+          acty$acty, key, if (is.null(v)) "nothing" else paste(format(v), collapse = ", ")))
+      }
+    }
+    d <- vals$distribution
+    if (!is.null(d) && !(is.character(d) && length(d) == 1L &&
+                           d %in% c("lognormal", "exponential"))) {
+      faults <- c(faults, sprintf(
+        "vars[generators]$%s: distribution must be 'lognormal' or 'exponential', found %s",
+        acty$acty, paste(format(d), collapse = ", ")))
+    }
+  }
+  faults
+}
+
 #' Find the casualty surge events whose minimum casualties exceed the maximum
 #'
 #' @param vars The `vars` block of a parsed configuration.
@@ -290,11 +324,13 @@ surge_size_faults <- function(vars) {
 #' @details The semantic half of the check `validate_env_data_json()` makes
 #'   structurally: every force population and every echelon's team count is
 #'   above zero, every transport fleet with vehicles carries at least one
-#'   casualty per vehicle, every triangular distribution is ordered, and no
-#'   casualty surge event's minimum exceeds its maximum. Each would otherwise
+#'   casualty per vehicle, every triangular distribution is ordered, no
+#'   casualty surge event's minimum exceeds its maximum, and every casualty
+#'   generation rate is a number of at least zero. Each would otherwise
 #'   run, and produce an empty pool, a casualty who can never be moved or a
-#'   draw outside its stated range, rather than fail. Every fault is reported,
-#'   not just the first.
+#'   draw outside its stated range, rather than fail, or fail inside the
+#'   arrival process without naming the field. Every fault is reported, not
+#'   just the first.
 validate_env_data_values <- function(data, source_label = "env_data.json") {
   problems <- character(0)
   for (pop in data$pops) {
@@ -319,7 +355,8 @@ validate_env_data_values <- function(data, source_label = "env_data.json") {
         veh$name, if (is.null(capacity)) "nothing" else format(capacity)))
     }
   }
-  problems <- c(problems, triangular_order_faults(data$vars), surge_size_faults(data$vars))
+  problems <- c(problems, triangular_order_faults(data$vars), surge_size_faults(data$vars),
+                generator_rate_faults(data$vars))
 
   if (length(problems) > 0) {
     stop(sprintf("validate_env_data_values: %s carries values the model cannot run:\n  - %s",
@@ -757,9 +794,13 @@ make_thinned_arrival_generator <- function(draw_daily_rate, force_global,
 #'   configuration names, and editing `sd_daily` alone leaves the realised mean
 #'   alone. Both properties are asserted by
 #'   tests/checks/check_arrival_rate_fidelity.R, alongside the realised daily
-#'   variance.
+#'   variance. A `mean_daily` of zero is a stream switched off: the closure ends
+#'   at once, consuming no random draw.
 make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
                                       force_bound, n_days) {
+  # A zero mean is a stream switched off. The lognormal parameters below take
+  # the log of the mean, so it is answered here, and with no draw.
+  if (mean_daily == 0) return(function() -1)
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
   mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
 
@@ -788,9 +829,13 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
 #'   higher-intensity casualty streams are exponential-distributed rather
 #'   than lognormal-distributed like the moderate_intensity/default streams.
 #'   An exponential's standard deviation equals its mean, so such a stream's
-#'   between-day variation is fixed by `mean_daily` alone.
+#'   between-day variation is fixed by `mean_daily` alone. A `mean_daily` of
+#'   zero is a stream switched off, as for make_ln_arrival_generator().
 make_exp_arrival_generator <- function(mean_daily, force_global, force_bound,
                                        n_days) {
+  # A zero mean is a stream switched off, generating nothing and drawing nothing,
+  # as the lognormal stream does.
+  if (mean_daily == 0) return(function() -1)
   make_thinned_arrival_generator(
     function() qexp(runif(1), rate = 1 / mean_daily),
     force_global, force_bound, n_days

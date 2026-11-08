@@ -1965,24 +1965,49 @@ seed42_verification_rows <- function(mon, cfg, days) {
   do.call(rbind, acc$rows)
 }
 
-#' Treated-cohort died-of-wounds rate against each campaign's historical anchor
+#' Treated-cohort died-of-wounds rate at each anchor's horizon and at 360 days
 #'
 #' @param data_dir The data directory.
-#' @return The table lines.
+#' @return The table lines: one row per configuration, its historical anchor, and
+#'   the rate and post-operative share measured at the anchor's own horizon and
+#'   at the sustained horizon.
+#'
+#' @details Two tracked measurements, both written by
+#'   tests/checks/check_dow_calibration.R: `dow_calibration_anchor.csv` at the
+#'   length of the campaign each anchor describes (30 days for Ajax Bay, 82 for
+#'   Okinawa), the horizon at which the anchor is asserted, and
+#'   `dow_calibration.csv` at 360 days. Each column names its horizon so that a
+#'   sustained-horizon rate is never read against an anchor defined at another.
 build_dow_calibration <- function(data_dir) {
-  d <- res_read("calibration/dow_calibration.csv", data_dir)
+  at_anchor <- res_read("calibration/dow_calibration_anchor.csv", data_dir)
+  sustained <- res_read("calibration/dow_calibration.csv", data_dir)
   labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity",
               high_intensity = "High intensity")
-  rows <- lapply(seq_len(nrow(d)), function(i) {
-    x <- d[i, ]
-    kind <- if (x$kind == "bound") "at or below" else "fitted to"
-    c(labels[[x$scenario]], sprintf("%s %.2f%% (%s, %d days)", kind, 100 * x$target, x$anchor,
-                                    as.integer(x$anchor_days)),
-      sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
-      sprintf("%.0f%%", 100 * x$hazard_share), as.character(x$replications))
+  #' One measurement's rate and interval as a cell
+  #'
+  #' @param x One row of a calibration file.
+  #' @return The cell text.
+  rate_cell <- function(x) {
+    sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper)
+  }
+  rows <- lapply(seq_len(nrow(at_anchor)), function(i) {
+    a <- at_anchor[i, ]
+    l <- sustained[sustained$scenario == a$scenario, ]
+    if (nrow(l) != 1L) {
+      stop(sprintf("expected one 360-day calibration row for '%s', found %d", a$scenario,
+                   nrow(l)), call. = FALSE)
+    }
+    kind <- if (a$kind == "bound") "at or below" else "fitted to"
+    c(labels[[a$scenario]],
+      sprintf("%s %.2f%% (%s, %d days)", kind, 100 * a$target, a$anchor,
+              as.integer(a$anchor_days)),
+      rate_cell(a), sprintf("%.0f%%", 100 * a$hazard_share), as.character(a$replications),
+      rate_cell(l), sprintf("%.0f%%", 100 * l$hazard_share), as.character(l$replications))
   })
-  res_table(c("Configuration", "Historical anchor", "Treated-cohort died-of-wounds rate",
-              "Post-operative share of risk", "Replications"), rows)
+  res_table(c("Configuration", "Historical anchor", "Rate at the anchor's horizon",
+              "Post-operative share at the anchor's horizon",
+              "Replications at the anchor's horizon", "Rate at 360 days",
+              "Post-operative share at 360 days", "Replications at 360 days"), rows)
 }
 
 #' One section of the seed-42 verification measurements as a table

@@ -151,8 +151,13 @@ measure_or_resume <- function(probability) {
 }
 
 arms <- lapply(probabilities, measure_or_resume)
+# A route collapses only when its late backlog outruns one sortie, so the
+# threshold is the configured airframe's places under the scenario run.
+sortie_places <- airlift_sortie_places(
+  build_environment(resolve_scenario(json_data, opt$scenario))$vars$role4)
 per_replication <- do.call(rbind, lapply(arms, function(arm) {
-  response <- collapse_response(arm$series, opt$days, window_days = opt$window)
+  response <- collapse_response(arm$series, opt$days, sortie_places,
+                                window_days = opt$window)
   response$probability <- arm$series$probability[1]
   response
 }))

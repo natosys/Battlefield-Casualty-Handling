@@ -32,8 +32,10 @@
 #      route's demand by the places flown for its utilisation.
 #   3. It classifies a backlog still rising over the late half as collapsed,
 #      and a settled, falling or constant one as clear, route by route.
-#   4. The level does not decide: a settled backlog above a rising one is clear
-#      while the rising one is collapsed.
+#   4. The level does not decide alone: a settled backlog above a rising one is
+#      clear while the rising one is collapsed. Nor does the trend: a backlog
+#      rising but never above one sortie's places is clear, and becomes
+#      collapsed only when the threshold falls below it.
 #   5. summarise_collapse() returns the Clopper-Pearson interval, which on a
 #      zero-count arm has a positive upper bound where a normal interval has
 #      zero width.
@@ -47,6 +49,7 @@
 # Assertions 2 to 4 are made against series constructed here rather than
 # measured, so each has an answer arrived at without the function under test.
 
+source("R/environment.R")
 source("R/airlift.R")
 
 state <- new.env(parent = emptyenv())
@@ -208,7 +211,10 @@ expected_stability <- c("converged", "drifting", "drifting", "degenerate")
 
 both <- rbind(make_series(constructed),
               make_series(rising, route = "Standard airlift", places_day_one = 240))
-all_routes <- collapse_response(both, n_days = 360, window_days = 90)
+# The constructed backlogs are measured against twenty places a sortie, which
+# the rising backlogs' late-half means (about 27) exceed.
+TEST_PLACES <- c("Critical airlift" = 20, "Standard airlift" = 20)
+all_routes <- collapse_response(both, n_days = 360, TEST_PLACES, window_days = 90)
 response <- all_routes[all_routes$route == "Critical airlift", ]
 standard <- all_routes[all_routes$route == "Standard airlift", ]
 
@@ -244,7 +250,28 @@ report(response$closing_backlog[1] > response$closing_backlog[2] &&
 report(!isTRUE(response$collapsed[3]),
        "a backlog falling over the late half is clear")
 
-absent <- collapse_response(both[0, ], n_days = 360)
+# A backlog rising by 0.3 a block over the late half, from 1.8 to 3.6 with a
+# late-half mean near 2.7, drifts upward but never approaches a sortie's twenty
+# places, so the next sortie would clear it: it is clear. Against a threshold of
+# one place the same backlog is collapsed, so the materiality condition is what
+# decides.
+small <- matrix(c(0, 0, 0, 0, 0, 0.3 * late + wobble / 10), nrow = 1)
+small_series <- make_series(small)
+small_clear <- collapse_response(small_series, n_days = 360, TEST_PLACES)
+small_low <- collapse_response(small_series, n_days = 360,
+                               c("Critical airlift" = 1, "Standard airlift" = 1))
+report(identical(small_clear$stability, "drifting") && small_clear$slope_per_day > 0 &&
+         !isTRUE(small_clear$collapsed),
+       "a backlog rising but below one sortie's places (late mean %.2f) is clear",
+       small_clear$late_backlog)
+report(isTRUE(small_low$collapsed),
+       "the same backlog is collapsed once the threshold falls below it")
+report(inherits(try(collapse_response(small_series, n_days = 360,
+                                      c("Standard airlift" = 20)), silent = TRUE),
+                "try-error"),
+       "a route with no sortie places given is refused rather than classified")
+
+absent <- collapse_response(both[0, ], n_days = 360, TEST_PLACES)
 report(nrow(absent) == 0, "an empty series returns no responses")
 
 # ── 5. The interval is Clopper-Pearson ───────────────────────────────────────
@@ -352,11 +379,14 @@ if (!file.exists(SERIES_PATH) || !file.exists(RESPONSE_PATH)) {
   report(all(sort(unique(tracked_series$day)) == seq_len(AIRLIFT_COLLAPSE_DAYS)),
          "every day from 1 to %d is present", AIRLIFT_COLLAPSE_DAYS)
 
+  # The threshold is the shipped airframe's places, as the run script reads it.
+  SHIPPED_PLACES <- airlift_sortie_places(
+    build_environment(resolve_scenario(read_config("env_data.json"), "default"))$vars$role4)
   # Reproducing the tracked responses from the series is what makes the
   # published table auditable without re-running 180 replication-years.
   recomputed <- do.call(rbind, lapply(AIRLIFT_COLLAPSE_PROBABILITIES, function(probability) {
     arm <- tracked_series[abs(tracked_series$probability - probability) < TOL, ]
-    out <- collapse_response(arm, AIRLIFT_COLLAPSE_DAYS)
+    out <- collapse_response(arm, AIRLIFT_COLLAPSE_DAYS, SHIPPED_PLACES)
     out$probability <- probability
     out
   }))

@@ -8,6 +8,7 @@
 # Usage:
 #   Rscript scripts/render_dow_care_states.R                     # to outputs/images
 #   Rscript scripts/render_dow_care_states.R --refresh-baseline  # to images/
+#   Rscript scripts/render_dow_care_states.R --images-dir <dir>  # to <dir>
 #
 # RENDERS: dow_care_states.png
 #
@@ -48,7 +49,7 @@ arg_value <- function(flag, default = NULL) {
 IMAGES <- if ("--refresh-baseline" %in% args) {
   "images"
 } else {
-  arg_value("--images", "outputs/images")
+  arg_value("--images-dir", arg_value("--images", "outputs/images"))
 }
 
 env_data <- fromJSON("env_data.json", simplifyDataFrame = FALSE)

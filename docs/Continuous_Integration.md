@@ -200,6 +200,15 @@ the code rather than in the check. Changing a check to accommodate a failure is
 appropriate only when the property itself was wrong, and then the change is
 argued in the pull request rather than made quietly.
 
+`check_figure_provenance.R` failing because a re-rendered figure is no longer
+identical to its tracked copy is the one failure whose usual fix is a
+regeneration. A change to an evidence set, to a value in `env_data.json` that a
+figure draws, or to a plot function leaves the tracked image behind, and the
+render script that declares it is re-run with `--refresh-baseline` and the image
+committed with the change. A figure that differs when nothing it draws on
+changed is the defect, most often a legend left to `ggplot2`'s session-dependent
+order rather than given an explicit one.
+
 ### The lint ratchet fails
 
 The failure names the rule and both counts:

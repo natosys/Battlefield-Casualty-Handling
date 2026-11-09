@@ -346,7 +346,7 @@ POLICY_TREND_POOLS <- c(hold = "R2E holding beds",
                         post_op = "R2E post-operative overflow",
                         staging = "R2E staging overflow")
 
-#' Whether each R2E pool is still growing over the second half of one campaign
+#' Whether each R2E pool is still growing over the late half of one campaign
 #'
 #' @param resources Resource-monitor rows for one replication.
 #' @param n_days Campaign length in days.

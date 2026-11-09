@@ -599,7 +599,7 @@ reduce_route_backlog <- function(env, n_days) {
 #'   replication and route.
 #'
 #' @details A route is collapsed in a campaign when two conditions hold. Its
-#'   backlog is still rising over the second half of the campaign:
+#'   backlog is still rising over the late half of the campaign:
 #'   classify_stability() (R/long_horizon.R), the rule the sustained-operations
 #'   protocol applies to every pool, is applied to the replication's own block
 #'   means of that route's backlog, and the backlog must be drifting with a

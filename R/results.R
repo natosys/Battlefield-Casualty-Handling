@@ -1061,7 +1061,7 @@ build_policy_grid <- function(data_dir, stem) {
 #' @return The table lines: for each policy and establishment, the replications of
 #'   the campaign's thirty in which the holding queue, the post-operative
 #'   overflow census, both, and the staging overflow census were not still
-#'   growing over the second half of the campaign, and whether the cell as a
+#'   growing over the late half of the campaign, and whether the cell as a
 #'   whole holds the R2E pools (res_cell_holds()).
 build_policy_grid_stability <- function(data_dir, stem) {
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)

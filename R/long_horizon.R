@@ -337,6 +337,22 @@ STABILITY_DRIFT_THRESHOLD <- 0.01
 #'   would otherwise be read from.
 STABILITY_SETTLE_SDS <- 2
 
+#' The blocks the late trend is fitted to
+#'
+#' @param n Number of blocks in the horizon.
+#' @return Integer vector of block indices: the middle block and every block
+#'   after it.
+#'
+#' @details The late half as the methods paper defines it: `ceiling(n / 2)` to
+#'   `n`, which at the protocol's twelve 30-day blocks is blocks 6 to 12, days
+#'   151 to 360, seven blocks rather than six. The middle block is included so
+#'   that an odd count leaves the later half the larger and a short series keeps
+#'   enough blocks to fit. The window is stated in the methods paper by a marker
+#'   comment that tests/checks/check_statistical_method.R holds to this
+#'   function, because a classification whose interval bound lies near zero can
+#'   change with the window's first block.
+late_window_blocks <- function(n) as.integer(seq.int(ceiling(n / 2), n))
+
 #' Late-half slope of one response and its 95% interval
 #'
 #' @param d The response's cross-replication block means, in block order.
@@ -379,8 +395,8 @@ late_trend <- function(d, late, rep_blocks) {
 #' @details The classification is the protocol's finding, so it is computed here
 #'   rather than read off a figure.
 #'
-#'   The trend is fitted over the second half of the horizon rather than over
-#'   all of it, because a response that decays from an initial transient to a
+#'   The trend is fitted over the late half of the horizon (late_window_blocks())
+#'   rather than over all of it, because a response that decays from an initial transient to a
 #'   steady level and one that grows without bound both have a non-zero slope
 #'   across the whole horizon and are the two cases this classification exists
 #'   to separate. A run starts from an empty system, so a decaying opening is
@@ -423,7 +439,7 @@ classify_stability <- function(blocks, rep_blocks = NULL) {
     row_for <- function(slope, ci, drift, settles, stability) {
       data.frame(series = d$series[1], subject = d$subject[1],
                  first = d$mean[1], last = d$mean[n],
-                 late_mean = mean(d$mean[ceiling(n / 2):n]),
+                 late_mean = mean(d$mean[late_window_blocks(n)]),
                  slope = slope, ci_lower = ci[1], ci_upper = ci[2],
                  drift_per_block = drift, settles_by_block = settles,
                  stability = stability)
@@ -433,7 +449,7 @@ classify_stability <- function(blocks, rep_blocks = NULL) {
       return(row_for(0, c(0, 0), 0, NA_integer_, "degenerate"))
     }
 
-    late  <- d[ceiling(n / 2):n, ]
+    late  <- d[late_window_blocks(n), ]
     level <- mean(late$mean)
 
     # A response that varied early and is constant over the late blocks has a
@@ -443,7 +459,7 @@ classify_stability <- function(blocks, rep_blocks = NULL) {
     # width zero that would read as a precise measurement rather than as a
     # degenerate one.
     if (isTRUE(all.equal(max(late$mean), min(late$mean)))) {
-      return(row_for(0, c(0, 0), 0, as.integer(ceiling(n / 2)), "converged"))
+      return(row_for(0, c(0, 0), 0, late_window_blocks(n)[1], "converged"))
     }
 
     trend <- late_trend(d, late, rep_blocks)

@@ -36,6 +36,12 @@
 #      are drifting.
 #   4. Given a single replication, the classification falls back to the fit to
 #      that replication's own block means.
+#   5. The late window is the middle block and every block after it, blocks 6
+#      to 12 of the protocol's twelve, as the methods paper's marker states: a
+#      series flat from block 7 that rises into it from block 6 is drifting,
+#      and its late level counts block 6. A classification whose interval bound
+#      lies near zero can change with the window's first block, so the paper
+#      and the code are held to one window.
 
 source("R/analysis_common.R")
 source("R/long_horizon.R")
@@ -76,6 +82,9 @@ BLOCK_DAYS <- 30L
 
 #' Blocks in the constructed series
 N_BLOCKS <- 12L
+
+#' The methods paper, whose marker states the late window
+METHODS <- "docs/Methods.md"
 
 # ── 1. holm_adjust() on hand-computed p-values ──────────────────────────────
 
@@ -162,6 +171,39 @@ st3 <- suppressWarnings(classify_stability(block_means(one, BLOCK_DAYS),
 report(isTRUE(all.equal(st3$slope, 3, tolerance = TOL)) &&
          identical(as.character(st3$stability), "drifting"),
        "a single replication is classified by the fit to its own block means")
+
+# ── 5. The late window ──────────────────────────────────────────────────────
+
+cat("\n-- the late window is the methods paper's --\n")
+
+methods_text <- paste(readLines(METHODS, warn = FALSE), collapse = "\n")
+marker <- regmatches(methods_text,
+                     regexpr("<!-- STABILITY late_from_block=([0-9]+) -->", methods_text))
+stated <- suppressWarnings(as.integer(sub(".*=([0-9]+) -->", "\\1", marker)))
+window <- late_window_blocks(N_BLOCKS)
+report(length(stated) == 1 && identical(stated, window[1]) && identical(max(window), N_BLOCKS),
+       "the paper states the late window from block %s and the code fits blocks %d to %d",
+       if (length(stated) == 1) stated else "(no marker)", window[1], max(window))
+first_day <- (window[1] - 1L) * BLOCK_DAYS + 1L
+days_named <- sprintf("days %d to %d", first_day, N_BLOCKS * BLOCK_DAYS)
+report(grepl(days_named, methods_text, fixed = TRUE),
+       "the paper names the window's days, %d to %d", first_day, N_BLOCKS * BLOCK_DAYS)
+
+# Every block from 7 holds 10 plus a replication's own offset, and block 6 holds
+# zero: on blocks 7 to 12 alone the series is flat, so a classification that
+# reads drifting with a late level below 10 has fitted block 6.
+offsets <- c(0, 0.5, 1)
+step_series <- do.call(rbind, lapply(seq_along(offsets), function(r) {
+  days <- seq_len(N_BLOCKS * BLOCK_DAYS)
+  block <- floor((days - 1) / BLOCK_DAYS) + 1L
+  data.frame(replication = r, day = days, series = "mean_queue", subject = "pool",
+             value = ifelse(block >= 7L, 10 + offsets[r], ifelse(block == 6L, 0, 5)))
+}))
+st5 <- suppressWarnings(classify_stability(block_means(step_series, BLOCK_DAYS),
+                                           replication_block_means(step_series, BLOCK_DAYS)))
+report(identical(as.character(st5$stability), "drifting") && st5$late_mean < 10,
+       "a series flat from block 7 that rises into it from block 6 is drifting, late level %.2f",
+       st5$late_mean)
 
 if (length(state$failures) > 0L) {
   cat(sprintf("\n%d check(s) FAILED:\n", length(state$failures)))

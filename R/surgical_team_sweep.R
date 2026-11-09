@@ -69,9 +69,9 @@ SURGICAL_SWEEP_ARMS <- data.frame(
 
 #' Fewest 30-day blocks a campaign needs for the late-half fit to have a residual
 #'
-#' @details classify_stability() fits the trend over the second half of the
-#'   blocks, and a line fitted to two points has no residual degrees of freedom
-#'   to put an interval on. Six blocks leave four in the late half.
+#' @details classify_stability() fits the trend over the late half of the
+#'   blocks (late_window_blocks()), and a line fitted to two points has no
+#'   residual degrees of freedom to put an interval on. Six blocks leave four in the late half.
 SURGICAL_SWEEP_MIN_BLOCKS <- 6L
 
 #' Pool and series the daily classification is made on

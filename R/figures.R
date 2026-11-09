@@ -86,7 +86,10 @@ label_panels <- function(summary_df, panels) {
 #'
 #' @details The shipped value is a dashed reference line on every panel, so the
 #'   cost of departing from the shipped configuration reads off the figure. Each
-#'   panel has its own vertical scale, the responses sharing no unit.
+#'   panel has its own vertical scale, the responses sharing no unit. The three
+#'   legends carry an explicit order: left to ggplot2, legends of equal order are
+#'   sorted by a hash that differs between sessions, and the figure then differs
+#'   from its tracked copy in nothing but the order of its legend keys.
 sweep_panels <- function(plot_df, shipped, x_label, title, subtitle = NULL) {
   p <- ggplot(plot_df, aes(x = x, y = mean)) +
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = "95% confidence interval"),
@@ -94,8 +97,10 @@ sweep_panels <- function(plot_df, shipped, x_label, title, subtitle = NULL) {
     geom_line(aes(color = "Mean across replications"), linewidth = 1) +
     geom_point(aes(color = "Mean across replications"), size = 2) +
     facet_wrap(~ panel, scales = "free_y", ncol = 2) +
-    scale_fill_manual(name = NULL, values = c("95% confidence interval" = FIGURE_INTERVAL_FILL)) +
-    scale_color_manual(name = NULL, values = c("Mean across replications" = FIGURE_MEAN_COLOUR)) +
+    scale_fill_manual(name = NULL, values = c("95% confidence interval" = FIGURE_INTERVAL_FILL),
+                      guide = guide_legend(order = 1)) +
+    scale_color_manual(name = NULL, values = c("Mean across replications" = FIGURE_MEAN_COLOUR),
+                       guide = guide_legend(order = 2)) +
     labs(title = title, subtitle = subtitle, x = x_label, y = NULL) +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
@@ -103,7 +108,8 @@ sweep_panels <- function(plot_df, shipped, x_label, title, subtitle = NULL) {
   if (!is.null(shipped)) {
     p <- p + geom_vline(aes(xintercept = shipped, linetype = "Shipped value"),
                         color = FIGURE_SHIPPED_COLOUR, linewidth = 0.6) +
-      scale_linetype_manual(name = NULL, values = c("Shipped value" = "dashed"))
+      scale_linetype_manual(name = NULL, values = c("Shipped value" = "dashed"),
+                            guide = guide_legend(order = 3))
   }
   p
 }
@@ -362,9 +368,10 @@ plot_airlift_collapse <- function(collapse_df) {
     geom_line(linewidth = 1) +
     geom_point(size = 2) +
     labs(title = "Airlift Routes Collapsing under Sortie Cancellation",
-         subtitle = sprintf(paste0("A route collapses where its backlog is still rising over the ",
-                                   "second half of the campaign\n%d replications per point; ",
-                                   "exact binomial 95%% intervals"), unique(collapse_df$n_reps)),
+         subtitle = sprintf(paste0("A route collapses where its backlog is still rising from day ",
+                                   "151 and exceeds\none sortie's places on that route; %d ",
+                                   "replications per point; exact binomial 95%% intervals"),
+                            unique(collapse_df$n_reps)),
          x = "Sortie cancellation probability", y = "Campaigns collapsing (%)",
          colour = NULL, fill = NULL) +
     theme_minimal(base_size = 13) +

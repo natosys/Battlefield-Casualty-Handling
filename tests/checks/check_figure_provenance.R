@@ -30,8 +30,13 @@
 #   3. scripts/render_sweep_figures.R runs from tracked data alone: it writes
 #      every image it declares into a scratch directory, with simmer never
 #      loaded, and leaves the tracked images/ untouched.
-#   4. Each rendered image has the dimensions of its tracked copy, so a layout
-#      change reaches the tracked image rather than only the script.
+#   4. Each rendered image is byte-identical to its tracked copy, the care-state
+#      worked example included, so a change to the data, the configuration or
+#      the layout reaches the tracked image rather than only the script. A
+#      re-render in the pinned image is deterministic once every legend carries
+#      an explicit order; a figure compared only by its dimensions was once left
+#      drawn from a superseded classification and from superseded mortality
+#      parameters while this check passed.
 #   5. No library function defaults its image directory to the tracked
 #      images/: every `images_dir` default under R/ resolves under outputs/, so
 #      calling one from a console, as the README's examples do, cannot replace a
@@ -50,6 +55,8 @@
 RESULTS <- "docs/Results.md"
 #' The render script that draws the sweep figures from tracked data
 SWEEP_SCRIPT <- "scripts/render_sweep_figures.R"
+#' The render script that draws the care-state worked example from env_data.json
+CARE_STATE_SCRIPT <- "scripts/render_dow_care_states.R"
 #' Pattern of a line declaring an image a script renders
 MARKER <- "^\\s*# RENDERS: "
 
@@ -113,6 +120,29 @@ png_size <- function(path) {
   as.integer(c(sum(as.integer(header[17:20]) * place), sum(as.integer(header[21:24]) * place)))
 }
 
+#' Report whether a re-rendered image is byte-identical to its tracked copy
+#'
+#' @param out The re-rendered image.
+#' @param tracked The tracked image.
+#' @param img The image's name, for the message.
+#' @return Invisible NULL.
+#'
+#' @details The dimensions are named in the message when they differ, since a
+#'   layout change and a change of content call for different fixes.
+report_same_image <- function(out, tracked, img) {
+  same <- identical(unname(tools::md5sum(out)), unname(tools::md5sum(tracked)))
+  detail <- if (same) {
+    ""
+  } else if (!identical(png_size(out), png_size(tracked))) {
+    sprintf(": rendered %s against tracked %s", paste(png_size(out), collapse = " x "),
+            paste(png_size(tracked), collapse = " x "))
+  } else {
+    ": same dimensions, different content; re-render with --refresh-baseline"
+  }
+  report(same, "%s is identical to its tracked copy%s", img, detail)
+  invisible(NULL)
+}
+
 cat("Figure provenance check\n\n")
 
 producers <- Sys.glob("scripts/render_*.R")
@@ -147,11 +177,19 @@ for (img in sweep_images) {
   out <- file.path(scratch, img)
   report(file.exists(out) && file.size(out) > 0, "%s is rendered into the scratch directory", img)
   tracked <- file.path("images", img)
-  if (file.exists(out) && file.exists(tracked)) {
-    report(identical(png_size(out), png_size(tracked)),
-           "%s has the dimensions of its tracked copy (%s)", img,
-           paste(png_size(tracked), collapse = " x "))
-  }
+  if (file.exists(out) && file.exists(tracked)) report_same_image(out, tracked, img)
+}
+
+cat("\n-- the care-state worked example matches the shipped configuration --\n")
+status <- system2(file.path(R.home("bin"), "Rscript"),
+                  c("--no-init-file", CARE_STATE_SCRIPT, "--images-dir", shQuote(scratch)),
+                  stdout = FALSE, stderr = FALSE)
+report(status == 0L, "%s exits cleanly (status %d)", CARE_STATE_SCRIPT, status)
+for (img in declared_images(CARE_STATE_SCRIPT)) {
+  out <- file.path(scratch, img)
+  tracked <- file.path("images", img)
+  report(file.exists(out) && file.exists(tracked), "%s is rendered and tracked", img)
+  if (file.exists(out) && file.exists(tracked)) report_same_image(out, tracked, img)
 }
 report(identical(unname(tools::md5sum(Sys.glob("images/*.png"))), tracked_before),
        "the tracked images/ are untouched by an ordinary render")

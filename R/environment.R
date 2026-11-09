@@ -985,11 +985,17 @@ wrap_with_casualty_surge <- function(background_fn, casualty_surge_times, casual
 #'   before run(), depending on the live, force-size-reactive generators
 #'   above, so the arrival-time diagnostics are reconstructed here from
 #'   get_mon_arrivals() after the run completes, filtered by each stream's
-#'   generator-name prefix. Casualty surge's diagnostic file is written by
-#'   generate_casualty_surge_events() instead, that stream being pre-computed.
+#'   generator-name prefix. Every casualty the stream generated is listed,
+#'   including those still in care when the campaign ends: the monitor is read
+#'   with `ongoing = TRUE`, which reports a casualty mid-activity at the horizon
+#'   twice, so one row is kept per name. The counts therefore equal the
+#'   generation counts of the verification annex. Casualty surge's diagnostic
+#'   file is written by generate_casualty_surge_events() instead, that stream
+#'   being pre-computed.
 write_arrival_diagnostics <- function(env, data_dir = file.path("outputs", "data")) {
   dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
-  arr <- get_mon_arrivals(env)
+  arr <- get_mon_arrivals(env, ongoing = TRUE)
+  arr <- arr[!duplicated(arr$name), ]
   streams <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "dnbi_spt")
   for (type in streams) {
     times <- sort(arr$start_time[startsWith(arr$name, type)])

@@ -43,7 +43,10 @@
 # setting's output under the present casualty routing: a change that alters the
 # model outside the died-of-wounds mechanism changes that output too, and is the
 # one occasion for revising them, as the evacuation of every casualty from R1
-# and the triage-ordered wait for an R2B resuscitation bed did.
+# and the triage-ordered wait for an R2B resuscitation bed did. A change to what
+# a diagnostic file records is the other: the arrival files now list casualties
+# still in care at the horizon, which moved four of their digests and nothing
+# else.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -78,12 +81,12 @@ LEGACY_DAYS <- 360L
 LEGACY_DIGESTS <- c(
   "logs.txt"                         = "0b094861689f996eb0ba89ca4a2c0e4e74daeb1e47a6599bc0cf02358f1e002b",
   "data/arrivals_casualty_surge.txt" = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "data/arrivals_dnbi_cbt.txt"       = "9805d55649a2f6008bf83cf7db947bbba968b62701735d308d3214ec8d3756c4",
-  "data/arrivals_dnbi_spt.txt"       = "1d5ea391f3591dbc4e9d6c2a3eb3fc6add34099514dd949ade93474dca44ee16",
+  "data/arrivals_dnbi_cbt.txt"       = "9f2024cf37848d2df9899dcf72aab0908e64556c477de2f2cd89dd75cc7d5fbb",
+  "data/arrivals_dnbi_spt.txt"       = "db10b13dfe8cf7c77922b68270e75b2f872d3befb912a5f2f358d38441485aeb",
   "data/arrivals_kia_cbt.txt"        = "8bb8567c7c5395dded9f0d0e64a2ccc9e455d382d45046885270d3892fa0683a",
   "data/arrivals_kia_spt.txt"        = "2596f73f6bedaed06e36758ce1fc69d614a2524f936ff9ad5cd18137e9942ae3",
-  "data/arrivals_wia_cbt.txt"        = "3651b5d45461c2bb5705df68191b88b9ac7db87d0bc2bb913ddd786d3f7c95b8",
-  "data/arrivals_wia_spt.txt"        = "4cb370c5154d11ffe20f4b5de8a5e067fe7bb5312f0b1423c977ba546f7548e4",
+  "data/arrivals_wia_cbt.txt"        = "4136c1ed57eede5f458ff707913eadb456ce9c3ee3d6c2f1f4739ebc1e123df8",
+  "data/arrivals_wia_spt.txt"        = "be0346795d1f02f5a1f7881ade71afcfb42e11d3e3b3dbae887549593dd4cbee",
   "data/casualty_surge_events.csv"   = "92a3d3f38f6545948482b81f01d1006ec92be1affb48d5c55849e7a8d084db70",
   "data/seed42_verification.csv"     = "a02ade99aadc5dcd659c3c66f6c2000348af6977c31a52f097ee6db1340f8bc1"
 )

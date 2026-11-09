@@ -24,6 +24,12 @@
 # to what it was, not that the published run is still the run the code
 # produces, and the tracked set is a record of a specific event stream.
 #
+# Before the run, the tracked set is checked against itself: each stream's
+# arrival diagnostic lists one line per casualty it generated, so its line count
+# equals the generation count the verification annex reports. The diagnostic
+# once read only the casualties whose care had finished, and dropped those still
+# in care at the horizon without anything noticing.
+#
 # The run writes to a temporary directory rather than to `outputs/`, so the
 # check leaves no artifact behind and cannot be confused with an ordinary run.
 # It never passes `--refresh-baseline`: repairing a difference by overwriting
@@ -103,6 +109,21 @@ first_difference <- function(a, b) {
   }
   sprintf("first differs at line %d: tracked %s, run %s",
           differing[[1L]], sQuote(la[differing[[1L]]]), sQuote(lb[differing[[1L]]]))
+}
+
+#' The six background streams whose arrival diagnostics the annex counts
+ARRIVAL_STREAMS <- c("wia_cbt", "wia_spt", "kia_cbt", "kia_spt", "dnbi_cbt", "dnbi_spt")
+
+message("The tracked arrival diagnostics against the verification annex")
+verification <- read.csv("data/seed42/seed42_verification.csv", stringsAsFactors = FALSE)
+for (stream in ARRIVAL_STREAMS) {
+  path <- file.path("data", "seed42", paste0("arrivals_", stream, ".txt"))
+  listed <- if (file.exists(path)) length(readLines(path, warn = FALSE)) else NA_integer_
+  counted <- verification$value[verification$section == "generation" &
+                                  verification$metric == paste0(stream, "_total")]
+  report(length(counted) == 1L && identical(as.numeric(listed), as.numeric(counted)),
+         sprintf("arrivals_%s.txt lists %s casualties, the annex counts %s", stream,
+                 listed, if (length(counted) == 1L) counted else "none"))
 }
 
 run_dir <- file.path(tempdir(), "baseline_reproduction")

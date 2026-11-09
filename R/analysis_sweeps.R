@@ -291,9 +291,12 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
     facet_grid(metric ~ vehicle, scales = "free_y", switch = "y",
               labeller = labeller(vehicle = vehicle_labels)) +
     scale_x_continuous(breaks = function(lims) seq(floor(lims[1]), ceiling(lims[2]), by = 1)) +
-    scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue")) +
-    scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4")) +
-    scale_linetype_manual(name = NULL, values = c("Current Fleet Size" = "dashed")) +
+    scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue"),
+                      guide = guide_legend(order = 1)) +
+    scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4"),
+                       guide = guide_legend(order = 2)) +
+    scale_linetype_manual(name = NULL, values = c("Current Fleet Size" = "dashed"),
+                          guide = guide_legend(order = 3)) +
     labs(title = "Transport Fleet Capacity Margin by Fleet Size",
          subtitle = subtitle,
          x = "Fleet Size (vehicles)", y = NULL) +
@@ -545,13 +548,16 @@ render_forward_hold_sweep_plot <- function(sweep_df, baseline_arm = NULL, n_rep 
     p <- p + geom_vline(aes(xintercept = match(baseline_arm, levels(sweep_df$arm)),
                             linetype = "Shipped Default"),
                         color = "firebrick", linewidth = 0.6) +
-      scale_linetype_manual(name = NULL, values = c("Shipped Default" = "dashed"))
+      scale_linetype_manual(name = NULL, values = c("Shipped Default" = "dashed"),
+                          guide = guide_legend(order = 3))
   }
 
   p +
     facet_wrap(~ metric, ncol = 1, scales = "free_y", strip.position = "left") +
-    scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue")) +
-    scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4")) +
+    scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue"),
+                      guide = guide_legend(order = 1)) +
+    scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4"),
+                       guide = guide_legend(order = 2)) +
     labs(title = "Forward Holding at R2B: Decision Frontier",
          subtitle = subtitle,
          x = "Forward holding rule (stability window, capacity trigger)", y = NULL) +

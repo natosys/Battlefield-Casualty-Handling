@@ -2383,6 +2383,19 @@ ADEQUACY_EXPORT_INADEQUATE <- 0.5
 #' Mean strategic evacuation backlog at or above which the airlift counts as marginal
 ADEQUACY_BACKLOG_MARGINAL <- 1
 
+#' Smallest estimated uplift, in the element's own throughput unit, that makes a drift
+#' inadequate
+#'
+#' @details An informed estimate. A drift is classified on its interval and its size
+#'   relative to its own level, so a negligible slope on a small level can be classified
+#'   drifting; a verdict of inadequate whose remedy rounds to nothing is not one a planner
+#'   can act on. Where the element has a throughput unit (a surgical section for the R2E
+#'   theatres, a stream of one sortie per interval for the strategic airlift), a drift
+#'   whose sizing estimate is below a tenth of that unit is marginal rather than
+#'   inadequate. A bed pool has no per-bed throughput to size against, so its drift stays
+#'   inadequate.
+ADEQUACY_MATERIAL_UPLIFT <- 0.1
+
 #' Casualties one sortie of the shipped airframe carries
 #'
 #' @details The critical and standard places of the C-17A in `env_data.json`.
@@ -2402,15 +2415,19 @@ ADEQUACY_CAMPAIGN_DAYS <- 360
 #' @param drifting Whether the pool's queue is classified drifting upward.
 #' @param util Closing-window utilisation as a fraction.
 #' @param empty Share of the campaign the queue stands empty, as a fraction.
+#' @param material Whether a drift's estimated uplift reaches
+#'   `ADEQUACY_MATERIAL_UPLIFT` of the pool's throughput unit; TRUE where the pool
+#'   has none to size against.
 #' @return One of `Inadequate`, `Marginal`, `Over-provisioned` and `Adequate`.
 #'
-#' @details Criteria, in order: a drifting queue is inadequate; a pool used at or
+#' @details Criteria, in order: a drifting queue is inadequate where its drift is
+#'   material and marginal where it is not; a pool used at or
 #'   above `ADEQUACY_UTIL_MARGINAL`, or whose queue stands empty for less than
 #'   `ADEQUACY_EMPTY_MARGINAL` of the campaign, is marginal; a pool used below
 #'   `ADEQUACY_UTIL_OVER` whose queue stands empty for at least
 #'   `ADEQUACY_EMPTY_OVER` is over-provisioned; any other pool is adequate.
-adequacy_pool_verdict <- function(drifting, util, empty) {
-  if (drifting) return("Inadequate")
+adequacy_pool_verdict <- function(drifting, util, empty, material = TRUE) {
+  if (drifting) return(if (material) "Inadequate" else "Marginal")
   if (util >= ADEQUACY_UTIL_MARGINAL || empty < ADEQUACY_EMPTY_MARGINAL) return("Marginal")
   if (util < ADEQUACY_UTIL_OVER && empty >= ADEQUACY_EMPTY_OVER) return("Over-provisioned")
   "Adequate"
@@ -2461,12 +2478,15 @@ adequacy_export_verdict <- function(export, util) {
 #'
 #' @param drifting Whether the backlog is classified drifting upward.
 #' @param level Mean backlog over the late half of the campaign.
+#' @param material Whether the drift's estimated uplift reaches
+#'   `ADEQUACY_MATERIAL_UPLIFT` sortie streams.
 #' @return One of `Inadequate`, `Marginal` and `Adequate`.
 #'
-#' @details A drifting backlog is inadequate; a settled one at or above
+#' @details A drifting backlog is inadequate where its drift is material and
+#'   marginal where it is not; a settled one at or above
 #'   `ADEQUACY_BACKLOG_MARGINAL` casualties is marginal; any other is adequate.
-adequacy_backlog_verdict <- function(drifting, level) {
-  if (drifting) return("Inadequate")
+adequacy_backlog_verdict <- function(drifting, level, material = TRUE) {
+  if (drifting) return(if (material) "Inadequate" else "Marginal")
   if (level >= ADEQUACY_BACKLOG_MARGINAL) return("Marginal")
   "Adequate"
 }
@@ -2515,10 +2535,33 @@ adequacy_pool_cell <- function(data_dir, pool, int, queue = pool) {
   empty <- mean(qc$zero_share[qc$pool == queue & qc$intensity == int$label])
   drifting <- identical(r$stability, "drifting") && r$drift_per_block > 0
   trend <- if (drifting) sprintf("drifting, %+.1f%%/block", 100 * r$drift_per_block) else "settled"
+  uplift <- if (drifting) adequacy_pool_uplift(data_dir, pool, r$slope, int) else NA_real_
+  material <- is.na(uplift) || uplift >= ADEQUACY_MATERIAL_UPLIFT
+  if (!material) {
+    trend <- sprintf("%s, uplift %s sections, below the %s floor", trend, res_num(uplift, 2L),
+                     res_num(ADEQUACY_MATERIAL_UPLIFT, 1L))
+  }
   noun <- if (queue == pool) "queue" else "overflow"
-  adequacy_cell(adequacy_pool_verdict(drifting, util, empty),
+  adequacy_cell(adequacy_pool_verdict(drifting, util, empty, material),
                 sprintf("%s %s, used %s, %s empty %s", noun, trend, adequacy_pct(util), noun,
                         adequacy_pct(empty)))
+}
+
+#' Estimated uplift of a drifting pool in its own throughput unit
+#'
+#' @param data_dir The data directory.
+#' @param pool Pool name.
+#' @param slope Late-half slope of the pool's block means, in casualties per block.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return Extra R2E surgical sections for the R2E theatres, the shortfall per day over
+#'   the first surgeries delivered per day times the shipped sections, as the sizing
+#'   table states it; NA for a bed pool, which has no per-bed throughput.
+adequacy_pool_uplift <- function(data_dir, pool, slope, int) {
+  if (!identical(pool, "R2E operating theatres")) return(NA_real_)
+  sr <- res_read(res_file("surgical_teams/surgical_team_sweep_replications", int$suffix),
+                 data_dir)
+  delivered <- mean(sr$r2e_first_surgeries[sr$arm == "R2E 3, R2B 1"]) / ADEQUACY_CAMPAIGN_DAYS
+  ADEQUACY_R2E_SECTIONS * (slope / LOAD_BLOCK_DAYS) / delivered
 }
 
 #' Adequacy verdict of a transport holder at one intensity
@@ -2588,7 +2631,14 @@ adequacy_airlift_cell <- function(data_dir, int) {
   }
   drifting <- identical(r$stability, "drifting") && r$drift_per_block > 0
   trend <- if (drifting) sprintf("drifting, %+.1f%%/block", 100 * r$drift_per_block) else "settled"
-  adequacy_cell(adequacy_backlog_verdict(drifting, r$late_mean),
+  per_stream <- ADEQUACY_PLACES_PER_SORTIE / ADEQUACY_SORTIE_INTERVAL_DAYS
+  uplift <- (r$slope / LOAD_BLOCK_DAYS) / per_stream
+  material <- uplift >= ADEQUACY_MATERIAL_UPLIFT
+  if (drifting && !material) {
+    trend <- sprintf("%s, uplift %s sortie streams, below the %s floor", trend,
+                     res_num(uplift, 2L), res_num(ADEQUACY_MATERIAL_UPLIFT, 1L))
+  }
+  adequacy_cell(adequacy_backlog_verdict(drifting, r$late_mean, material),
                 sprintf("backlog %s, late-half mean %s awaiting a sortie", trend,
                         res_num(r$late_mean, 1L)))
 }
@@ -2881,13 +2931,19 @@ POLICY_GRID_MODERATE_STEM <- "establishment_sweep_moderate_grid"
 #' @return The table lines: for each establishment, the largest swept policy at
 #'   which no R2E pool was still growing across the cell
 #'   (res_cell_holds()), the returns to duty at that
-#'   policy, the paired gain over the shipped policy and establishment and the gain
-#'   per bed added beyond the shipped establishment.
+#'   policy, the paired gain over the shipped policy and establishment, and the
+#'   paired gain of the beds added beyond the shipped establishment at that same
+#'   policy.
 #'
 #' @details A policy is stable at an establishment when no R2E pool is still
 #'   growing across the cell's replications; the largest stable policy is the
 #'   greatest swept value for which that holds, so a stable value beyond an
 #'   unstable one is not skipped to.
+#'
+#'   The gain over the shipped setting combines the policy's effect with the beds'.
+#'   The added beds' own effect is the cell against the same policy at the shipped
+#'   establishment, paired by replication (res_cell_pair()); dividing the combined
+#'   gain by the beds added would credit the beds with the policy's effect.
 build_policy_grid_largest_stable <- function(data_dir, stem) {
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
   s <- res_read(paste0("policy/", stem, ".csv"), data_dir)
@@ -2912,17 +2968,33 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
                      res_num(g$ci_lower, 1L, TRUE, TRUE), res_num(g$ci_upper, 1L, TRUE, TRUE)),
              res_holm_mark(g))
     }
-    is_baseline <- arm == sprintf("%dd_%db", POLICY_GRID_BASELINE_DAYS, base_beds)
-    per_bed <- if (b > base_beds && !is_baseline) {
-      g <- p[p$to == arm & p$response == "total_rtd", ]
-      res_num(g$difference / (b - base_beds), 1L, FALSE, TRUE)
+    beds_gain <- if (b > base_beds) {
+      res_cell_pair(r, "total_rtd", best, base_beds, b)
     } else "not applicable"
     c(as.character(b), sprintf("%d d", best),
-      res_ci(rtd$mean, rtd$ci_lower, rtd$ci_upper, dp = 1L, big = TRUE), gain, per_bed)
+      res_ci(rtd$mean, rtd$ci_lower, rtd$ci_upper, dp = 1L, big = TRUE), gain, beds_gain)
   })
   res_table(c("Holding beds", "Largest policy holding the R2E pools",
               "Returns to duty there", "Paired gain over 21 d and 30 beds",
-              "Gain per added bed"), rows)
+              "Gain of the added beds at that policy"), rows)
+}
+
+#' Paired difference between two holding establishments at one policy
+#'
+#' @param r A grid's per-replication responses.
+#' @param response Response column.
+#' @param days The policy, in days.
+#' @param from_beds,to_beds The establishments compared.
+#' @return The mean difference `to_beds` minus `from_beds` with its 95% Student t
+#'   interval across replications, formatted with signs.
+res_cell_pair <- function(r, response, days, from_beds, to_beds) {
+  a <- r[r$policy_days == days & r$hold_beds == from_beds, c("replication", response)]
+  b <- r[r$policy_days == days & r$hold_beds == to_beds, c("replication", response)]
+  m <- merge(a, b, by = "replication", suffixes = c("_from", "_to"))
+  d <- m[[paste0(response, "_to")]] - m[[paste0(response, "_from")]]
+  h <- stats::qt(0.975, length(d) - 1L) * stats::sd(d) / sqrt(length(d))
+  sprintf("%s [%s, %s]", res_num(mean(d), 1L, TRUE, TRUE), res_num(mean(d) - h, 1L, TRUE, TRUE),
+          res_num(mean(d) + h, 1L, TRUE, TRUE))
 }
 
 #' Stem of the high-intensity sortie interval grid's evidence files

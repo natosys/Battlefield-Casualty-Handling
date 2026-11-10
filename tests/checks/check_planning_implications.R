@@ -318,6 +318,7 @@ ADEQUACY_STATED <- c(util_marginal = ADEQUACY_UTIL_MARGINAL,
                      export_marginal = ADEQUACY_EXPORT_MARGINAL,
                      export_inadequate = ADEQUACY_EXPORT_INADEQUATE,
                      backlog_marginal = ADEQUACY_BACKLOG_MARGINAL,
+                     material_uplift = ADEQUACY_MATERIAL_UPLIFT,
                      places_per_sortie = ADEQUACY_PLACES_PER_SORTIE,
                      sortie_interval_days = ADEQUACY_SORTIE_INTERVAL_DAYS,
                      r2e_sections = ADEQUACY_R2E_SECTIONS, campaign_days = ADEQUACY_CAMPAIGN_DAYS)
@@ -349,6 +350,21 @@ report(identical(c(adequacy_export_verdict(0.5, 0.5), adequacy_export_verdict(0.
 report(identical(c(adequacy_backlog_verdict(TRUE, 0), adequacy_backlog_verdict(FALSE, 1),
                    adequacy_backlog_verdict(FALSE, 0.99)), c("Inadequate", "Marginal", "Adequate")),
        "the airlift verdict is correct on hand-computed inputs")
+report(identical(c(adequacy_pool_verdict(TRUE, 0.5, 1, material = FALSE),
+                   adequacy_backlog_verdict(TRUE, 0, material = FALSE)),
+                 c("Marginal", "Marginal")),
+       "a drift below the material amount is marginal rather than inadequate, pool and airlift")
+
+# The gain of added beds is the cell against the same policy at the shipped beds,
+# paired by replication: here the beds add 5 in every replication at 30 days, while
+# the policy alone adds 100, so crediting the beds with the combined gain would read
+# (100 + 5) / 15 = 7 a bed.
+toy_grid <- data.frame(replication = rep(1:3, 3), policy_days = rep(c(21, 30, 30), each = 3),
+                       hold_beds = rep(c(30, 30, 45), each = 3),
+                       total_rtd = c(10, 20, 30, 110, 120, 130, 115, 125, 135))
+report(identical(res_cell_pair(toy_grid, "total_rtd", 30, 30, 45), "+5.0 [+5.0, +5.0]"),
+       "the added beds' gain is paired against the same policy at the shipped beds (found %s)",
+       res_cell_pair(toy_grid, "total_rtd", 30, 30, 45))
 report(abs(adequacy_zero_crossing(c(3, 4, 6), c(1.5, 1, 0)) - 6) < 1e-9 &&
          is.na(adequacy_zero_crossing(c(3, 4, 6), c(1, 1.5, 2))),
        "the zero crossing is correct on a hand-computed line and absent where the line rises")

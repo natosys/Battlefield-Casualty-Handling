@@ -616,7 +616,7 @@ Each cell was paired by replication against the shipped 21-day policy at 30 hold
 For each holding establishment the largest policy at which the cell held the R2E pools, by the rule of the preceding table, is given below; where none did, the cell reads as such.
 
 <!-- GEN policy_grid_largest_high -->
-| Holding beds | Largest policy holding the R2E pools | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
+| Holding beds | Largest policy holding the R2E pools | Returns to duty there | Paired gain over 21 d and 30 beds | Gain of the added beds at that policy |
 |---|---|---|---|---|
 | 30 | none in the grid | not applicable | not applicable | not applicable |
 | 45 | none in the grid | not applicable | not applicable | not applicable |
@@ -764,14 +764,14 @@ The table counts and classifies as the high-intensity grid's does. At 27 days th
 Each cell was paired by replication against the shipped 21-day policy at 30 holding beds. At 27 days and 45 beds returns to duty differed by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Returns to duty|full -->+217.6 [+172.1, +263.1]<!-- /GEN --> and Role 4 peak beds by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Role 4 peak beds|full -->−7.2 [−12.8, −1.6]†<!-- /GEN -->; at 30 days and 60 beds the differences were <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Returns to duty|full -->+265.8 [+226.3, +305.3]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Role 4 peak beds|full -->−8.7 [−14.7, −2.6]†<!-- /GEN -->.
 
 <!-- GEN policy_grid_largest_moderate -->
-| Holding beds | Largest policy holding the R2E pools | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
+| Holding beds | Largest policy holding the R2E pools | Returns to duty there | Paired gain over 21 d and 30 beds | Gain of the added beds at that policy |
 |---|---|---|---|---|
 | 30 | 30 d | 2,360.5 [2,318.5, 2,402.5] | +298.1 [+248.7, +347.5] | not applicable |
-| 45 | 30 d | 2,346.7 [2,314.9, 2,378.4] | +284.3 [+249.1, +319.5] | +19.0 |
-| 60 | 30 d | 2,328.2 [2,297.6, 2,358.8] | +265.8 [+226.3, +305.3] | +8.9 |
+| 45 | 30 d | 2,346.7 [2,314.9, 2,378.4] | +284.3 [+249.1, +319.5] | −13.8 [−66.7, +39.1] |
+| 60 | 30 d | 2,328.2 [2,297.6, 2,358.8] | +265.8 [+226.3, +305.3] | −32.3 [−90.5, +25.9] |
 <!-- /GEN -->
 
-The largest policy at which the cell held the R2E pools was <!-- GEN cell:policy_grid_largest_moderate|30|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_grid_largest_moderate|45|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 45 and <!-- GEN cell:policy_grid_largest_moderate|60|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 60. The paired gain per added bed was <!-- GEN cell:policy_grid_largest_moderate|45|Gain per added bed|full -->+19.0<!-- /GEN --> returns to duty at 45 beds and <!-- GEN cell:policy_grid_largest_moderate|60|Gain per added bed|full -->+8.9<!-- /GEN --> at 60.
+The largest policy at which the cell held the R2E pools was <!-- GEN cell:policy_grid_largest_moderate|30|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_grid_largest_moderate|45|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 45 and <!-- GEN cell:policy_grid_largest_moderate|60|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 60. At that 30-day policy, the beds added beyond 30 changed returns to duty by <!-- GEN cell:policy_grid_largest_moderate|45|Gain of the added beds at that policy|full -->−13.8 [−66.7, +39.1]<!-- /GEN --> at 45 beds and <!-- GEN cell:policy_grid_largest_moderate|60|Gain of the added beds at that policy|full -->−32.3 [−90.5, +25.9]<!-- /GEN --> at 60, each paired by replication against the same policy at 30 beds.
 
 ### Forward Surgical Saturation Release
 

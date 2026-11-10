@@ -91,11 +91,15 @@ r2e_mortuary_intake <- function(team_id) {
 #'
 #' @details The casualty waits for the first of its unit's sections to be on
 #'   shift and free (seize_first_free_section()) and only then takes a theatre:
-#'   any free theatre, or the first to free where none is, which happens only
-#'   while an operation overruns a shift change, on-shift sections never
-#'   outnumbering theatres. No casualty is bound to a section or a theatre
-#'   before it can use both, so no theatre stands held for a section that is off
-#'   shift or busy. Released theatre then section. A section already
+#'   any free theatre, or the first to free where none is. At the shipped
+#'   establishment that happens only while an operation overruns a shift
+#'   change, the two sections on the larger shift never outnumbering the two
+#'   theatres. Where more sections share a shift than there are theatres (six
+#'   sections against two theatres, a configuration the theatre establishment
+#'   sweep runs), the casualty holds its section while it waits for a theatre,
+#'   so the surplus section stands idle rather than operating. No theatre is
+#'   ever held for a section that is off shift or busy, the theatre being taken
+#'   second. Released theatre then section. A section already
 #'   mid-procedure when its shift closes keeps what it holds until release, so a
 #'   shift change cannot interrupt an operation in progress.
 r2e_surgery_block <- function(select_id, start_attr, end_attr, efficacy, set_flag,

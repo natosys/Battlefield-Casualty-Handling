@@ -53,6 +53,7 @@ This document is the design record for the replicated experiments reported in th
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)
   - [R2E Intensive Care Bed Establishment Sweep](#r2e-intensive-care-bed-establishment-sweep)
+  - [R2E Operating Theatre Establishment Sweep](#r2e-operating-theatre-establishment-sweep)
   - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
   - [Adequacy Verdict Criteria](#adequacy-verdict-criteria)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)

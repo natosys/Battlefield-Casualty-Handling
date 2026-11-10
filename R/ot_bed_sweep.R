@@ -68,14 +68,13 @@ ot_arm_label <- function(theatres, sections) {
 #'   sections. Sections on shift are the odd-numbered sections on shift 1, so
 #'   the column `on_shift` is the larger shift's count, the one that meets the
 #'   theatres.
-OT_SWEEP_ARMS <- data.frame(
-  theatres = c(2L, 3L, 2L, 3L, 4L),
-  sections = c(3L, 3L, 6L, 6L, 8L),
-  stringsAsFactors = FALSE
-)
-OT_SWEEP_ARMS$arm <- ot_arm_label(OT_SWEEP_ARMS$theatres, OT_SWEEP_ARMS$sections)
-OT_SWEEP_ARMS$on_shift <- as.integer(ceiling(OT_SWEEP_ARMS$sections / 2))
-OT_SWEEP_ARMS <- OT_SWEEP_ARMS[, c("arm", "theatres", "sections", "on_shift")]
+OT_SWEEP_ARMS <- local({
+  theatres <- c(2L, 3L, 2L, 3L, 4L)
+  sections <- c(3L, 3L, 6L, 6L, 8L)
+  data.frame(arm = ot_arm_label(theatres, sections), theatres = theatres,
+             sections = sections, on_shift = as.integer(ceiling(sections / 2)),
+             stringsAsFactors = FALSE)
+})
 
 #' Arm every arm but one is compared against: the shipped establishment
 OT_SWEEP_BASELINE_ARM <- ot_arm_label(2L, 3L)
@@ -196,6 +195,10 @@ reduce_ot_bed_replication <- function(env, n_days, window_days = OT_SWEEP_WINDOW
   base <- reduce_surgical_replication(env, n_days, window_days)
   resources <- simmer::get_mon_resources(env)
 
+  #' One pool's occupancy and queue over the closing window
+  #'
+  #' @param pool Pool label, a name of LONG_HORIZON_POOLS.
+  #' @return policy_pool_state()'s named occupancy and mean queue.
   state <- function(pool) {
     pattern <- LONG_HORIZON_POOLS[[pool]]
     policy_pool_state(resources, pattern, n_days, window_days,

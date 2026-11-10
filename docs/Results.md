@@ -896,6 +896,32 @@ At the shipped establishment the high-intensity R2E theatre queue averaged <!-- 
 The R2E theatre queue and the diversions, deaths of wounds and returns to duty of each establishment, at moderate intensity (left) and high intensity (right), with the shipped establishment marked.
 
 
+### R2E Operating Theatre Establishment
+
+**Question.** Does the number of R2E operating theatres or the number of surgical sections limit R2E surgery, and what does an added theatre buy when more sections share a shift than there are theatres? `[default and high_intensity, R2E 2 to 4 theatres crossed with 3 to 8 sections · 360 d · 30 replications · paired, closing 90 d]`
+
+Each arm is an R2E theatre count crossed with a surgical section count, and the first row of each table states the sections on the larger shift against the theatres, the ratio the arms were chosen on ([Methods](Methods.md#r2e-operating-theatre-establishment-sweep)). Theatres are open around the clock, so theatre occupancy is the share of all theatre time in use. Every arm is compared with the shipped establishment, and three theatres at six sections with two theatres at six sections; Holm's adjustment is taken across all of those comparisons.
+
+<!-- GEN ot_bed -->
+<!-- /GEN -->
+
+The paired differences, each taken within replication, are in the next table.
+
+<!-- GEN ot_bed_paired -->
+<!-- /GEN -->
+
+At the shipped establishment the R2E theatre queue averaged <!-- GEN cell:ot_bed|R2E theatre mean queue|2 theatres, 3 sections (shipped)|full -->X<!-- /GEN --> over the closing 90 days and was classified <!-- GEN cell:ot_bed|R2E theatre queue, late-half classification|2 theatres, 3 sections (shipped)|full -->X<!-- /GEN -->, with the theatres occupied <!-- GEN cell:ot_bed|R2E theatre occupancy (%)|2 theatres, 3 sections (shipped)|full -->X<!-- /GEN --> of the time. A third theatre at three sections changed the queue by <!-- GEN cell:ot_bed_paired|R2E theatre mean queue|3 theatres, 3 sections|full -->X<!-- /GEN --> and deaths of wounds by <!-- GEN cell:ot_bed_paired|Died of wounds|3 theatres, 3 sections|full -->X<!-- /GEN -->. Six sections at two theatres changed the queue by <!-- GEN cell:ot_bed_paired|R2E theatre mean queue|2 theatres, 6 sections|full -->X<!-- /GEN --> and deaths of wounds by <!-- GEN cell:ot_bed_paired|Died of wounds|2 theatres, 6 sections|full -->X<!-- /GEN -->, with the theatres occupied <!-- GEN cell:ot_bed|R2E theatre occupancy (%)|2 theatres, 6 sections|full -->X<!-- /GEN --> of the time. Against that arm, a third theatre at six sections changed the queue by <!-- GEN cell:ot_bed_paired|R2E theatre mean queue|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN -->, deaths of wounds by <!-- GEN cell:ot_bed_paired|Died of wounds|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN -->, returns to duty by <!-- GEN cell:ot_bed_paired|Returns to duty|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN --> and the post-operative overflow census by <!-- GEN cell:ot_bed_paired|R2E post-operative overflow census|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN -->. Four theatres and eight sections changed deaths of wounds by <!-- GEN cell:ot_bed_paired|Died of wounds|4 theatres, 8 sections|full -->X<!-- /GEN --> and returns to duty by <!-- GEN cell:ot_bed_paired|Returns to duty|4 theatres, 8 sections|full -->X<!-- /GEN --> against the shipped establishment, and the queue was classified <!-- GEN cell:ot_bed|R2E theatre queue, late-half classification|4 theatres, 8 sections|full -->X<!-- /GEN -->.
+
+At high intensity the same five arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
+
+<!-- GEN ot_bed_high -->
+<!-- /GEN -->
+
+<!-- GEN ot_bed_paired_high -->
+<!-- /GEN -->
+
+At the shipped establishment at high intensity the R2E theatre queue averaged <!-- GEN cell:ot_bed_high|R2E theatre mean queue|2 theatres, 3 sections (shipped)|full -->X<!-- /GEN --> over the closing 90 days and was classified <!-- GEN cell:ot_bed_high|R2E theatre queue, late-half classification|2 theatres, 3 sections (shipped)|full -->X<!-- /GEN -->, with the theatres occupied <!-- GEN cell:ot_bed_high|R2E theatre occupancy (%)|2 theatres, 3 sections (shipped)|full -->X<!-- /GEN --> of the time. A third theatre at three sections changed the queue by <!-- GEN cell:ot_bed_paired_high|R2E theatre mean queue|3 theatres, 3 sections|full -->X<!-- /GEN --> and deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|3 theatres, 3 sections|full -->X<!-- /GEN -->. Six sections at two theatres changed the queue by <!-- GEN cell:ot_bed_paired_high|R2E theatre mean queue|2 theatres, 6 sections|full -->X<!-- /GEN --> and deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|2 theatres, 6 sections|full -->X<!-- /GEN -->, with the theatres occupied <!-- GEN cell:ot_bed_high|R2E theatre occupancy (%)|2 theatres, 6 sections|full -->X<!-- /GEN --> of the time. Against that arm, a third theatre at six sections changed the queue by <!-- GEN cell:ot_bed_paired_high|R2E theatre mean queue|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN -->, deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN -->, returns to duty by <!-- GEN cell:ot_bed_paired_high|Returns to duty|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN --> and the post-operative overflow census by <!-- GEN cell:ot_bed_paired_high|R2E post-operative overflow census|3 theatres, 6 sections against 2 theatres, 6 sections|full -->X<!-- /GEN -->. Four theatres and eight sections changed deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|4 theatres, 8 sections|full -->X<!-- /GEN --> and returns to duty by <!-- GEN cell:ot_bed_paired_high|Returns to duty|4 theatres, 8 sections|full -->X<!-- /GEN --> against the shipped establishment, and the queue was classified <!-- GEN cell:ot_bed_high|R2E theatre queue, late-half classification|4 theatres, 8 sections|full -->X<!-- /GEN -->.
+
 ### R2E Intensive Care Bed Establishment
 
 **Question.** What changes when the R2E intensive care establishment is raised from the shipped four beds, and does the post-operative overflow census, where an operated casualty finding no intensive care bed is placed, stop growing at any bed count swept? `[default and high_intensity, R2E ICU 4 to 16 beds · 360 d · 30 replications · paired, closing 90 d]`

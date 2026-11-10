@@ -95,7 +95,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `images/` | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of baseline-affecting PRs via `run.R --refresh-baseline` |
 | `outputs/` | Gitignored destination for every ordinary run's artifacts: CSV/markdown outputs, plots (`outputs/images/`), console log, and arrival diagnostics (`outputs/data/`); tracked via `.gitkeep` only |
 | `renv/`, `renv.lock`, `.Rprofile` | R package environment management |
-| `.devcontainer/` | Pinned Dev Container definition (`rocker/rstudio:4.4.2`) used for canonical baseline runs |
+| `.devcontainer/` | Pinned Dev Container definition (`rocker/rstudio:4.4.2` at the digest CI runs, which `tests/checks/check_container_pin.R` holds equal) used for canonical baseline runs |
 
 ---
 

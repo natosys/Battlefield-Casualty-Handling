@@ -944,7 +944,7 @@ Under `high_intensity` the mean DNBI per run falls even though the profile leave
 
 The simulation uses `parallel::mclapply` for multi-replication parallelism, which relies on `fork()`, a POSIX primitive unavailable on Windows. On a Windows RStudio installation, `mclapply` silently falls back to sequential execution rather than reporting an error, so a multi-replication run or a sensitivity screen takes roughly as many times longer as the host has physical cores (see [Sensitivity Analysis](#sensitivity-analysis) for the screening configuration and its run time).
 
-A Dev Container specification in `.devcontainer/` defines a reproducible Linux R environment (R 4.4.2, all project packages) that can be launched from VS Code with a single command. It provides a Linux `fork()` context, RStudio Server on `http://localhost:8787`, and automatic core-count configuration, so contributors on any host OS get full parallelism and a consistent package environment without manual dependency resolution. Two ports are forwarded: 8787 for RStudio Server, and 3838 for the Shiny console (see [Shiny Application](#shiny-application)).
+A Dev Container specification in `.devcontainer/` defines a reproducible Linux R environment (R 4.4.2, all project packages), built from the same digest-pinned `rocker/rstudio:4.4.2` image CI runs in, that can be launched from VS Code with a single command. It provides a Linux `fork()` context, RStudio Server on `http://localhost:8787`, and automatic core-count configuration, so contributors on any host OS get full parallelism and a consistent package environment without manual dependency resolution. Two ports are forwarded: 8787 for RStudio Server, and 3838 for the Shiny console (see [Shiny Application](#shiny-application)).
 
 ### Prerequisites
 
@@ -979,7 +979,7 @@ install.packages("renv")  # first-time only, if not already installed
 renv::restore()
 ```
 
-`renv::status()` can be used afterwards to confirm the project library matches `renv.lock` exactly.
+`renv::status()` can be used afterwards to confirm the project library matches `renv.lock` exactly. The lint tooling (`lintr` and the packages only it needs) is development tooling rather than a simulation dependency, so `renv/settings.json` lists it under `ignored.packages` and a library that has it installed still reports a consistent state.
 
 ### RStudio Server configuration
 
@@ -1113,7 +1113,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `.lintr`, `tests/checks/lint_baseline.csv` | The lint configuration and the tracked per-rule finding counts it is ratcheted against (see [Verification and Continuous Integration](#verification-and-continuous-integration)) |
 | `.github/`                         | Pull request template and the GitHub Actions workflow that runs the fast suite, the lint ratchet, the seed-42 reproduction and the console's browser suite on every pull request against `main` (see [docs/Continuous_Integration.md](docs/Continuous_Integration.md)) |
 | `renv.lock`, `.Rprofile`, `renv/`  | Pinned package versions and the `renv` project library (see [Restoring dependencies](#restoring-dependencies)) |
-| `.devcontainer/`                   | Dev Container definition pinning the reproducible R 4.4.2 Linux environment (see [Development Environment](#development-environment)) |
+| `.devcontainer/`                   | Dev Container definition pinning the reproducible R 4.4.2 Linux environment to CI's image digest (see [Development Environment](#development-environment)) |
 | `data/sensitivity/`                | Tracked sensitivity screen caches, kept as the provenance of the statement in `docs/Methods.md` that the screens were set aside, and reported as evidence nowhere: design point caches, per-response rankings, Sobol indices, the noise floor measurement and the estimator and separation re-analyses. See its own [README](data/sensitivity/README.md) for the commands that re-derive each result without re-running the model |
 | `outputs/`                         | Generated outputs directory; every run writes its CSVs, markdown tables, plots (`outputs/images/`), console log and arrival diagnostics (`outputs/data/`) here. Tracked via `.gitkeep` and otherwise gitignored |
 | `data/`                            | Tracked evidence: one subdirectory per experiment, and the seed-42 baseline in `data/seed42/` (the console log, the arrival diagnostics, the casualty surge event log and the verification measurements), rewritten only under `--refresh-baseline` |

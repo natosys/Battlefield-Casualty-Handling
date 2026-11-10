@@ -1,7 +1,12 @@
 {
   "bioconductor.version": null,
   "external.libraries": [],
-  "ignored.packages": [],
+  "ignored.packages": [
+    "lintr",
+    "rex",
+    "xml2",
+    "xmlparsedata"
+  ],
   "lockfile.sanitize": true,
   "package.dependency.fields": [
     "Imports",

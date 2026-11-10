@@ -25,7 +25,7 @@
 # get a green gate. Refreshing the baseline after such a pull request is what
 # tightens the ratchet, and is a maintainer action.
 #
-# Two rules are added here because `lintr` ships no linter for them.
+# Three rules are added here because `lintr` ships no linter for them.
 #
 # R9 forbids emoji and pictographic characters in R source, because their
 # treatment depends on the session locale. The scan below covers the
@@ -35,6 +35,14 @@
 # the Greek letters of a Morris index) are outside the scan, since a locale
 # that renders them wrongly would already have broken every document in the
 # repository.
+#
+# G4 forbids assignment to the global environment except at the sites G1 to G3
+# permit, which a reviewer recognises and a linter cannot. Every `<<-` and `->>`
+# is therefore counted under a rule of its own, so a new one raises that count
+# and is reviewed on its merits, while `assignment_linter`, which `.lintr`
+# configures to accept `<<-`, counts only the `=` and `->` assignments F4
+# forbids outright. Counting the two together would hide a new `=` among the
+# permitted `<<-` sites.
 #
 # D1 caps a function body at 100 lines. The count below is taken from the
 # parse data rather than from a brace-matching scan, so a brace inside a string
@@ -54,6 +62,8 @@ BASELINE_PATH <- file.path("tests", "checks", "lint_baseline.csv")
 R9_RULE       <- "pictographic_character"
 D1_RULE       <- "function_length"
 D1_MAX_LINES  <- 100L
+#' Ratchet rule counting every `<<-` and `->>`, the global assignments G4 limits
+G4_RULE       <- "global_assignment"
 
 # Codepoint ranges scanned for R9: arrows, enclosed alphanumerics, geometric
 # shapes through dingbats, the miscellaneous symbols supplement, the emoji
@@ -163,6 +173,23 @@ function_length_count <- function(files) {
   total
 }
 
+#' Count of G4 global assignments across the source files
+#'
+#' @param files Character vector of file paths to scan.
+#' @return A single integer: the number of `<<-` and `->>` operators found.
+#' @details Taken from the parse data, so an operator inside a string or a
+#'   comment is not counted.
+global_assignment_count <- function(files) {
+  total <- 0L
+  for (f in files) {
+    pd <- utils::getParseData(parse(f, keep.source = TRUE))
+    if (is.null(pd) || nrow(pd) == 0L) next
+    total <- total + sum(pd$token %in% c("LEFT_ASSIGN", "RIGHT_ASSIGN") &
+                           pd$text %in% c("<<-", "->>"))
+  }
+  total
+}
+
 #' Read the tracked baseline counts
 #'
 #' @return A named integer vector of counts, empty when no baseline exists.
@@ -204,6 +231,7 @@ message(sprintf("Linting %d R source files under %s\n", length(files),
 counts <- lint_counts(files)
 counts[[R9_RULE]] <- pictographic_count(files)
 counts[[D1_RULE]] <- function_length_count(files)
+counts[[G4_RULE]] <- global_assignment_count(files)
 
 if (refresh) {
   write_baseline(counts)

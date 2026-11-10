@@ -24,6 +24,10 @@ suppressPackageStartupMessages({
   library(bslib)
   library(jsonlite)
   library(ggplot2)
+  # includeMarkdown() renders the Getting Started tab through markdown, which
+  # shiny only suggests; loading it here fails at start-up rather than on the
+  # tab, and declares it to renv's dependency scan, which keeps it recorded.
+  library(markdown)
 })
 
 source("R/environment.R")

@@ -492,7 +492,7 @@ including `fail()`, `report()` and `arg_value()`.
 | F1 | Line length 100 | Yes, `line_length_linter(100)` |
 | F2 | 80 preferred | No, preference |
 | F3 | Two-space indent, no tabs | Yes, `indentation_linter`, `whitespace_linter` |
-| F4 | `<-` not `=` | Yes, `assignment_linter(operator = "<-")` |
+| F4 | `<-` not `=` | Yes, `assignment_linter(operator = c("<-", "<<-"))`, which accepts `<<-` so that its count holds only the `=` and `->` assignments F4 forbids |
 | F5 | magrittr pipe only | Yes, `pipe_consistency_linter(pipe = "%>%")` |
 | F6 | `TRUE`/`FALSE` in full | Yes, `T_and_F_symbol_linter` |
 | F7 | Double quotes | Yes, `quotes_linter` |
@@ -504,7 +504,7 @@ including `fail()`, `report()` and `arg_value()`.
 | D2 to D6 | Function design | No, reviewer |
 | C1 to C5 | Constants and magic numbers | Partly: a `1440` literal is greppable, and outside `DAY_MIN`'s definition there are none left, so the rule now reads as a gate on zero rather than as a direction of travel; the rest is reviewer |
 | G1 to G3, G5 | Permitted `<<-` and restoration | No, reviewer |
-| G4 | No other global assignment | Yes, `assignment_linter(operator = "<-")`, which reports every `<<-`. The permitted sites of G1 to G3 are among the counts the ratchet holds, so a new `<<-` raises a count and is reviewed on its merits |
+| G4 | No other global assignment | Yes, counted from the parse data by `tests/checks/check_lint.R` under its own rule, `global_assignment`, which counts every `<<-` and `->>`. The permitted sites of G1 to G3 are among the counts the ratchet holds, so a new `<<-` raises that count and is reviewed on its merits, and is kept apart from the F4 count so that a new `=` cannot hide among the permitted sites |
 | E1 to E7 | Error handling | No, reviewer |
 | O1 to O5 | File organisation | No, reviewer |
 | R1 | Roxygen on every function | Yes, `tests/checks/check_roxygen.R`, from the parse data. A function bound to a name is checked wherever it sits, including inside another function; an anonymous function has no name to document and is not counted |

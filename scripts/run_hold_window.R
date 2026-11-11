@@ -29,6 +29,12 @@
 # rather than whatever arguments accompany it, so the tracked set and the
 # design docs/Methods.md documents cannot diverge through a
 # mistyped argument. Without it the run writes under outputs/ alone.
+#
+# Each finished replication is saved under outputs/checkpoints/, one directory
+# per arm (arm_checkpoint_path(), R/cli.R), and read back rather than re-run on a
+# later invocation, so an interruption costs the replications in flight and a
+# resumed run writes what an uninterrupted one would. Empty the directory after
+# a change to the model or the configuration.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -113,8 +119,11 @@ measure_arm <- function(window_min) {
   message(sprintf("Pre-open window %d min: %d replications x %d days",
                   window_min, opt$iterations, opt$days))
   set.seed(opt$seed)
+  arm <- sprintf("%s_window_%d", opt$scenario, window_min)
+  ckpt <- arm_checkpoint_path("hold_window", arm, refresh_requested)
   rows <- run_hold_window_measurement(window_min, n_iterations = opt$iterations,
-                                      n_days = opt$days, max_cores = opt$`max-cores`)
+                                      n_days = opt$days, max_cores = opt$`max-cores`,
+                                      checkpoint_dir = ckpt)
   rows
 }
 

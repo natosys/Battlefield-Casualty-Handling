@@ -64,6 +64,7 @@ This document is the design record for the replicated experiments reported in th
   - [The Results Document and the Seed-42 Verification](#the-results-document-and-the-seed-42-verification)
 - [Force Regeneration Under Reinforcement](#force-regeneration-under-reinforcement)
 - [Provenance](#provenance)
+  - [The Cost of Reproducing the Evidence](#the-cost-of-reproducing-the-evidence)
 - [Limitations of the Designs Recorded Here](#limitations-of-the-designs-recorded-here)
 - [Conclusion](#conclusion)
 - [References](#references)
@@ -937,6 +938,41 @@ Four kinds of tracked evidence hold reductions only, so they can be confirmed by
 The three result figures of the companion paper are rendered from the values in its own markdown tables by `scripts/render_paper_figures.R` rather than from a second copy of the data, so a figure cannot disagree with the table it illustrates.
 
 The two campaign time series figures are rendered from `data/time_series/`, the tracked aggregated series the measurement wrote, by `scripts/render_time_series_figures.R` with no further model execution, so the figures and the percentages the companion paper quotes from them derive from one measurement. It is the series rather than the images that a re-run in the pinned container would need to confirm.
+
+### The Cost of Reproducing the Evidence
+
+The table records the wall-clock time each tracked evidence set took to write in the pinned container, on a four-core machine with 16 GB of memory, the host the Dev Container states it requires. The times are those of the most recent full re-run of the evidence; the four sets whose run in that round was interrupted were timed again on the same machine, and the theatre establishment sweep was run on three cores. Writing every set takes about 195 core-hours, or a little over two days of wall clock on four cores, the high-intensity policy and sortie interval grids accounting for nearly a fifth of it. The sensitivity screens are excluded, being kept as the provenance of [Sensitivity Screens](#sensitivity-screens) rather than as evidence: the Morris cache took about 78 hours and the Sobol cache about 70 on four cores.
+
+| Evidence set | Invocation | Shipped default (min) | `high_intensity` (min) | Cores | Core-hours |
+|---|---|---|---|---|---|
+| `data/seed42/` | `run.R --seed 42 --days 360 --iterations 1` | 2 (one replication) |  | 1 | 0.0 |
+| `data/scenarios/` | `run_scenarios.R` | 50 (both intensities in one run) |  | 4 | 3.3 |
+| `data/long_horizon/` | `run_long_horizon.R`, `render_long_horizon_warmup.R` | 28 (both intensities in one run) |  | 4 | 1.9 |
+| `data/time_series/` | `render_time_series_figures.R --run` | 26 (both intensities in one run) |  | 4 | 1.7 |
+| `data/policy/` (policy sweep; at high intensity crossed with the holding establishment) | `run_policy_sweep.R` | 58 | 322 | 4 | 25.4 |
+| `data/policy/` (holding establishment) | `run_policy_sweep.R --policies 21 --hold-beds 30,45,60,90` | 46 | not run | 4 | 3.1 |
+| `data/policy/` (moderate grid) | `run_policy_sweep.R --output-tag moderate_grid` | 90 | not run | 4 | 6.0 |
+| `data/policy/` (sortie interval grid) | `run_policy_sweep.R --sortie-intervals 3,5,7` | not run | 218 | 4 | 14.5 |
+| `data/policy/` (saturation release) | `run_saturation_sweep.R` | 81 | 155 | 4 | 15.7 |
+| `data/surgical_teams/` | `run_surgical_team_sweep.R` | 58 | 111 | 4 | 11.3 |
+| `data/icu_beds/` | `run_icu_bed_sweep.R` | 53 | 108 | 4 | 10.7 |
+| `data/ot_beds/` | `run_ot_bed_sweep.R` | 51 | 121 | 3 | 8.6 |
+| `data/triage_split/` | `run_triage_sweep.R` | 50 | 107 | 4 | 10.5 |
+| `data/icu_gate/` | `run_icu_gate.R` | 15 | 29 | 4 | 3.0 |
+| `data/hold_window/` | `run_hold_window.R` | 16 | 32 | 4 | 3.2 |
+| `data/sweeps/` (forward holding) | `run_forward_hold_sweep.R` | 44 | 78 | 4 | 8.1 |
+| `data/sweeps/` (holding threshold) | `run_hold_threshold_sweep.R` | 83 | 149 | 4 | 15.5 |
+| `data/sweeps/` (transport fleet) | `run_transport_sweep.R` | 50 | 89 | 4 | 9.3 |
+| `data/airlift/` (sweep) | `run_airlift_sweep.R` | 114 | 43 | 4 | 10.4 |
+| `data/airlift/` (collapse) | `run_airlift_collapse.R` | 29 | 56 | 4 | 5.7 |
+| `data/role4_demand/` | `run_role4_demand.R` | 65 (both intensities and the cancellation arm in one run) |  | 4 | 4.3 |
+| `data/casualty_surge/` (stress test) | `run_casualty_surge.R` | 19 | 31 | 4 | 3.3 |
+| `data/casualty_surge/` (event size) | `run_casualty_surge_size_sweep.R` | 90 | 134 | 4 | 14.9 |
+| `data/calibration/` (anchor horizons) | `check_dow_calibration.R --write-csv` | 44 (both configurations in one run) |  | 4 | 2.9 |
+| `data/calibration/` (360 days) | `check_dow_calibration.R --days 360 --reps 10` | 25 (both configurations in one run) |  | 4 | 1.6 |
+| **Total** | | | | | **195** |
+
+Every experiment runner saves each finished replication under `outputs/checkpoints/`, the transport fleet sweep each finished fleet-size point, and reads it back rather than re-running it, so an interruption costs only the work in flight. A saved replication is named by its index, seed and horizon, and a baseline refresh and an exploratory run keep separate directories, but the name does not carry the model, so the directory must be emptied after any change to the model or the configuration. `tests/checks/check_replication_checkpoint.R` asserts that a run resumed after an interruption writes what an uninterrupted run writes.
 
 ---
 

@@ -27,6 +27,12 @@
 # written alongside the replicated evidence set under --refresh-baseline,
 # since injection ships disabled and run.R --refresh-baseline cannot write it
 # (docs/Methods.md, "Casualty Surge Event Stress Test").
+#
+# Each finished replication is saved under outputs/checkpoints/, one directory
+# per arm (arm_checkpoint_path(), R/cli.R), and read back rather than re-run on a
+# later invocation, so an interruption costs the replications in flight and a
+# resumed run writes what an uninterrupted one would. Empty the directory after
+# a change to the model or the configuration.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -117,8 +123,11 @@ measure_arm <- function(rate_per_day) {
   message(sprintf("Injection rate %.2f/day: %d replications x %d days",
                   rate_per_day, opt$iterations, opt$days))
   set.seed(opt$seed)
+  arm <- sprintf("%s_rate_%g", opt$scenario, rate_per_day)
+  ckpt <- arm_checkpoint_path("casualty_surge", arm, refresh_requested)
   run_casualty_surge_measurement(rate_per_day, n_iterations = opt$iterations,
-                                 n_days = opt$days, max_cores = opt$`max-cores`)
+                                 n_days = opt$days, max_cores = opt$`max-cores`,
+                                 checkpoint_dir = ckpt)
 }
 
 per_replication <- do.call(rbind, lapply(CASUALTY_SURGE_ARMS, measure_arm))

@@ -25,6 +25,12 @@
 #
 # --refresh-baseline is the only way to write the tracked data/long_horizon/
 # copies, matching the contract every other measurement script carries.
+#
+# Each finished replication is saved under outputs/checkpoints/, one directory
+# per arm (arm_checkpoint_path(), R/cli.R), and read back rather than re-run on a
+# later invocation, so an interruption costs the replications in flight and a
+# resumed run writes what an uninterrupted one would. Empty the directory after
+# a change to the model or the configuration.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -102,8 +108,9 @@ run_profile <- function(scenario) {
   message(sprintf("Scenario '%s': %d replications x %d days", scenario,
                   opt$iterations, opt$days))
   set.seed(opt$seed)
+  ckpt <- arm_checkpoint_path("long_horizon", scenario, refresh_requested)
   series <- run_long_horizon(n_iterations = opt$iterations, n_days = opt$days,
-                             max_cores = opt$`max-cores`)
+                             max_cores = opt$`max-cores`, checkpoint_dir = ckpt)
   series$scenario <- scenario
   series
 }

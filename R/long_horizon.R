@@ -208,6 +208,8 @@ reduce_long_replication <- function(env, n_days) {
 #' @param reduce Function of a finished environment and the campaign length
 #'   returning that replication's series in long form (default
 #'   reduce_long_replication()).
+#' @param checkpoint_dir Directory each finished replication is saved to and
+#'   read back from (checkpoint_replication()), or NULL for none.
 #' @return Data frame of replication, day, series, subject and value.
 #'
 #' @details Each replication's monitoring data is reduced inside the forked
@@ -219,7 +221,7 @@ reduce_long_replication <- function(env, n_days) {
 #'   reproducible on the same terms as every other measurement in this project.
 run_long_horizon <- function(n_iterations = LONG_HORIZON_REPLICATIONS,
                              n_days = LONG_HORIZON_DAYS, max_cores = NULL,
-                             reduce = reduce_long_replication) {
+                             reduce = reduce_long_replication, checkpoint_dir = NULL) {
   message(sprintf("Running %d replications over %d days, reducing as they finish...",
                   n_iterations, n_days))
 
@@ -234,10 +236,12 @@ run_long_horizon <- function(n_iterations = LONG_HORIZON_REPLICATIONS,
   #' @param i Index of the replication, into `rep_seeds`.
   #' @return The replication's reduced series, carrying its index.
   worker <- function(i) {
-    env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    out <- reduce(env, n_days)
-    out$replication <- i
-    out
+    checkpoint_replication(function() {
+      env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
+      out <- reduce(env, n_days)
+      out$replication <- i
+      out
+    }, checkpoint_dir, i, rep_seeds[i], n_days)
   }
 
   dispatched <- dispatch_replications(worker, n_iterations, max_cores)

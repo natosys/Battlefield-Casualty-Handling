@@ -300,13 +300,16 @@ reduce_role4_demand_replication <- function(env, n_days, seed) {
 #' @param n_iterations Replications to run (default ROLE4_DEMAND_REPLICATIONS).
 #' @param n_days Campaign length in days (default ROLE4_DEMAND_DAYS).
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @param checkpoint_dir Directory each finished replication is saved to and
+#'   read back from (checkpoint_replication()), or NULL for none.
 #' @return Data frame of replication, day, series, subject and value.
 #'
 #' @details Seeds are drawn as `run_replications()` draws them, from the
 #'   caller's control seed, and the caller's stream is restored on exit. Each
 #'   replication is reduced inside the worker that produced it.
 run_role4_demand <- function(n_iterations = ROLE4_DEMAND_REPLICATIONS,
-                             n_days = ROLE4_DEMAND_DAYS, max_cores = NULL) {
+                             n_days = ROLE4_DEMAND_DAYS, max_cores = NULL,
+                             checkpoint_dir = NULL) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -318,10 +321,12 @@ run_role4_demand <- function(n_iterations = ROLE4_DEMAND_REPLICATIONS,
   #' @param i Index of the replication, into `rep_seeds`.
   #' @return The replication's daily series, carrying its index.
   worker <- function(i) {
-    env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    out <- reduce_role4_demand_replication(env, n_days, seed = rep_seeds[i])
-    out$replication <- i
-    out
+    checkpoint_replication(function() {
+      env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
+      out <- reduce_role4_demand_replication(env, n_days, seed = rep_seeds[i])
+      out$replication <- i
+      out
+    }, checkpoint_dir, i, rep_seeds[i], n_days)
   }
 
   dispatched <- dispatch_replications(worker, n_iterations, max_cores)

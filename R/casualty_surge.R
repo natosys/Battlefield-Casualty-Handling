@@ -108,13 +108,16 @@ apply_casualty_surge_setting <- function(json_data, scenario, rate_per_day) {
 #' @param n_iterations Replications to run.
 #' @param n_days Campaign length in days.
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @param checkpoint_dir Directory each finished replication is saved to and
+#'   read back from (checkpoint_replication()), or NULL for none.
 #' @return Data frame with one row per replication, carrying the replication
 #'   index and the responses `reducer` reports.
 #'
 #' @details Seeds are drawn as `run_replications()` draws them, from the
 #'   caller's control seed under the caller's generator kind, and the caller's
 #'   stream is restored on exit, on `R/hold_window.R`'s arrangement.
-measure_casualty_surge_replications <- function(reducer, n_iterations, n_days, max_cores = NULL) {
+measure_casualty_surge_replications <- function(reducer, n_iterations, n_days, max_cores = NULL,
+                                                checkpoint_dir = NULL) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -126,10 +129,12 @@ measure_casualty_surge_replications <- function(reducer, n_iterations, n_days, m
   #' @param i Index of the replication, into `rep_seeds`.
   #' @return The replication's one-row response frame, carrying its index.
   worker <- function(i) {
-    env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    row <- reducer(env)
-    row$replication <- i
-    row
+    checkpoint_replication(function() {
+      env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
+      row <- reducer(env)
+      row$replication <- i
+      row
+    }, checkpoint_dir, i, rep_seeds[i], n_days)
   }
 
   dispatched <- dispatch_replications(worker, n_iterations, max_cores)
@@ -147,13 +152,16 @@ measure_casualty_surge_replications <- function(reducer, n_iterations, n_days, m
 #' @param n_iterations Replications to run (default CASUALTY_SURGE_REPLICATIONS).
 #' @param n_days Campaign length in days (default CASUALTY_SURGE_DAYS).
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @param checkpoint_dir Directory each finished replication is saved to and
+#'   read back from (checkpoint_replication()), or NULL for none.
 #' @return Data frame with one row per replication, carrying the replication
 #'   index and the responses reduce_casualty_surge_replication() reports.
 run_casualty_surge_measurement <- function(rate_per_day, n_iterations = CASUALTY_SURGE_REPLICATIONS,
-                                           n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
+                                           n_days = CASUALTY_SURGE_DAYS, max_cores = NULL,
+                                           checkpoint_dir = NULL) {
   measure_casualty_surge_replications(
     function(env) reduce_casualty_surge_replication(env, rate_per_day),
-    n_iterations, n_days, max_cores
+    n_iterations, n_days, max_cores, checkpoint_dir
   )
 }
 

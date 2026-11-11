@@ -120,6 +120,8 @@ apply_hold_window_setting <- function(json_data, scenario, window_min) {
 #' @param n_iterations Replications to run (default HOLD_WINDOW_REPLICATIONS).
 #' @param n_days Campaign length in days (default HOLD_WINDOW_DAYS).
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @param checkpoint_dir Directory each finished replication is saved to and
+#'   read back from (checkpoint_replication()), or NULL for none.
 #' @return Data frame with one row per replication, carrying the replication
 #'   index and the responses reduce_hold_window_replication() reports.
 #'
@@ -130,7 +132,8 @@ apply_hold_window_setting <- function(json_data, scenario, window_min) {
 #'   though not the same casualty stream, for the reason this module's header
 #'   records.
 run_hold_window_measurement <- function(window_min, n_iterations = HOLD_WINDOW_REPLICATIONS,
-                                        n_days = HOLD_WINDOW_DAYS, max_cores = NULL) {
+                                        n_days = HOLD_WINDOW_DAYS, max_cores = NULL,
+                                        checkpoint_dir = NULL) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -142,10 +145,12 @@ run_hold_window_measurement <- function(window_min, n_iterations = HOLD_WINDOW_R
   #' @param i Index of the replication, into `rep_seeds`.
   #' @return The replication's one-row response frame, carrying its index.
   worker <- function(i) {
-    env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    row <- reduce_hold_window_replication(env, window_min)
-    row$replication <- i
-    row
+    checkpoint_replication(function() {
+      env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
+      row <- reduce_hold_window_replication(env, window_min)
+      row$replication <- i
+      row
+    }, checkpoint_dir, i, rep_seeds[i], n_days)
   }
 
   dispatched <- dispatch_replications(worker, n_iterations, max_cores)

@@ -411,6 +411,7 @@ seconds.
 | `check_r2e_surgery_seizure.R` | fast | 16 s | R2E surgery seizes a surgical section |
 | `check_reception_order.R` | fast | 3 s | casualties waiting at R2B reception take a freed resuscitation bed by triage priority, then in order of arrival |
 | `check_references.R` | fast | 5 s | Reference list structural checks Regression check for the reference lists of the four academic documents. The checks below are structural, not bibliographic: they assert the properties a reader relies on when following a citation, and they are the properties a hand renumber silently breaks. Whether a URL is open access is a judgement no script can make, so it stays a manual step at the point a reference is added; what the script can guarantee is that the same source is not listed twice, that every entry is reachable from the text and every |
+| `check_replication_checkpoint.R` | fast | 172 s | a measurement resumed from its checkpoints writes what an uninterrupted one writes |
 | `check_replication_independence.R` | fast | 68 s | replications are independent of one another |
 | `check_replication_loss_reporting.R` | fast | 19 s | a lost replication is reported, not silently dropped |
 | `check_replication_memory.R` | fast | 25 s | peak memory does not grow with the replication count |

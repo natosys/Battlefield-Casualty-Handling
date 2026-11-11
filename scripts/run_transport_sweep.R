@@ -31,6 +31,13 @@
 #   source("R/analysis.R"); source("R/scenario_runner.R")
 #   sweep <- plot_transport_capacity_margin_by_fleet_size(
 #     list(PMVAmb = 1:5, HX240M = 1:4), n_rep = 30, n_days = 360)
+#
+# Each finished fleet-size point is saved under outputs/checkpoints/transport/
+# and read back rather than re-run on a later invocation, so an interruption
+# costs the point in flight. A point is the unit saved because its
+# replications are reduced together; every point draws the same replication
+# seeds, so a resumed sweep writes what an uninterrupted one would. Empty the
+# directory after a change to the model or the configuration.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -145,7 +152,8 @@ sweep <- plot_transport_capacity_margin_by_fleet_size(
   n_rep       = opt$iterations,
   path        = config_path,
   output_dir  = output_dir,
-  images_dir  = images_dir
+  images_dir  = images_dir,
+  checkpoint_dir = checkpoint_dir("transport", isTRUE(opt$`refresh-baseline`))
 )
 
 message("\nTransport fleet-size sweep complete.")

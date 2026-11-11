@@ -30,6 +30,12 @@
 # than whatever arguments accompany it, so the tracked set and the design
 # docs/Methods.md documents cannot diverge through a mistyped
 # argument. Without it the run writes under outputs/ alone.
+#
+# Each finished replication is saved under outputs/checkpoints/, one directory
+# per arm (arm_checkpoint_path(), R/cli.R), and read back rather than re-run on a
+# later invocation, so an interruption costs the replications in flight and a
+# resumed run writes what an uninterrupted one would. Empty the directory after
+# a change to the model or the configuration.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -117,8 +123,11 @@ measure_arm <- function(gate_enabled) {
                   if (gate_enabled == 1) "enabled" else "disabled",
                   opt$iterations, opt$days))
   set.seed(opt$seed)
+  arm <- sprintf("%s_gate_%d", opt$scenario, gate_enabled)
+  ckpt <- arm_checkpoint_path("icu_gate", arm, refresh_requested)
   run_icu_gate_measurement(gate_enabled, n_iterations = opt$iterations,
-                           n_days = opt$days, max_cores = opt$`max-cores`)
+                           n_days = opt$days, max_cores = opt$`max-cores`,
+                           checkpoint_dir = ckpt)
 }
 
 per_replication <- do.call(rbind, lapply(ICU_GATE_ARMS, measure_arm))

@@ -1016,6 +1016,125 @@ build_triage_split_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference against the shipped split", arms), rows)
 }
 
+#' Rows of the post-definitive share sweep tables: label, response key, decimal places, scale
+#'
+#' @details The same set, in the same order, in the summary table and the paired
+#'   table, so a reader finds a response in the same row of both; the paired
+#'   table omits a response the sweep does not pair. The scale of 100 turns a
+#'   share into percentage points.
+POST_DEFINITIVE_ROWS <- list(
+  list("Post-definitive ward recoveries", "ward_recoveries", 1L, 1),
+  list("Ward recoveries in overflow", "ward_overflow", 1L, 1),
+  list("Placed for post-definitive ICU", "post_definitive_icu_n", 1L, 1),
+  list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("R2E ICU mean queue", "icu_mean_queue", 2L, 1),
+  list("R2E holding occupancy (%)", "hold_occupancy", 1L, 100),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("Holding bed-days, post-definitive care", "post_definitive_bed_days", 0L, 1),
+  list("of which ward recoveries", "ward_bed_days", 0L, 1),
+  list("Holding bed-days, in-theatre recovery", "recovery_bed_days", 0L, 1),
+  list("Holding bed-days, awaiting airlift", "evacuation_bed_days", 0L, 1),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("R2E staging overflow census", "overflow_r2e_staging", 2L, 1),
+  list("Post-operative care in a holding bed (%)", "postop_degraded_share", 1L, 100),
+  list("R2E theatre entry deferred", "r2e_theatre_deferred", 1L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1),
+  list("Critical-route evacuation wait (days)", "mean_evac_wait_critical", 2L, 1),
+  list("Role 4 peak census", "role4_peak", 1L, 1)
+)
+
+#' Pools the post-definitive share table classifies, with their row labels
+POST_DEFINITIVE_STABILITY_ROWS <- c(
+  "R2E ICU queue, late-half classification" = "R2E intensive care",
+  "R2E holding queue, late-half classification" = "R2E holding beds",
+  "R2E post-operative overflow, late-half classification" = "R2E post-operative overflow",
+  "R2E staging overflow, late-half classification" = "R2E staging overflow"
+)
+
+#' The post-definitive share sweep's arms in ascending order of share
+#'
+#' @param arms Arm labels, as "ICU share 50%".
+#' @return The labels sorted by the share they name.
+post_definitive_arm_order <- function(arms) {
+  arms[order(as.numeric(sub("^ICU share ([0-9]+)%$", "\\1", arms)))]
+}
+
+#' Post-definitive share sweep table: each response and each pool's classification, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per share, shipped last.
+#'
+#' @details The classifications are read from the stability file the sweep wrote
+#'   from its own daily series, in the stability table's words.
+build_post_definitive <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("post_definitive/post_definitive_sweep_summary", suffix), data_dir)
+  st <- res_read(res_file("post_definitive/post_definitive_sweep_stability", suffix), data_dir)
+  arms <- post_definitive_arm_order(unique(d$arm))
+  #' One response's row across the arms
+  #'
+  #' @param r A row specification of POST_DEFINITIVE_ROWS.
+  #' @return The row's cells.
+  one <- function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1)))
+  }
+  #' One pool's classification row across the arms
+  #'
+  #' @param label Row label.
+  #' @param pool Pool name.
+  #' @return The row's cells.
+  verdicts <- function(label, pool) {
+    c(label, vapply(arms, function(a) {
+      r <- st[st$arm == a & st$pool == pool, ]
+      if (nrow(r) != 1L) stop(sprintf("expected one stability row for arm '%s', pool '%s'",
+                                      a, pool), call. = FALSE)
+      res_stability_cell(r)
+    }, character(1)))
+  }
+  rows <- c(
+    lapply(POST_DEFINITIVE_ROWS[1:14], one),
+    lapply(seq_along(POST_DEFINITIVE_STABILITY_ROWS), function(i) {
+      verdicts(names(POST_DEFINITIVE_STABILITY_ROWS)[i], POST_DEFINITIVE_STABILITY_ROWS[[i]])
+    }),
+    lapply(POST_DEFINITIVE_ROWS[-(1:14)], one)
+  )
+  shipped <- arms[length(arms)]
+  header <- c("Response", ifelse(arms == shipped, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
+#' Post-definitive share sweep table of paired differences against the shipped share
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per share other than the shipped one, in
+#'   ascending order.
+build_post_definitive_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("post_definitive/post_definitive_sweep_paired", suffix), data_dir)
+  arms <- post_definitive_arm_order(unique(d$to))
+  keep <- POST_DEFINITIVE_ROWS[vapply(POST_DEFINITIVE_ROWS, function(r) r[[2]] %in% d$response,
+                                      logical(1))]
+  rows <- lapply(keep, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$to == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
+                                      r[[2]], a, nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c("Paired difference against the shipped share", arms), rows)
+}
+
 #' The two R2B holding sweep tables
 #'
 #' @param data_dir The data directory.
@@ -3438,6 +3557,10 @@ RESULTS_TABLES <- list(
   triage_split_high = function(dd) build_triage_split(dd, "_high_intensity"),
   triage_split_paired = build_triage_split_paired,
   triage_split_paired_high = function(dd) build_triage_split_paired(dd, "_high_intensity"),
+  post_definitive = build_post_definitive,
+  post_definitive_high = function(dd) build_post_definitive(dd, "_high_intensity"),
+  post_definitive_paired = build_post_definitive_paired,
+  post_definitive_paired_high = function(dd) build_post_definitive_paired(dd, "_high_intensity"),
   policy_establishment_high = build_policy_establishment_high,
   policy_establishment_high_stability = build_policy_establishment_high_stability,
   policy_establishment_high_paired = build_policy_establishment_high_paired,

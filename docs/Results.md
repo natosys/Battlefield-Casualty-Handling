@@ -1317,6 +1317,34 @@ Under `high_intensity` the critical route collapsed in <!-- GEN cell:airlift_col
 
 ---
 
+## Critical-Care Places per Sortie
+
+<small>[Return to Top](#contents)</small>
+
+**Question.** What do more critical-care places per sortie buy, with the airframe's total held at 90, and how does reconfiguring the aircraft compare with flying it more often? `[default and high_intensity, 36 to 72 critical places of 90 crossed with a 7-day and a 3-day interval · 360 d · 30 replications · paired, closing 90 d]`
+
+Each arm splits the C-17A's 90 places between the critical-care and standard pools and flies at the shipped weekly interval or every three days ([Methods](Methods.md#critical-care-places-per-sortie-sweep)). A route's collapse row counts the campaigns whose backlog on that route was still rising over the second half of the year and exceeded the places that arm's sorties open on it, with the exact binomial interval on the rate. Every arm is compared with the shipped split at the weekly interval, and Holm's adjustment is taken across all of those comparisons.
+
+<!-- GEN airlift_places -->
+<!-- /GEN -->
+
+<!-- GEN airlift_places_paired -->
+<!-- /GEN -->
+
+At the shipped split and interval the critical airlift's closing backlog was <!-- GEN cell:airlift_places|Critical airlift closing backlog|36/54, 7 days (shipped)|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places|Critical airlift campaigns collapsed|36/54, 7 days (shipped)|full -->X<!-- /GEN --> campaigns collapsed on the critical route. At the weekly interval, 72 critical places of 90 changed the critical backlog by <!-- GEN cell:airlift_places_paired|Critical airlift closing backlog|72/18, 7 days|full -->X<!-- /GEN --> and the standard backlog by <!-- GEN cell:airlift_places_paired|Standard airlift closing backlog|72/18, 7 days|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places|Standard airlift campaigns collapsed|72/18, 7 days|full -->X<!-- /GEN --> campaigns collapsed on the standard route. Flying every three days at the shipped split changed the critical backlog by <!-- GEN cell:airlift_places_paired|Critical airlift closing backlog|36/54, 3 days|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places|Critical airlift campaigns collapsed|36/54, 3 days|full -->X<!-- /GEN --> campaigns collapsed on the critical route, and at 45 critical places by <!-- GEN cell:airlift_places_paired|Critical airlift closing backlog|45/45, 3 days|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places|Critical airlift campaigns collapsed|45/45, 3 days|full -->X<!-- /GEN -->. Deaths of wounds among casualties awaiting airlift changed by <!-- GEN cell:airlift_places_paired|Died of wounds awaiting airlift|45/45, 3 days|full -->X<!-- /GEN --> at 45 places every three days, deaths of wounds in total by <!-- GEN cell:airlift_places_paired|Died of wounds|45/45, 3 days|full -->X<!-- /GEN -->, and the Role 4 peak census by <!-- GEN cell:airlift_places_paired|Role 4 peak census|45/45, 3 days|full -->X<!-- /GEN -->.
+
+At high intensity the same eight arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
+
+<!-- GEN airlift_places_high -->
+<!-- /GEN -->
+
+<!-- GEN airlift_places_paired_high -->
+<!-- /GEN -->
+
+At the shipped split and interval at high intensity the critical airlift's closing backlog was <!-- GEN cell:airlift_places_high|Critical airlift closing backlog|36/54, 7 days (shipped)|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Critical airlift campaigns collapsed|36/54, 7 days (shipped)|full -->X<!-- /GEN --> campaigns collapsed on the critical route. At the weekly interval, 72 critical places of 90 changed the critical backlog by <!-- GEN cell:airlift_places_paired_high|Critical airlift closing backlog|72/18, 7 days|full -->X<!-- /GEN --> and the standard backlog by <!-- GEN cell:airlift_places_paired_high|Standard airlift closing backlog|72/18, 7 days|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Standard airlift campaigns collapsed|72/18, 7 days|full -->X<!-- /GEN --> campaigns collapsed on the standard route. Flying every three days at the shipped split changed the critical backlog by <!-- GEN cell:airlift_places_paired_high|Critical airlift closing backlog|36/54, 3 days|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Critical airlift campaigns collapsed|36/54, 3 days|full -->X<!-- /GEN --> campaigns collapsed on the critical route, and at 45 critical places by <!-- GEN cell:airlift_places_paired_high|Critical airlift closing backlog|45/45, 3 days|full -->X<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Critical airlift campaigns collapsed|45/45, 3 days|full -->X<!-- /GEN -->. Deaths of wounds among casualties awaiting airlift changed by <!-- GEN cell:airlift_places_paired_high|Died of wounds awaiting airlift|45/45, 3 days|full -->X<!-- /GEN --> at 45 places every three days, deaths of wounds in total by <!-- GEN cell:airlift_places_paired_high|Died of wounds|45/45, 3 days|full -->X<!-- /GEN -->, and the Role 4 peak census by <!-- GEN cell:airlift_places_paired_high|Role 4 peak census|45/45, 3 days|full -->X<!-- /GEN -->.
+
+---
+
 ## Role 4 Bed Demand
 
 <small>[Return to Top](#contents)</small>

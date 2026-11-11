@@ -124,10 +124,10 @@ measure_arm <- function(rate_per_day) {
                   rate_per_day, opt$iterations, opt$days))
   set.seed(opt$seed)
   arm <- sprintf("%s_rate_%g", opt$scenario, rate_per_day)
+  ckpt <- arm_checkpoint_path("casualty_surge", arm, refresh_requested)
   run_casualty_surge_measurement(rate_per_day, n_iterations = opt$iterations,
                                  n_days = opt$days, max_cores = opt$`max-cores`,
-                                 checkpoint_dir = arm_checkpoint_path("casualty_surge", arm,
-                                                                     refresh_requested))
+                                 checkpoint_dir = ckpt)
 }
 
 per_replication <- do.call(rbind, lapply(CASUALTY_SURGE_ARMS, measure_arm))

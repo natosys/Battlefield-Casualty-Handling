@@ -120,10 +120,10 @@ measure_arm <- function(window_min) {
                   window_min, opt$iterations, opt$days))
   set.seed(opt$seed)
   arm <- sprintf("%s_window_%d", opt$scenario, window_min)
+  ckpt <- arm_checkpoint_path("hold_window", arm, refresh_requested)
   rows <- run_hold_window_measurement(window_min, n_iterations = opt$iterations,
                                       n_days = opt$days, max_cores = opt$`max-cores`,
-                                      checkpoint_dir = arm_checkpoint_path(
-                                        "hold_window", arm, refresh_requested))
+                                      checkpoint_dir = ckpt)
   rows
 }
 

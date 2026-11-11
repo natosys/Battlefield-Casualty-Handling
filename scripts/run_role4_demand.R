@@ -116,9 +116,8 @@ measure_scenario <- function(scenario) {
   message(sprintf("Scenario '%s': %d replications x %d days", scenario,
                   opt$iterations, opt$days))
   set.seed(opt$seed)
-  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`,
-                           checkpoint_dir = arm_checkpoint_path("role4_demand", scenario,
-                                                               refresh_requested))
+  ckpt <- arm_checkpoint_path("role4_demand", scenario, refresh_requested)
+  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`, checkpoint_dir = ckpt)
   rows$scenario <- scenario
   rows
 }
@@ -169,9 +168,8 @@ measure_reliability <- function(probability) {
                   opt$iterations, opt$days))
   set.seed(opt$seed)
   arm <- sprintf("reliability_%.2f", probability)
-  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`,
-                           checkpoint_dir = arm_checkpoint_path("role4_demand", arm,
-                                                               refresh_requested))
+  ckpt <- arm_checkpoint_path("role4_demand", arm, refresh_requested)
+  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`, checkpoint_dir = ckpt)
   cbind(failure_probability = probability,
         role4_demand_responses(rows, opt$days, ROLE4_DEMAND_WINDOW_DAYS), row.names = NULL)
 }

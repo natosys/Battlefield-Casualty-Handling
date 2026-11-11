@@ -124,10 +124,10 @@ measure_arm <- function(gate_enabled) {
                   opt$iterations, opt$days))
   set.seed(opt$seed)
   arm <- sprintf("%s_gate_%d", opt$scenario, gate_enabled)
+  ckpt <- arm_checkpoint_path("icu_gate", arm, refresh_requested)
   run_icu_gate_measurement(gate_enabled, n_iterations = opt$iterations,
                            n_days = opt$days, max_cores = opt$`max-cores`,
-                           checkpoint_dir = arm_checkpoint_path("icu_gate", arm,
-                                                               refresh_requested))
+                           checkpoint_dir = ckpt)
 }
 
 per_replication <- do.call(rbind, lapply(ICU_GATE_ARMS, measure_arm))

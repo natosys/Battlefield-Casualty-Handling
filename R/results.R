@@ -783,6 +783,101 @@ build_ot_bed_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference", heads), rows)
 }
 
+#' Arm the critical-care places sweep's differences are measured against
+AIRLIFT_PLACES_BASELINE <- "36/54, 7 days"
+
+#' Responses of the critical-care places sweep, as `list(label, response, dp, scale)`
+#'
+#' @details The same set, in the same order, in the summary table and the
+#'   paired table. The scale of 100 turns a share into percentage points.
+AIRLIFT_PLACES_ROWS <- list(
+  list("Critical airlift closing backlog", "closing_backlog_critical", 1L, 1),
+  list("Standard airlift closing backlog", "closing_backlog_standard", 1L, 1),
+  list("Critical airlift mean wait (days)", "mean_wait_critical", 2L, 1),
+  list("Standard airlift mean wait (days)", "mean_wait_standard", 2L, 1),
+  list("Critical places departing empty per sortie", "places_empty_critical", 1L, 1),
+  list("Standard places departing empty per sortie", "places_empty_standard", 1L, 1),
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("R2E holding occupancy (%)", "hold_occupancy", 1L, 100),
+  list("Died of wounds awaiting airlift", "dow_awaiting_airlift", 2L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Role 4 peak census", "role4_peak", 1L, 1)
+)
+
+#' Critical-care places sweep table: each response and each route's collapse, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per arm.
+#'
+#' @details A route's collapse row counts the campaigns classified collapsed by
+#'   the airlift collapse rule, judged against the places that arm's sorties
+#'   open on the route, with the exact binomial interval on the rate.
+build_airlift_places <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("airlift_places/airlift_places_summary", suffix), data_dir)
+  co <- res_read(res_file("airlift_places/airlift_places_collapse", suffix), data_dir)
+  arms <- unique(d$arm)
+  #' One response's row across the arms
+  #'
+  #' @param r One entry of AIRLIFT_PLACES_ROWS.
+  #' @return The row's cells.
+  one <- function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1)))
+  }
+  #' One route's collapse count across the arms
+  #'
+  #' @param label Row label.
+  #' @param route Route label in the collapse file.
+  #' @return The row's cells.
+  collapsed <- function(label, route) {
+    c(label, vapply(arms, function(a) {
+      x <- co[co$arm == a & co$route == route, ]
+      if (nrow(x) != 1L) stop(sprintf("expected one collapse row for arm '%s', route '%s'", a,
+                                      route), call. = FALSE)
+      sprintf("%d of %d [%.0f%%, %.0f%%]", as.integer(x$n_collapsed), as.integer(x$n_reps),
+              100 * x$ci_lower, 100 * x$ci_upper)
+    }, character(1)))
+  }
+  by_key <- stats::setNames(AIRLIFT_PLACES_ROWS, vapply(AIRLIFT_PLACES_ROWS, `[[`, "", 2L))
+  rows <- c(
+    list(one(by_key$closing_backlog_critical),
+         collapsed("Critical airlift campaigns collapsed", "Critical airlift"),
+         one(by_key$closing_backlog_standard),
+         collapsed("Standard airlift campaigns collapsed", "Standard airlift")),
+    lapply(AIRLIFT_PLACES_ROWS[-(1:2)], one)
+  )
+  header <- c("Response", ifelse(arms == AIRLIFT_PLACES_BASELINE, paste(arms, "(shipped)"),
+                                 arms))
+  res_table(header, rows)
+}
+
+#' Critical-care places sweep table of paired differences against the shipped split
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per arm other than the shipped one.
+build_airlift_places_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("airlift_places/airlift_places_paired", suffix), data_dir)
+  arms <- unique(d$to)
+  rows <- lapply(AIRLIFT_PLACES_ROWS, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$to == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
+                                      r[[2]], a, nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c("Paired difference against the shipped split", arms), rows)
+}
+
 #' Rows of the triage share sweep tables: label, response key, decimal places, scale
 TRIAGE_ROWS <- list(
   list("Wounded in action", "wounded", 1L, 1),
@@ -3335,6 +3430,10 @@ RESULTS_TABLES <- list(
   ot_bed_high = function(dd) build_ot_bed(dd, "_high_intensity"),
   ot_bed_paired = build_ot_bed_paired,
   ot_bed_paired_high = function(dd) build_ot_bed_paired(dd, "_high_intensity"),
+  airlift_places = build_airlift_places,
+  airlift_places_high = function(dd) build_airlift_places(dd, "_high_intensity"),
+  airlift_places_paired = build_airlift_places_paired,
+  airlift_places_paired_high = function(dd) build_airlift_places_paired(dd, "_high_intensity"),
   triage_split = build_triage_split,
   triage_split_high = function(dd) build_triage_split(dd, "_high_intensity"),
   triage_split_paired = build_triage_split_paired,

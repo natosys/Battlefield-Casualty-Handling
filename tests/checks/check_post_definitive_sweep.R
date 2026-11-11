@@ -124,8 +124,8 @@ methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 #' @param name Marker name, as it appears after "POST_DEFINITIVE ".
 #' @return The marker's value as a character string, or NA where absent.
 marker <- function(name) {
-  m <- regmatches(methods_text, regexpr(
-    sprintf("<!-- POST_DEFINITIVE %s=[^>]+ -->", name), methods_text))
+  pattern <- sprintf("<!-- POST_DEFINITIVE %s=[^>]+ -->", name)
+  m <- regmatches(methods_text, regexpr(pattern, methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- POST_DEFINITIVE [^=]+=(.*) -->$", "\\1", m)
 }
@@ -226,9 +226,9 @@ paired_agrees <- function(rows, paired) {
 #' @param suffix Scenario suffix.
 #' @return The series, or NULL where any arm's file is absent.
 read_series <- function(suffix) {
-  files <- file.path(EVIDENCE_DIR, sprintf(
-    "post_definitive_sweep_arm_share_%03d%s_series.csv.gz",
-    as.integer(round(100 * POST_DEFINITIVE_SWEEP_ARMS$share)), suffix))
+  percent <- as.integer(round(100 * POST_DEFINITIVE_SWEEP_ARMS$share))
+  stems <- sprintf("post_definitive_sweep_arm_share_%03d%s_series.csv.gz", percent, suffix)
+  files <- file.path(EVIDENCE_DIR, stems)
   if (!all(file.exists(files))) return(NULL)
   do.call(rbind, lapply(seq_along(files), function(i) {
     d <- read.csv(files[i], stringsAsFactors = FALSE)

@@ -143,8 +143,8 @@ measure_arm <- function(i) {
               scenario_output_path(CHECKPOINT_DIR, arm_stem(i), opt$scenario))
   dir.create(ckpt, recursive = TRUE, showWarnings = FALSE)
   out <- run_airlift_places_measurement(n_iterations = opt$iterations, n_days = opt$days,
-                                       window_days = opt$window,
-                                       max_cores = opt$`max-cores`, checkpoint_dir = ckpt)
+                                        window_days = opt$window,
+                                        max_cores = opt$`max-cores`, checkpoint_dir = ckpt)
   out$rows$arm <- arm$arm
   out$series$arm <- arm$arm
   out

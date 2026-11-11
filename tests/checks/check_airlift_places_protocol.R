@@ -156,10 +156,10 @@ report(all(AIRLIFT_PLACES_ARMS$critical + AIRLIFT_PLACES_ARMS$standard ==
              frame$critical_capacity + frame$standard_capacity),
        "every arm flies the airframe's %s places",
        frame$critical_capacity + frame$standard_capacity)
-report(all(AIRLIFT_PLACES_ARMS$arm == airlift_places_label(
-  AIRLIFT_PLACES_ARMS$critical, AIRLIFT_PLACES_ARMS$standard, AIRLIFT_PLACES_ARMS$interval)) &&
-    anyDuplicated(AIRLIFT_PLACES_ARMS$arm) == 0L,
-  "every arm's label states its split and interval, and none is listed twice")
+labels <- airlift_places_label(AIRLIFT_PLACES_ARMS$critical, AIRLIFT_PLACES_ARMS$standard,
+                               AIRLIFT_PLACES_ARMS$interval)
+report(all(AIRLIFT_PLACES_ARMS$arm == labels) && anyDuplicated(AIRLIFT_PLACES_ARMS$arm) == 0L,
+       "every arm's label states its split and interval, and none is listed twice")
 
 # ── 2. The tracked evidence sets are that experiment ────────────────────────
 

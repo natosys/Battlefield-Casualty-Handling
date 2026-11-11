@@ -54,6 +54,7 @@ This document is the design record for the replicated experiments reported in th
   - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)
   - [R2E Intensive Care Bed Establishment Sweep](#r2e-intensive-care-bed-establishment-sweep)
   - [R2E Operating Theatre Establishment Sweep](#r2e-operating-theatre-establishment-sweep)
+  - [Critical-Care Places per Sortie Sweep](#critical-care-places-per-sortie-sweep)
   - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
   - [Adequacy Verdict Criteria](#adequacy-verdict-criteria)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
@@ -300,6 +301,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Surgical team establishment sweep | `data/surgical_teams/` | `check_surgical_sweep_protocol.R`, `check_surgical_roster.R` (mechanism) |
 | R2E intensive care bed establishment sweep | `data/icu_beds/` | `check_icu_bed_sweep_protocol.R` |
 | R2E operating theatre establishment sweep | `data/ot_beds/` | `check_ot_bed_sweep_protocol.R` |
+| Critical-care places per sortie sweep | `data/airlift_places/` | `check_airlift_places_protocol.R` |
 | The R2B pre-open hold window | `data/hold_window/` | `check_hold_window_protocol.R` |
 | The post-operative intensive care gate | `data/icu_gate/` | `check_icu_gate_protocol.R`, `check_icu_gate_switch.R` (mechanism) |
 | Casualty surge event stress test | `data/casualty_surge/` | `check_casualty_surge_protocol.R`, `check_casualty_surge_kia_split.R` (mechanism) |
@@ -355,6 +357,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Surgical team establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queue and campaign counts, daily queue classified; Student $t$, paired $t$ |
 | R2E intensive care bed establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
 | R2E operating theatre establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
+| Critical-care places per sortie sweep | default; `high_intensity` | 360 d | 30 per arm | 8 arms | one control seed, not one casualty stream | closing-window backlog and occupancy, campaign counts, per-campaign collapse; Student $t$, paired $t$, exact binomial |
 | Priority 1 triage share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
 | Treated-cohort mortality at the anchor horizons | default and both profiles | 30 d (Ajax Bay), 82 d (Okinawa) | 3 measurements of 50 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
@@ -749,6 +752,23 @@ Rscript scripts/run_ot_bed_sweep.R --scenario high_intensity --refresh-baseline
 ```
 
 A theatre is a room: its staff come from the surgical section, which the casualty takes before it takes a theatre, so the theatre count reaches the model through the capacity of the unit's theatre pool alone, which `tests/checks/check_ot_bed_sweep_protocol.R` asserts. Each replication is reduced inside the forked worker to the surgical team sweep's responses (`reduce_surgical_replication()`), the theatre, intensive care and holding occupancy and queue over the closing window, and a daily series of the theatres, intensive care, holding and the two R2E overflow points, faster surgery moving load onto the beds behind the theatre. Each pool's daily series is classified by the late-half fit of [Classifying Stability](#classifying-stability). Every arm is compared with the shipped establishment, and the third theatre at six sections with two theatres at six sections, the comparison that isolates a theatre where the theatres limit; Holm's adjustment is taken over every row of the experiment's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped arm and the six-section arm at two theatres are the surgical team sweep's configurations under the same seed, and the protocol check asserts that they reproduce its tracked replications in every response the two share. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight. The tracked evidence set is `data/ot_beds/`.
+
+### Critical-Care Places per Sortie Sweep
+
+<!-- AIRLIFT_PLACES replications=30 -->
+<!-- AIRLIFT_PLACES days=360 -->
+<!-- AIRLIFT_PLACES seed=42 -->
+<!-- AIRLIFT_PLACES window_days=90 -->
+<!-- AIRLIFT_PLACES baseline=36/54, 7 days -->
+<!-- AIRLIFT_PLACES arms=36/54/7;45/45/7;54/36/7;72/18/7;36/54/3;45/45/3;54/36/3;72/18/3 -->
+Thirty replications of 360 simulated days at each of eight arms, at control seed 42, under the shipped default configuration and again under the `high_intensity` profile. Each arm splits the C-17A's 90 places between the critical-care and standard pools, 36/54 (shipped), 45/45, 54/36 or 72/18, and flies at the shipped weekly interval or every three days; the three-day column measures whether flying more often substitutes for reconfiguring the aircraft, and the 72/18 split whether the standard route then collapses in its turn. The split enters through the configured airframe's capacity block in `role4`, set after `build_environment()` by `set_airframe_places()`, which fails on an unknown airframe or a split that does not sum to the airframe's places, and the interval through `role4.ame.schedule_interval_days`. Invoked as:
+
+```
+Rscript scripts/run_airlift_places_sweep.R --refresh-baseline
+Rscript scripts/run_airlift_places_sweep.R --scenario high_intensity --refresh-baseline
+```
+
+Each replication is reduced inside the forked worker to the strategic airlift sweep's responses (`reduce_airlift_replication()`), each route's backlog averaged over the closing 90 days, the deaths of wounds of casualties awaiting airlift and in total, and R2E intensive care and holding occupancy over the same window, and each route's daily backlog is kept. Every campaign's routes are classified collapsed or not by the rule of the [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep), the materiality condition judged against the places that arm's sorties open on the route rather than the shipped 36 and 54. Every arm is compared with the shipped split at the weekly interval, Holm's adjustment taken over every row of the experiment's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped split at either interval is a configuration the strategic airlift sweep also ran under the same seed, and `tests/checks/check_airlift_places_protocol.R` asserts that its replications reproduce that sweep's in every response the two share. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked). The tracked evidence set is `data/airlift_places/`.
 
 ### Priority 1 Triage Share Sweep
 

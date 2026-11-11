@@ -270,9 +270,9 @@ for (label in names(SUFFIXES)) {
   report(nrow(paired) == nrow(OT_SWEEP_COMPARISONS) * length(OT_SWEEP_PAIRED_RESPONSES),
          "%s: the paired file has one row per comparison and response (%d)", label,
          nrow(paired))
+  unadjusted <- paired[, setdiff(names(paired), "p_holm")]
   report(!is.null(paired$p_holm) &&
-           isTRUE(all.equal(paired$p_holm, holm_adjust(paired[, setdiff(names(paired),
-                                                                       "p_holm")])$p_holm)),
+           isTRUE(all.equal(paired$p_holm, holm_adjust(unadjusted)$p_holm)),
          "%s: Holm's adjustment is taken over every row of the paired file", label)
 
   series_files <- file.path(

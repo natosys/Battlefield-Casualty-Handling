@@ -640,6 +640,149 @@ build_icu_bed_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference against the shipped establishment", arms), rows)
 }
 
+#' Arm the theatre establishment sweep's differences are measured against
+OT_BED_BASELINE <- "2 theatres, 3 sections"
+
+#' Responses of the theatre establishment sweep, as `list(label, response, dp, scale)`
+#'
+#' @details The same set, in the same order, in the summary table and the paired
+#'   table, so a reader finds a response in the same row of both. The scale of
+#'   100 turns a share into percentage points.
+OT_BED_ROWS <- list(
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("R2E theatre occupancy (%)", "theatre_occupancy", 1L, 100),
+  list("R2E first surgeries", "r2e_first_surgeries", 1L, 1),
+  list("R2E theatre entry deferred", "r2e_theatre_deferred", 1L, 1),
+  list("Released with definitive repair outstanding", "released_unrepaired", 1L, 1),
+  list("Diverted from R2B, theatre busy", "diverted_busy", 1L, 1),
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1)
+)
+
+#' Theatre and section counts of a theatre sweep arm label
+#'
+#' @param arm Arm label, such as "3 theatres, 6 sections".
+#' @return Integer vector of the theatre and section counts.
+ot_bed_counts <- function(arm) {
+  as.integer(regmatches(arm, gregexpr("[0-9]+", arm))[[1]])
+}
+
+#' Theatre establishment sweep table: each response and the pools' classification, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per arm.
+#'
+#' @details The first row states the sections on the larger shift against the
+#'   theatres, the ratio the arms were chosen on: odd sections take the first
+#'   shift, so the larger shift carries half the sections rounded up. The
+#'   classifications and shortfalls per day are those of the late-half fits,
+#'   read from the stability file the sweep wrote from its own daily series.
+build_ot_bed <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("ot_beds/ot_bed_sweep_summary", suffix), data_dir)
+  st <- res_read(res_file("ot_beds/ot_bed_sweep_stability", suffix), data_dir)
+  arms <- unique(d$arm)
+  #' One response's row across the arms
+  #'
+  #' @param r One entry of OT_BED_ROWS.
+  #' @return The row's cells.
+  one <- function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1)))
+  }
+  #' One pool's stability row for one arm
+  #'
+  #' @param a Arm label.
+  #' @param pool Pool name.
+  #' @return The one stability row.
+  stab <- function(a, pool) {
+    r <- st[st$arm == a & st$pool == pool, ]
+    if (nrow(r) != 1L) stop(sprintf("expected one stability row for arm '%s', pool '%s', found %d",
+                                    a, pool, nrow(r)), call. = FALSE)
+    r
+  }
+  #' A pool's classification row across the arms, in the stability table's words
+  #'
+  #' @param label Row label.
+  #' @param pool Pool name.
+  #' @return The row's cells.
+  verdict <- function(label, pool) {
+    c(label, vapply(arms, function(a) res_stability_cell(stab(a, pool)), character(1)))
+  }
+  #' A pool's shortfall per day across the arms, with its interval
+  #'
+  #' @param label Row label.
+  #' @param pool Pool name.
+  #' @return The row's cells.
+  shortfall <- function(label, pool) {
+    c(label, vapply(arms, function(a) {
+      r <- stab(a, pool)
+      f <- c(r$shortfall_per_day, r$shortfall_lower, r$shortfall_upper)
+      f[abs(f) < 0.0005] <- 0
+      res_ci(f[1], f[2], f[3], dp = 3L)
+    }, character(1)))
+  }
+  on_shift <- vapply(arms, function(a) {
+    n <- ot_bed_counts(a)
+    sprintf("%d against %d", as.integer(ceiling(n[2] / 2)), n[1])
+  }, character(1))
+  by_key <- stats::setNames(OT_BED_ROWS, vapply(OT_BED_ROWS, `[[`, "", 2L))
+  rows <- list(
+    c("Sections on the larger shift against theatres", on_shift),
+    one(by_key$theatre_mean_queue),
+    verdict("R2E theatre queue, late-half classification", "R2E operating theatres"),
+    shortfall("R2E theatre queue shortfall per day", "R2E operating theatres"),
+    one(by_key$theatre_occupancy), one(by_key$r2e_first_surgeries),
+    one(by_key$r2e_theatre_deferred), one(by_key$released_unrepaired),
+    one(by_key$diverted_busy), one(by_key$icu_occupancy),
+    one(by_key$overflow_r2e_post_op),
+    verdict("R2E post-operative overflow, late-half classification",
+            "R2E post-operative overflow"),
+    one(by_key$hold_mean_queue),
+    verdict("R2E holding queue, late-half classification", "R2E holding beds"),
+    verdict("R2E staging overflow, late-half classification", "R2E staging overflow"),
+    one(by_key$post_definitive_icu_share), one(by_key$total_dow), one(by_key$total_rtd)
+  )
+  header <- c("Response", ifelse(arms == OT_BED_BASELINE, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
+#' Theatre establishment sweep table of paired differences
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per comparison.
+#'
+#' @details A comparison against the shipped establishment is headed by its arm
+#'   alone; the one comparison taken against another arm, the third theatre at
+#'   six sections, is headed by both arms.
+build_ot_bed_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("ot_beds/ot_bed_sweep_paired", suffix), data_dir)
+  pairs <- unique(d[, c("from", "to")])
+  heads <- ifelse(pairs$from == OT_BED_BASELINE, pairs$to,
+                  paste(pairs$to, "against", pairs$from))
+  rows <- lapply(OT_BED_ROWS, function(r) {
+    c(r[[1]], vapply(seq_len(nrow(pairs)), function(k) {
+      x <- d[d$from == pairs$from[k] & d$to == pairs$to[k] & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for '%s', found %d",
+                                      r[[2]], heads[k], nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c("Paired difference", heads), rows)
+}
+
 #' Rows of the triage share sweep tables: label, response key, decimal places, scale
 TRIAGE_ROWS <- list(
   list("Wounded in action", "wounded", 1L, 1),
@@ -3188,6 +3331,10 @@ RESULTS_TABLES <- list(
   icu_bed_high = function(dd) build_icu_bed(dd, "_high_intensity"),
   icu_bed_paired = build_icu_bed_paired,
   icu_bed_paired_high = function(dd) build_icu_bed_paired(dd, "_high_intensity"),
+  ot_bed = build_ot_bed,
+  ot_bed_high = function(dd) build_ot_bed(dd, "_high_intensity"),
+  ot_bed_paired = build_ot_bed_paired,
+  ot_bed_paired_high = function(dd) build_ot_bed_paired(dd, "_high_intensity"),
   triage_split = build_triage_split,
   triage_split_high = function(dd) build_triage_split(dd, "_high_intensity"),
   triage_split_paired = build_triage_split_paired,

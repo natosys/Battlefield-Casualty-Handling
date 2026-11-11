@@ -400,6 +400,7 @@ seconds.
 | `check_long_horizon_warmup.R` | fast | 8 s | the sustained-horizon Welch diagnostic is correct and the tracked plot and CSV reproduce it |
 | `check_markdown.R` | fast | 6 s | Markdown TOC, link and table checks |
 | `check_measurement_reproducibility.R` | fast | 175 s | a measurement is a function of its control seed |
+| `check_ot_bed_sweep_protocol.R` | fast | 12 s | the R2E operating theatre sweep's parameters, its responses and its published section agree |
 | `check_planning_implications.R` | fast | 8 s | the planning paper quotes the results paper faithfully |
 | `check_policy_sweep_protocol.R` | fast | 22 s | the evacuation policy sweep's parameters, its responses and its published table agree |
 | `check_post_definitive_share.R` | fast | 120 s | the post-definitive intensive care share divides the operated cohort between intensive care and ward recovery |

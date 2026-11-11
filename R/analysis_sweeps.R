@@ -336,6 +336,12 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
 #'   own @param, and run_morris()'s equivalent parameter, for why this
 #'   matters for Shiny-triggered, locally-run sweeps). NULL preserves prior
 #'   behaviour.
+#' @param checkpoint_dir Directory each finished sweep point's summary row is
+#'   saved to and read back from, or NULL for none. A point is the unit saved,
+#'   its replications being reduced together by pool_rep_kpis(); every point
+#'   draws the same replication seeds, run_replications() restoring the
+#'   caller's stream on exit, so reading one back leaves the points after it
+#'   unchanged.
 #' @return Named list: data (swept results, one row per vehicle x fleet
 #'   size, with mean/95% CI for queue and utilisation), plot (ggplot object,
 #'   also saved to images_dir/transport_capacity_margin_by_fleet_size.png,
@@ -377,7 +383,8 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
                                                           path = "env_data.json",
                                                           output_dir = "outputs",
                                                           images_dir = file.path("outputs", "images"),
-                                                          progress_dir = NULL, max_cores = NULL) {
+                                                          progress_dir = NULL, max_cores = NULL,
+                                                          checkpoint_dir = NULL) {
   caller <- "plot_transport_capacity_margin_by_fleet_size"
   validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
   validate_fleet_sizes(fleet_sizes, caller)
@@ -431,6 +438,18 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
     qty     <- sweep_points$qty[i]
     pattern <- paste0("^t_", vehicle, "_")
 
+    saved <- if (is.null(checkpoint_dir)) NULL else
+      file.path(checkpoint_dir, sprintf("point_%s_%d_r%d_d%d%s.rds", vehicle, qty, n_rep,
+                                        n_days, scenario_suffix))
+    if (!is.null(saved) && file.exists(saved)) {
+      message(sprintf("Transport fleet-size sweep: %s = %d resumed from %s", vehicle, qty,
+                      saved))
+      if (!is.null(progress_dir)) {
+        file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+      }
+      return(readRDS(saved))
+    }
+
     message(sprintf("Transport fleet-size sweep: %s = %d (%d reps x %d days)...",
                     vehicle, qty, n_rep, n_days))
 
@@ -456,7 +475,7 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }
 
-    data.frame(
+    row <- data.frame(
       vehicle       = vehicle,
       qty           = qty,
       mean_q        = q_stats$mean,
@@ -466,6 +485,11 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
       ci_lower_util = pmax(util_stats$ci_lower, 0),
       ci_upper_util = pmin(util_stats$ci_upper, 1)
     )
+    if (!is.null(saved)) {
+      saveRDS(row, paste0(saved, ".tmp"))
+      file.rename(paste0(saved, ".tmp"), saved)
+    }
+    row
   }))
 
   env_data <<- env_data_base

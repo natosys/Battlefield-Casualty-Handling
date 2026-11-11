@@ -294,6 +294,32 @@ restore_rng_state <- function(state) {
   invisible(NULL)
 }
 
+#' Compute one replication's result, or read it back from its checkpoint
+#'
+#' @param compute Zero-argument function running and reducing the replication.
+#' @param checkpoint_dir Directory the result is saved to and read back from, or
+#'   NULL to compute without saving.
+#' @param i Index of the replication.
+#' @param seed The replication's own seed.
+#' @param n_days Campaign length in days.
+#' @return The replication's result, computed or read back.
+#'
+#' @details The file is named by the index, the seed and the horizon, so a
+#'   changed control seed or horizon never reads another measurement's file. It
+#'   is written under a temporary name and renamed once complete, so a worker
+#'   killed mid-write leaves no partial checkpoint for a resumed run to read. A
+#'   saved result is the object the computation returned, so a run resumed from
+#'   checkpoints reduces to exactly what an uninterrupted run would.
+checkpoint_replication <- function(compute, checkpoint_dir, i, seed, n_days) {
+  if (is.null(checkpoint_dir)) return(compute())
+  saved <- file.path(checkpoint_dir, sprintf("replication_%03d_%d_d%d.rds", i, seed, n_days))
+  if (file.exists(saved)) return(readRDS(saved))
+  out <- compute()
+  saveRDS(out, paste0(saved, ".tmp"))
+  file.rename(paste0(saved, ".tmp"), saved)
+  out
+}
+
 #' Dispatch the replications, in parallel where the platform allows it
 #'
 #' @param worker       Single-argument function running one replication, given

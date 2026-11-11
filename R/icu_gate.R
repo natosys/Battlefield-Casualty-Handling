@@ -190,6 +190,8 @@ apply_icu_gate_setting <- function(json_data, scenario, gate_enabled) {
 #' @param n_iterations Replications to run (default ICU_GATE_REPLICATIONS).
 #' @param n_days Campaign length in days (default ICU_GATE_DAYS).
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @param checkpoint_dir Directory each finished replication is saved to and
+#'   read back from (checkpoint_replication()), or NULL for none.
 #' @return Data frame with one row per replication, carrying the replication
 #'   index and the responses reduce_icu_gate_replication() reports.
 #'
@@ -199,7 +201,8 @@ apply_icu_gate_setting <- function(json_data, scenario, gate_enabled) {
 #'   seed before each arm gives replication $k$ of every arm the same parent
 #'   seed, pairing the two arms.
 run_icu_gate_measurement <- function(gate_enabled, n_iterations = ICU_GATE_REPLICATIONS,
-                                     n_days = ICU_GATE_DAYS, max_cores = NULL) {
+                                     n_days = ICU_GATE_DAYS, max_cores = NULL,
+                                     checkpoint_dir = NULL) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -217,11 +220,14 @@ run_icu_gate_measurement <- function(gate_enabled, n_iterations = ICU_GATE_REPLI
   #'   (`R/trajectories_casualty.R`) does not serialise a hundred replications' worth
   #'   of console output through the fork's stdout pipe.
   worker <- function(i) {
-    env <- NULL
-    invisible(capture.output(env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)))
-    row <- reduce_icu_gate_replication(env, n_days, gate_enabled)
-    row$replication <- i
-    row
+    checkpoint_replication(function() {
+      env <- NULL
+      invisible(capture.output(env <- run_once(n_days, seed = rep_seeds[i],
+                                               write_files = FALSE)))
+      row <- reduce_icu_gate_replication(env, n_days, gate_enabled)
+      row$replication <- i
+      row
+    }, checkpoint_dir, i, rep_seeds[i], n_days)
   }
 
   dispatched <- dispatch_replications(worker, n_iterations, max_cores)

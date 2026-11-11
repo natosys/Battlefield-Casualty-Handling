@@ -200,3 +200,21 @@ checkpoint_dir <- function(experiment, refresh_baseline = FALSE) {
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   path
 }
+
+#' Directory one arm of an experiment saves its finished replications to
+#'
+#' @param experiment Name of the experiment, as checkpoint_dir() takes it.
+#' @param arm Label of the arm, unique within the experiment; it names the
+#'   arm's scenario and setting, so two arms never share a replication's file.
+#' @param refresh_baseline TRUE when the run is writing the tracked copy.
+#' @return The directory, created if absent.
+#'
+#' @details The per-replication files checkpoint_replication() writes
+#'   (R/replication.R) are named by index, seed and horizon alone, so each arm
+#'   keeps its own directory; the caveat checkpoint_dir() states applies here
+#'   too, the directory needing to be emptied after a change to the model.
+arm_checkpoint_path <- function(experiment, arm, refresh_baseline = FALSE) {
+  path <- file.path(checkpoint_dir(experiment, refresh_baseline), arm)
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  path
+}

@@ -22,6 +22,12 @@
 # and it runs the documented protocol (30 replications x 360 days x 2
 # intensities at seed 42) rather than whatever arguments accompany it. Without
 # it the run writes under outputs/ alone.
+#
+# Each finished replication is saved under outputs/checkpoints/, one directory
+# per arm (arm_checkpoint_path(), R/cli.R), and read back rather than re-run on a
+# later invocation, so an interruption costs the replications in flight and a
+# resumed run writes what an uninterrupted one would. Empty the directory after
+# a change to the model or the configuration.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -110,7 +116,9 @@ measure_scenario <- function(scenario) {
   message(sprintf("Scenario '%s': %d replications x %d days", scenario,
                   opt$iterations, opt$days))
   set.seed(opt$seed)
-  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`)
+  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`,
+                           checkpoint_dir = arm_checkpoint_path("role4_demand", scenario,
+                                                               refresh_requested))
   rows$scenario <- scenario
   rows
 }
@@ -160,7 +168,10 @@ measure_reliability <- function(probability) {
   message(sprintf("Sortie cancellation %.2f: %d replications x %d days", probability,
                   opt$iterations, opt$days))
   set.seed(opt$seed)
-  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`)
+  arm <- sprintf("reliability_%.2f", probability)
+  rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`,
+                           checkpoint_dir = arm_checkpoint_path("role4_demand", arm,
+                                                               refresh_requested))
   cbind(failure_probability = probability,
         role4_demand_responses(rows, opt$days, ROLE4_DEMAND_WINDOW_DAYS), row.names = NULL)
 }

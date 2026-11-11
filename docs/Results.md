@@ -51,6 +51,7 @@ The measurements record where queues form at each intensity and which responses 
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
   - [Priority 1 Triage Share](#priority-1-triage-share)
 - [National Support Base and Strategic Airlift](#national-support-base-and-strategic-airlift)
+- [Critical-Care Places per Sortie](#critical-care-places-per-sortie)
 - [Role 4 Bed Demand](#role-4-bed-demand)
 - [Casualty Surge Events](#casualty-surge-events)
 - [Casualty Surge Event Size](#casualty-surge-event-size)

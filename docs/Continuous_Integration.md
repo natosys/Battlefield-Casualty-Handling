@@ -357,6 +357,7 @@ seconds.
 |---|---|---|---|
 | `check_absent_attribute_columns.R` | fast | 37 s | an attribute nobody set is an empty column, not none |
 | `check_airlift_collapse_protocol.R` | fast | 5 s | the airlift collapse experiment's parameters, its classifier and its published table agree |
+| `check_airlift_places_protocol.R` | fast | 26 s | the critical-care places sweep's parameters, its responses and its published section agree |
 | `check_airlift_protocol.R` | fast | 2 s | the strategic evacuation experiment's parameters, its interval construction and its published tables agree |
 | `check_ame_backlog_exit.R` | fast | 23 s | the strategic evacuation backlog is bounded by the attribute its own exit route sets |
 | `check_ame_boarding.R` | fast | 63 s | evacuees board a strategic sortie only when it departs, and places nobody takes depart with it |

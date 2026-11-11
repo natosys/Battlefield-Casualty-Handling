@@ -56,6 +56,7 @@ This document is the design record for the replicated experiments reported in th
   - [R2E Operating Theatre Establishment Sweep](#r2e-operating-theatre-establishment-sweep)
   - [Critical-Care Places per Sortie Sweep](#critical-care-places-per-sortie-sweep)
   - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
+  - [Post-Definitive Intensive Care Share Sweep](#post-definitive-intensive-care-share-sweep)
   - [Adequacy Verdict Criteria](#adequacy-verdict-criteria)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
@@ -302,6 +303,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | R2E intensive care bed establishment sweep | `data/icu_beds/` | `check_icu_bed_sweep_protocol.R` |
 | R2E operating theatre establishment sweep | `data/ot_beds/` | `check_ot_bed_sweep_protocol.R` |
 | Critical-care places per sortie sweep | `data/airlift_places/` | `check_airlift_places_protocol.R` |
+| Post-definitive intensive care share sweep | `data/post_definitive/` | `check_post_definitive_sweep.R` |
 | The R2B pre-open hold window | `data/hold_window/` | `check_hold_window_protocol.R` |
 | The post-operative intensive care gate | `data/icu_gate/` | `check_icu_gate_protocol.R`, `check_icu_gate_switch.R` (mechanism) |
 | Casualty surge event stress test | `data/casualty_surge/` | `check_casualty_surge_protocol.R`, `check_casualty_surge_kia_split.R` (mechanism) |
@@ -359,6 +361,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | R2E operating theatre establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
 | Critical-care places per sortie sweep | default; `high_intensity` | 360 d | 30 per arm | 8 arms | one control seed, not one casualty stream | closing-window backlog and occupancy, campaign counts, per-campaign collapse; Student $t$, paired $t$, exact binomial |
 | Priority 1 triage share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
+| Post-definitive intensive care share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and occupancy, campaign counts and holding bed-days, daily queue classification; Student $t$, paired $t$ |
 | Treated-cohort mortality at the anchor horizons | default and both profiles | 30 d (Ajax Bay), 82 d (Okinawa) | 3 measurements of 50 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Casualty surge event stress test | default and `high_intensity`, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts and died-of-wounds rates; Student $t$ |
@@ -788,6 +791,23 @@ Rscript scripts/run_triage_sweep.R --scenario high_intensity --refresh-baseline
 The split governs wounded and non-battle injured casualties only, disease and battle fatigue taking their own priority rule, and the casualty surge split ships disabled and is not swept. Everything else is held at its shipped value, the died-of-wounds base rates and care multipliers, the surgical need rates and the damage control rates by priority included, so the sweep measures the triage mix alone. Because the base rates and the post-operative multiplier were fitted at the shipped mix ([Calibration](../README.md#calibration)), each arm also reports its treated-cohort died-of-wounds rate, the mean of its per-replication rates with a Student $t$ interval, and the share of its expected deaths accrued after surgery. These are a diagnostic of how far the calibration moves with the mix; no arm is refitted.
 
 Each replication is reduced inside the forked worker to one row of responses and a daily series of the R2E theatre, intensive care and holding queues and the post-operative and staging overflow behind them. The responses extend the intensive care bed sweep's set with the R2B diversions and operations of the hold window reduction, the R2E theatre queue, deaths of wounds per wounded casualty, the mean time from arrival to first incision over the casualties operated on, the share of casualties requiring surgery who were operated on, the critical airlift backlog at the close and the peak Role 4 intensive care census. Each pool's daily series is classified by the late-half fit of [Classifying Stability](#classifying-stability). The arms are paired on one control seed each, and a changed priority alters downstream branching and so the draws a replication takes, so the arms do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. Each finished replication is saved under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight. `tests/checks/check_triage_sweep_protocol.R` asserts the protocol against these markers, that every arm keeps the shipped ratio, and that the shipped arm equals the intensive care bed sweep's shipped arm replication by replication. The tracked evidence set is `data/triage_split/`.
+
+### Post-Definitive Intensive Care Share Sweep
+
+<!-- POST_DEFINITIVE replications=30 -->
+<!-- POST_DEFINITIVE days=360 -->
+<!-- POST_DEFINITIVE seed=42 -->
+<!-- POST_DEFINITIVE window_days=90 -->
+<!-- POST_DEFINITIVE baseline=ICU share 100% -->
+<!-- POST_DEFINITIVE shares=0.25;0.50;0.75;1.00 -->
+Thirty replications of 360 simulated days at each of four shares of the operated cohort owed intensive care after the definitive repair, at control seed 42, under the shipped default configuration and again under the `high_intensity` profile. The arms are 0.25, 0.5, 0.75 and 1 (shipped). The shipped share is an upper bound, and the arms bracket the one open-access comparator the system reference cites rather than estimating the share ([R2E Heavy Trajectory](../README.md#r2e-heavy-trajectory)). The share enters through `vars.r2eheavy.post_definitive_icu.share` and is set on the described configuration by `set_post_definitive_share()`, which fails where the share cannot be found or lies outside 0 to 1 rather than returning the configuration unchanged. At the shipped share no draw decides the need, so the shipped arm reproduces the shipped configuration draw for draw. Invoked as:
+
+```
+Rscript scripts/run_post_definitive_sweep.R --refresh-baseline
+Rscript scripts/run_post_definitive_sweep.R --scenario high_intensity --refresh-baseline
+```
+
+Below the shipped share, each casualty owed the episode is drawn as needing intensive care with that probability, and one who does not recovers on the ward, in a holding bed or in overflow, for the same requirement. Everything else is held at its shipped value, the intensive care and holding establishments and the died-of-wounds multipliers included, so the sweep measures the share alone. Each replication is reduced inside the forked worker to the intensive care bed sweep's responses and daily series, with the ward recoveries, those of them taken in overflow, the casualties placed for the intensive care episode and the holding occupancy split over the whole campaign: the bed-days of post-definitive care (ward recoveries included, and separately), in-theatre recovery, the wait for airlift and post-operative stabilisation. Each pool's daily series is classified by the late-half fit of [Classifying Stability](#classifying-stability). The arms are paired on one control seed each, and below the shipped share the draw each casualty takes shifts every draw after it, so the arms do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. Each finished replication is saved under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight. `tests/checks/check_post_definitive_sweep.R` asserts the protocol against these markers, that ward recoveries rise as the share falls, and that the shipped arm equals the intensive care bed sweep's shipped arm replication by replication. The tracked evidence set is `data/post_definitive/`.
 
 ### Adequacy Verdict Criteria
 

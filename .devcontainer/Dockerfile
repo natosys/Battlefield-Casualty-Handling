@@ -1,4 +1,8 @@
-FROM rocker/rstudio:4.4.2
+# Pinned by digest to the image CI runs in (.github/workflows/checks.yml), so a
+# container rebuilt after the tag moves still matches the one the byte-for-byte
+# figure and baseline checks were measured in; tests/checks/check_container_pin.R
+# asserts the two agree.
+FROM rocker/rstudio:4.4.2@sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945
 
 # System libraries required by R packages (curl, SSL, XML, graphics, igraph/glpk,
 # libuv runtime needed by the `fs` package's prebuilt binary)

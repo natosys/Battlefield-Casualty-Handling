@@ -44,10 +44,11 @@ option_list <- list(
                            "[default: %default]"))
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
-
 source("R/cli.R")
 source("R/run_manifest.R")
+
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_warmup.R"))))
 
 require_number_in_range(opt$reps, "--reps", 1)
 require_number_in_range(opt$days, "--days", 1)

@@ -64,7 +64,8 @@ option_list <- list(
               help = "Write the tracked data/airlift/ copy")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_airlift_collapse.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -98,7 +99,7 @@ dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 json_data <- read_config(config_path)
 
 #' Directory each arm's checkpoint is written to and resumed from
-CHECKPOINT_DIR <- checkpoint_dir("airlift_collapse", refresh_requested)
+CHECKPOINT_DIR <- checkpoint_dir("airlift_collapse", refresh_requested, config_path)
 
 #' Measure one cancellation probability and return its route series
 #'

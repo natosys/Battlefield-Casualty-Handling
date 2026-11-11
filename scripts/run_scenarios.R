@@ -96,7 +96,8 @@ option_list <- list(
                            "[default: none]"))
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_scenarios.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 

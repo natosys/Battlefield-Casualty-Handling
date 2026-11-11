@@ -15,8 +15,10 @@ check_casualty_surge_kia_split.R,41
 check_casualty_surge_protocol.R,7
 check_casualty_surge_size_protocol.R,5
 check_censored_interval_estimation.R,22
+check_checkpoint_fingerprint.R,7
 check_ci_apt_guards.R,2
 check_ci_check_table.R,2
+check_cli_help.R,14
 check_composition_ilr.R,8
 check_config_option.R,75
 check_config_restore.R,18

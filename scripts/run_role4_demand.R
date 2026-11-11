@@ -62,7 +62,8 @@ option_list <- list(
               help = "Write the tracked data/role4_demand/ copy")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_role4_demand.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -116,7 +117,7 @@ measure_scenario <- function(scenario) {
   message(sprintf("Scenario '%s': %d replications x %d days", scenario,
                   opt$iterations, opt$days))
   set.seed(opt$seed)
-  ckpt <- arm_checkpoint_path("role4_demand", scenario, refresh_requested)
+  ckpt <- arm_checkpoint_path("role4_demand", scenario, refresh_requested, config_path)
   rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`, checkpoint_dir = ckpt)
   rows$scenario <- scenario
   rows
@@ -168,7 +169,7 @@ measure_reliability <- function(probability) {
                   opt$iterations, opt$days))
   set.seed(opt$seed)
   arm <- sprintf("reliability_%.2f", probability)
-  ckpt <- arm_checkpoint_path("role4_demand", arm, refresh_requested)
+  ckpt <- arm_checkpoint_path("role4_demand", arm, refresh_requested, config_path)
   rows <- run_role4_demand(opt$iterations, opt$days, opt$`max-cores`, checkpoint_dir = ckpt)
   cbind(failure_probability = probability,
         role4_demand_responses(rows, opt$days, ROLE4_DEMAND_WINDOW_DAYS), row.names = NULL)

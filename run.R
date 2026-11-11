@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
-##############################################
-## run.R — Simulation entry point           ##
-## Battlefield Casualty Handling Simulation ##
-##############################################
+#######################################################################
+## run.R                                                             ##
+## Battlefield Casualty Handling Simulation: one run or replications ##
+#######################################################################
 #
 # Terminal / Claude Code cloud:
 #   Rscript run.R --seed 42 --days 30 --iterations 1
@@ -288,7 +288,8 @@ if (!interactive()) {
                              "count is used [default: unset]"))
   )
 
-  opt <- parse_args(OptionParser(option_list = option_list))
+  opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                            cli_help("run.R"))))
 
   # Every rule below is defined in R/cli.R and runs before run_bch(), so a
   # malformed argument costs no simulation and writes no file. --quick

@@ -2108,24 +2108,31 @@ seed42_verification_rows <- function(mon, cfg, days) {
   do.call(rbind, acc$rows)
 }
 
-#' Treated-cohort died-of-wounds rate at each anchor's horizon and at 360 days
+#' Treated-cohort died-of-wounds rate at 360 days and at each anchor's horizon
 #'
 #' @param data_dir The data directory.
-#' @return The table lines: one row per configuration, its historical anchor, and
-#'   the rate and post-operative share measured at the anchor's own horizon and
-#'   at the sustained horizon.
+#' @return The table lines: one row per configuration, the rate and
+#'   post-operative share measured at 360 days, then the historical anchor and
+#'   the rate and share measured at the anchor's own horizon.
 #'
 #' @details Two tracked measurements, both written by
-#'   tests/checks/check_dow_calibration.R: `dow_calibration_anchor.csv` at the
+#'   tests/checks/check_dow_calibration.R: `dow_calibration.csv` at 360 days,
+#'   the horizon every other experiment runs to, which leads the table as the
+#'   projection the section reports, and `dow_calibration_anchor.csv` at the
 #'   length of the campaign each anchor describes (30 days for Ajax Bay, 82 for
-#'   Okinawa), the horizon at which the anchor is asserted, and
-#'   `dow_calibration.csv` at 360 days. Each column names its horizon so that a
-#'   sustained-horizon rate is never read against an anchor defined at another.
+#'   Okinawa), the horizon at which the anchor is asserted. Each column names
+#'   its horizon so that a sustained-horizon rate is never read against an
+#'   anchor defined at another. The anchor cell says what the anchor is to the
+#'   configuration: a target it was fitted to, whose agreement shows the fit
+#'   was achieved rather than measuring an outcome, or an independent bound it
+#'   was not fitted to. The `moderate_intensity` alias is omitted, being the
+#'   shipped default under another name; the calibration check still measures
+#'   it to confirm that.
 build_dow_calibration <- function(data_dir) {
   at_anchor <- res_read("calibration/dow_calibration_anchor.csv", data_dir)
   sustained <- res_read("calibration/dow_calibration.csv", data_dir)
-  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity",
-              high_intensity = "High intensity")
+  labels <- c(default = "Shipped default", high_intensity = "High intensity")
+  at_anchor <- at_anchor[at_anchor$scenario %in% names(labels), ]
   #' One measurement's rate and interval as a cell
   #'
   #' @param x One row of a calibration file.
@@ -2140,17 +2147,17 @@ build_dow_calibration <- function(data_dir) {
       stop(sprintf("expected one 360-day calibration row for '%s', found %d", a$scenario,
                    nrow(l)), call. = FALSE)
     }
-    kind <- if (a$kind == "bound") "at or below" else "fitted to"
+    role <- if (a$kind == "bound") "independent bound, at or below" else "fitted to"
     c(labels[[a$scenario]],
-      sprintf("%s %.2f%% (%s, %d days)", kind, 100 * a$target, a$anchor,
+      rate_cell(l), sprintf("%.0f%%", 100 * l$hazard_share), as.character(l$replications),
+      sprintf("%s %.2f%% (%s, %d days)", role, 100 * a$target, a$anchor,
               as.integer(a$anchor_days)),
-      rate_cell(a), sprintf("%.0f%%", 100 * a$hazard_share), as.character(a$replications),
-      rate_cell(l), sprintf("%.0f%%", 100 * l$hazard_share), as.character(l$replications))
+      rate_cell(a), sprintf("%.0f%%", 100 * a$hazard_share), as.character(a$replications))
   })
-  res_table(c("Configuration", "Historical anchor", "Rate at the anchor's horizon",
+  res_table(c("Configuration", "Rate at 360 days", "Post-operative share at 360 days",
+              "Replications at 360 days", "Historical anchor", "Rate at the anchor's horizon",
               "Post-operative share at the anchor's horizon",
-              "Replications at the anchor's horizon", "Rate at 360 days",
-              "Post-operative share at 360 days", "Replications at 360 days"), rows)
+              "Replications at the anchor's horizon"), rows)
 }
 
 #' One section of the seed-42 verification measurements as a table

@@ -345,21 +345,21 @@ evacuation_delay_faults <- function(vars) {
   if (!is.null(delay)) {
     on <- delay$enabled
     if (!is.null(on) && !(is.numeric(on) && length(on) == 1L && on %in% c(0, 1))) {
-      faults <- c(faults, sprintf(
-        "vars[r1]$evacuation_delay: enabled must be 0 or 1, found %s",
-        paste(format(on), collapse = ", ")))
+      found <- paste(format(on), collapse = ", ")
+      fault <- "vars[r1]$evacuation_delay: enabled must be 0 or 1, found "
+      faults <- c(faults, paste0(fault, found))
     }
     if (!is.null(delay$min) && !non_negative(delay$min)) {
-      faults <- c(faults, sprintf(
-        "vars[r1]$evacuation_delay: min must be a single number of at least 0, found %s",
-        paste(format(delay$min), collapse = ", ")))
+      found <- paste(format(delay$min), collapse = ", ")
+      fault <- "vars[r1]$evacuation_delay: min must be a single number of at least 0, found "
+      faults <- c(faults, paste0(fault, found))
     }
   }
   factor <- values_of("dow", "multipliers")$prolonged_care
   if (!is.null(factor) && !non_negative(factor)) {
-    faults <- c(faults, sprintf(
-      "vars[dow]$multipliers: prolonged_care must be a single number of at least 0, found %s",
-      paste(format(factor), collapse = ", ")))
+    found <- paste(format(factor), collapse = ", ")
+    fault <- "vars[dow]$multipliers: prolonged_care must be a single number of at least 0, found "
+    faults <- c(faults, paste0(fault, found))
   }
   faults
 }

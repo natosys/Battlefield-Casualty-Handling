@@ -377,9 +377,9 @@ cat("\n-- the delay setter --\n")
 
 set <- set_evacuation_delay(described, 168)
 d <- set$vars$r1$evacuation_delay
+expected <- 168 * 60 * c(EVAC_DELAY_SPREAD[1], 1, EVAC_DELAY_SPREAD[2])
 report(identical(as.numeric(d$enabled), 1) &&
-         isTRUE(all.equal(c(d$min, d$mode, d$max), 168 * 60 * c(EVAC_DELAY_SPREAD[1], 1,
-                                                               EVAC_DELAY_SPREAD[2]))),
+         isTRUE(all.equal(c(d$min, d$mode, d$max), expected)),
        "a seven-day delay is enabled and triangular about its nominal value")
 off <- set_evacuation_delay(set, 0)
 report(identical(as.numeric(off$vars$r1$evacuation_delay$enabled), 0),

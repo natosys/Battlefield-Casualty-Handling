@@ -285,6 +285,75 @@ plot_surgical_capacity <- function(teams, theatres) {
           panel.grid.minor = element_blank())
 }
 
+#' Panels of the critical-care places figure, in display order
+AIRLIFT_PLACES_PANELS <- c(collapse = "Campaigns in which the route falls behind (%)",
+                           mean_wait_critical = "Mean wait for a critical place (days)",
+                           total_dow = "Died of wounds per campaign")
+
+#' Plain label of one critical-care places arm
+#'
+#' @param arm Arm label of the critical-care places sweep, `"<critical>/<standard>,
+#'   <n> days"`.
+#' @param shipped Arm label of the shipped split and interval.
+#' @return The label a planner reads, naming the critical places of the 90 and how
+#'   often the sorties fly.
+airlift_places_label <- function(arm, shipped) {
+  critical <- as.integer(sub("/.*", "", arm))
+  total <- critical + as.integer(sub(",.*", "", sub("^[0-9]+/", "", arm)))
+  days <- as.integer(sub(" days$", "", sub(".*, ", "", arm)))
+  often <- ifelse(days == 7L, "weekly", sprintf("every %d days", days))
+  sprintf("%d of %d places critical, %s%s", critical, total, often,
+          ifelse(arm == shipped, " (shipped)", ""))
+}
+
+#' Critical-care places figure: route collapse, critical wait and deaths of wounds
+#'
+#' @param collapse_df Tracked `data/airlift_places/airlift_places_collapse_high_intensity.csv`.
+#' @param summary_df Tracked `..._summary_high_intensity.csv`.
+#' @param shipped Arm label of the shipped split and interval.
+#' @return ggplot object of three panels, the arms down the side.
+#'
+#' @details Draws the high-intensity arms, where the critical route falls behind,
+#'   in the order the summary lists them. The collapse panel carries both routes
+#'   with their exact binomial intervals, so an arm that settles the critical
+#'   route by starving the standard one shows it; the wait and the deaths carry
+#'   their Student t intervals. Stops where a panel's response is absent.
+plot_airlift_places <- function(collapse_df, summary_df, shipped) {
+  arms <- unique(summary_df$arm)
+  missing <- setdiff(c("mean_wait_critical", "total_dow"), summary_df$response)
+  if (length(missing) > 0) {
+    stop("summary lacks response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  routes <- collapse_df %>%
+    transmute(arm, series = route, mean = 100 * rate, lower = 100 * ci_lower,
+              upper = 100 * ci_upper, panel = AIRLIFT_PLACES_PANELS[["collapse"]])
+  others <- summary_df %>%
+    filter(response %in% c("mean_wait_critical", "total_dow")) %>%
+    transmute(arm, series = "Critical airlift", mean, lower = ci_lower, upper = ci_upper,
+              panel = AIRLIFT_PLACES_PANELS[response])
+  labels <- airlift_places_label(arms, shipped)
+  plot_df <- rbind(routes, others) %>%
+    mutate(arm = factor(airlift_places_label(arm, shipped), levels = rev(labels)),
+           panel = factor(panel, levels = AIRLIFT_PLACES_PANELS),
+           series = factor(series, levels = c("Critical airlift", "Standard airlift")))
+  subtitle <- paste("C-17A sorties of 90 places split between critical and standard care,",
+                    "at high intensity; %d campaigns of 360 days per option,\nmean or share",
+                    "with 95%% interval")
+  ggplot(plot_df, aes(x = mean, y = arm, colour = series)) +
+    geom_pointrange(aes(xmin = lower, xmax = upper), position = position_dodge(0.5),
+                    size = 0.4) +
+    facet_wrap(~ panel, nrow = 1, scales = "free_x") +
+    scale_colour_manual(values = c("Critical airlift" = "#a0442f",
+                                   "Standard airlift" = "#7f8c8d")) +
+    labs(title = "Critical-Care Airlift at High Intensity: Places and Sortie Frequency",
+         subtitle = sprintf(subtitle, unique(collapse_df$n_reps)),
+         x = NULL, y = NULL, colour = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Responses of the R2E intensive care bed sweep figure
 #'
 #' @details `scale` turns a share into percentage points.

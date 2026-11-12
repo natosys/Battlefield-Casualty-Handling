@@ -240,6 +240,14 @@ save_figure(plot_surgical_capacity(list(moderate = surgical_moderate, high = sur
                                    list(moderate = ot_moderate, high = ot_high)),
             "surgical_capacity.png", 11, 5)
 
+places_collapse_high <- read_tracked("airlift_places",
+                                     "airlift_places_collapse_high_intensity.csv")
+places_summary_high <- read_tracked("airlift_places", "airlift_places_summary_high_intensity.csv")
+
+# RENDERS: airlift_places.png
+save_figure(plot_airlift_places(places_collapse_high, places_summary_high, "36/54, 7 days"),
+            "airlift_places.png", 13, 5.5)
+
 icu_bed_moderate <- read_tracked("icu_beds", "icu_bed_sweep_summary.csv")
 icu_bed_high <- read_tracked("icu_beds", "icu_bed_sweep_summary_high_intensity.csv")
 

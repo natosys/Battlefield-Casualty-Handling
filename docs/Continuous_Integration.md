@@ -405,6 +405,7 @@ seconds.
 | `check_planning_implications.R` | fast | 8 s | the planning paper quotes the results paper faithfully |
 | `check_policy_sweep_protocol.R` | fast | 22 s | the evacuation policy sweep's parameters, its responses and its published table agree |
 | `check_post_definitive_share.R` | fast | 120 s | the post-definitive intensive care share divides the operated cohort between intensive care and ward recovery |
+| `check_post_definitive_sweep.R` | fast | 178 s | the post-definitive intensive care share sweep's parameters, its responses and its published section agree |
 | `check_pre_open_window.R` | fast | 39 s | the R2B pre-open hold window behaves at its bounds |
 | `check_r1_evacuation.R` | fast | 60 s | every casualty leaves R1, and Role 2 receives each by what it needs |
 | `check_r2b_evac_wait.R` | fast | 118 s | an R2B casualty waiting for the evacuation vehicle is placed rather than queued for a bed, and the R2B gate applies only when forward holding can use R2B intensive care |

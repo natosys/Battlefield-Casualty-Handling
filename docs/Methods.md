@@ -981,7 +981,7 @@ The two campaign time series figures are rendered from `data/time_series/`, the 
 
 ### The Cost of Reproducing the Evidence
 
-The table records the wall-clock time each tracked evidence set took to write in the pinned container, on a four-core machine with 16 GB of memory, the host the Dev Container states it requires. The times are those of the most recent full re-run of the evidence; the four sets whose run in that round was interrupted were timed again on the same machine, and the theatre establishment sweep was run on three cores. Writing every set takes about 195 core-hours, or a little over two days of wall clock on four cores, the high-intensity policy and sortie interval grids accounting for nearly a fifth of it. The sensitivity screens are excluded, being kept as the provenance of [Sensitivity Screens](#sensitivity-screens) rather than as evidence: the Morris cache took about 78 hours and the Sobol cache about 70 on four cores.
+The table records the wall-clock time each tracked evidence set took to write in the pinned container, on a four-core machine with 16 GB of memory, the host the Dev Container states it requires. The times are those of the most recent full re-run of the evidence; the four sets whose run in that round was interrupted were timed again on the same machine, and the theatre establishment, critical-care places and post-definitive share sweeps were run on three cores. Writing every set takes about 216 core-hours, or a little over two days of wall clock on four cores, the high-intensity policy and sortie interval grids accounting for nearly a fifth of it. The sensitivity screens are excluded, being kept as the provenance of [Sensitivity Screens](#sensitivity-screens) rather than as evidence: the Morris cache took about 78 hours and the Sobol cache about 70 on four cores.
 
 | Evidence set | Invocation | Shipped default (min) | `high_intensity` (min) | Cores | Core-hours |
 |---|---|---|---|---|---|
@@ -997,7 +997,9 @@ The table records the wall-clock time each tracked evidence set took to write in
 | `data/surgical_teams/` | `run_surgical_team_sweep.R` | 58 | 111 | 4 | 11.3 |
 | `data/icu_beds/` | `run_icu_bed_sweep.R` | 53 | 108 | 4 | 10.7 |
 | `data/ot_beds/` | `run_ot_bed_sweep.R` | 51 | 121 | 3 | 8.6 |
+| `data/airlift_places/` | `run_airlift_places_sweep.R` | 85 | 149 | 3 | 11.7 |
 | `data/triage_split/` | `run_triage_sweep.R` | 50 | 107 | 4 | 10.5 |
+| `data/post_definitive/` | `run_post_definitive_sweep.R` | 58 | 122 | 3 | 9.0 |
 | `data/icu_gate/` | `run_icu_gate.R` | 15 | 29 | 4 | 3.0 |
 | `data/hold_window/` | `run_hold_window.R` | 16 | 32 | 4 | 3.2 |
 | `data/sweeps/` (forward holding) | `run_forward_hold_sweep.R` | 44 | 78 | 4 | 8.1 |
@@ -1010,7 +1012,7 @@ The table records the wall-clock time each tracked evidence set took to write in
 | `data/casualty_surge/` (event size) | `run_casualty_surge_size_sweep.R` | 90 | 134 | 4 | 14.9 |
 | `data/calibration/` (anchor horizons) | `check_dow_calibration.R --write-csv` | 44 (both configurations in one run) |  | 4 | 2.9 |
 | `data/calibration/` (360 days) | `check_dow_calibration.R --days 360 --reps 10` | 25 (both configurations in one run) |  | 4 | 1.6 |
-| **Total** | | | | | **195** |
+| **Total** | | | | | **216** |
 
 Every experiment runner saves each finished replication under `outputs/checkpoints/`, the transport fleet sweep each finished fleet-size point, and reads it back rather than re-running it, so an interruption costs only the work in flight. A saved replication is named by its index, seed and horizon, and a baseline refresh and an exploratory run keep separate directories, but the name does not carry the model, so the directory must be emptied after any change to the model or the configuration. `tests/checks/check_replication_checkpoint.R` asserts that a run resumed after an interruption writes what an uninterrupted run writes.
 

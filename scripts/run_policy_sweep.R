@@ -97,7 +97,8 @@ option_list <- list(
               help = "Write the tracked data/policy/ copy")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_policy_sweep.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -164,7 +165,7 @@ if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 #' Directory each arm's checkpoint is written to and resumed from, shared by every grid
-CHECKPOINT_DIR <- checkpoint_dir("policy", refresh_requested)
+CHECKPOINT_DIR <- checkpoint_dir("policy", refresh_requested, config_path)
 
 json_data <- read_config(config_path)
 

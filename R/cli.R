@@ -181,22 +181,86 @@ resolve_config_path <- function(config = NULL, refresh_baseline = FALSE,
 
 # ── Resume checkpoints ───────────────────────────────────────────────────────
 
+#' Path of the entry point Rscript is running
+#'
+#' @param args The session's full command line (default
+#'   `commandArgs(trailingOnly = FALSE)`).
+#' @return The script's path, or a zero-length character vector when the session
+#'   was not started by `Rscript <file>` or the file cannot be found.
+entry_script_path <- function(args = commandArgs(trailingOnly = FALSE)) {
+  file_arg <- grep("^--file=", args, value = TRUE)
+  if (length(file_arg) == 0L) return(character(0))
+  path <- sub("^--file=", "", file_arg[1L])
+  if (file.exists(path)) path else character(0)
+}
+
+#' Files whose content decides what an experiment's checkpoint holds
+#'
+#' @param entry Path of the entry point running the experiment (default the one
+#'   Rscript is running).
+#' @return The model and analysis sources under `R/`, the entry point and the
+#'   package lockfile, those that exist, in a fixed order.
+#'
+#' @details Every file under `R/` is included rather than a chosen subset, since
+#'   a checkpoint holds the result of the model and of the reduction the entry
+#'   point applies to it, and a subset chosen by hand would go stale the first
+#'   time a module gained a dependency. A console-only edit therefore starts a
+#'   sweep afresh, the cheaper of the two ways to be wrong.
+checkpoint_sources <- function(entry = entry_script_path()) {
+  files <- c(sort(list.files("R", pattern = "\\.R$", full.names = TRUE)), entry,
+             "renv.lock")
+  files[file.exists(files)]
+}
+
+#' Fingerprint of the configuration and code an experiment's checkpoints came from
+#'
+#' @param config_path Configuration file the experiment runs against.
+#' @param sources Files whose content the result also depends on (default
+#'   `checkpoint_sources()`).
+#' @return Twelve hexadecimal characters, changing whenever the content of the
+#'   configuration or of any source changes.
+#'
+#' @details Content rather than names is hashed, so a configuration whose bytes
+#'   equal the shipped file's fingerprints as the shipped file does, the rule
+#'   resolve_config_path() applies to a baseline refresh. MD5 (`tools::md5sum`)
+#'   keeps this file dependency-free; it detects a change rather than guarding
+#'   against a forged collision, which is all a resume needs.
+checkpoint_fingerprint <- function(config_path, sources = checkpoint_sources()) {
+  files <- c(config_path, sources)
+  absent <- files[!file.exists(files)]
+  if (length(absent) > 0L) {
+    stop(sprintf("checkpoint fingerprint: %s not found",
+                 paste(sQuote(absent), collapse = ", ")), call. = FALSE)
+  }
+  digest_file <- tempfile("fingerprint")
+  on.exit(unlink(digest_file), add = TRUE)
+  writeLines(c(unname(tools::md5sum(config_path)), basename(sources),
+               unname(tools::md5sum(sources))), digest_file)
+  substr(unname(tools::md5sum(digest_file)), 1L, 12L)
+}
+
 #' Directory a long sweep writes its resume checkpoints to
 #'
 #' @param experiment Name of the experiment, one subdirectory per sweep.
 #' @param refresh_baseline TRUE where the run is writing the tracked evidence set.
+#' @param config_path Configuration file the experiment runs against, as
+#'   resolve_config_path() returned it.
 #' @return The directory path, created if absent.
 #'
 #' @details Checkpoints sit under the gitignored `outputs/` whatever the run
-#'   writes, so a tracked evidence set holds measurements alone and a fresh
-#'   checkout of a changed model measures every arm rather than resuming one
-#'   measured under the model it replaced. A resume matches on the replication
-#'   count alone, so the directory must be emptied after a change to the model
-#'   or the configuration. A baseline refresh and an ordinary run keep separate
-#'   directories, so a refresh never resumes an exploratory arm.
-checkpoint_dir <- function(experiment, refresh_baseline = FALSE) {
+#'   writes, so a tracked evidence set holds measurements alone. A saved
+#'   replication is named by its index, seed and horizon, which say nothing of
+#'   the configuration or the model that produced it, so the directory carries
+#'   checkpoint_fingerprint() instead: a run against another configuration, or
+#'   after any change to the code, starts in an empty directory rather than
+#'   resuming a measurement of something else, and a run returning to an earlier
+#'   configuration resumes it. Nothing is deleted. A baseline refresh and an
+#'   ordinary run keep separate directories, so a refresh never resumes an
+#'   exploratory arm.
+checkpoint_dir <- function(experiment, refresh_baseline = FALSE, config_path) {
   path <- file.path("outputs", "checkpoints",
-                    if (isTRUE(refresh_baseline)) "baseline" else "run", experiment)
+                    if (isTRUE(refresh_baseline)) "baseline" else "run", experiment,
+                    checkpoint_fingerprint(config_path))
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   path
 }
@@ -207,14 +271,69 @@ checkpoint_dir <- function(experiment, refresh_baseline = FALSE) {
 #' @param arm Label of the arm, unique within the experiment; it names the
 #'   arm's scenario and setting, so two arms never share a replication's file.
 #' @param refresh_baseline TRUE when the run is writing the tracked copy.
+#' @param config_path Configuration file the experiment runs against.
 #' @return The directory, created if absent.
 #'
 #' @details The per-replication files checkpoint_replication() writes
 #'   (R/replication.R) are named by index, seed and horizon alone, so each arm
-#'   keeps its own directory; the caveat checkpoint_dir() states applies here
-#'   too, the directory needing to be emptied after a change to the model.
-arm_checkpoint_path <- function(experiment, arm, refresh_baseline = FALSE) {
-  path <- file.path(checkpoint_dir(experiment, refresh_baseline), arm)
+#'   keeps its own directory under the fingerprinted one checkpoint_dir() gives.
+arm_checkpoint_path <- function(experiment, arm, refresh_baseline = FALSE, config_path) {
+  path <- file.path(checkpoint_dir(experiment, refresh_baseline, config_path), arm)
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   path
+}
+
+# ── Command-line help ────────────────────────────────────────────────────────
+
+#' The worked invocations an entry point's banner gives
+#'
+#' @param lines The entry point's source lines.
+#' @return The banner's command examples with their comment marker removed: the
+#'   first run of indented comment lines that begins with `Rscript`, continuation
+#'   lines included.
+banner_examples <- function(lines) {
+  first <- grep("^#   +Rscript ", lines)[1L]
+  if (is.na(first)) return(character(0))
+  run <- first
+  while (run < length(lines) && grepl("^#   +\\S", lines[run + 1L])) run <- run + 1L
+  sub("^# ", "", lines[first:run])
+}
+
+#' The title an entry point's banner box gives
+#'
+#' @param lines The entry point's source lines.
+#' @param script Path of the entry point, a box line naming it being left out.
+#' @return The box's remaining lines joined into one, a title wrapped across
+#'   lines being read as the one sentence it is, or "" where there is no box.
+banner_title <- function(lines, script) {
+  box <- grep("^## .*##$", lines, value = TRUE)
+  box <- trimws(sub("##$", "", sub("^## ", "", box)))
+  box <- box[box != script]
+  paste(box, collapse = " ")
+}
+
+#' Usage, description and examples for an entry point's --help
+#'
+#' @param script Path of the entry point relative to the repository root, as the
+#'   user types it after `Rscript`.
+#' @return A list of `usage`, `description` and `epilogue`, the arguments
+#'   optparse::OptionParser() takes for them.
+#'
+#' @details Each entry point's banner is the one home of its worked
+#'   invocations, so the help is read from it rather than restated beside the
+#'   options, and an example added to the banner reaches `--help` with no
+#'   second edit. tests/checks/check_cli_help.R asserts every entry point builds
+#'   its parser from this and that every banner yields examples.
+cli_help <- function(script) {
+  lines <- readLines(script, warn = FALSE)
+  examples <- banner_examples(lines)
+  epilogue <- c(
+    if (length(examples) > 0L) c("Examples:", examples, ""),
+    "Run from the repository root. Every run outside the tracked evidence set writes",
+    "run_manifest.json beside its outputs. See README.md, Running the Experiments.",
+    ""
+  )
+  list(usage = sprintf("usage: Rscript %s [options]", script),
+       description = banner_title(lines, script),
+       epilogue = paste(epilogue, collapse = "\n"))
 }

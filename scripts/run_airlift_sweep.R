@@ -70,7 +70,8 @@ option_list <- list(
               help = "Write the tracked data/airlift/ copies")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_airlift_sweep.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -150,7 +151,7 @@ if ("high" %in% arms) {
                             arm = "high", scenario = "high_intensity")
 }
 #' Directory the sweep points are checkpointed to as each completes
-CHECKPOINT_DIR <- checkpoint_dir("airlift_sweep", refresh_requested)
+CHECKPOINT_DIR <- checkpoint_dir("airlift_sweep", refresh_requested, config_path)
 
 #' Measure one swept arm, one value at a time, resuming a value already measured
 #'

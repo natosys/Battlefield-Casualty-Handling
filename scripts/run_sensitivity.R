@@ -151,7 +151,8 @@ option_list <- list(
               ))
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_sensitivity.R"))))
 config_path <- resolve_config_path(opt$config)
 point_workers_bad <- !is.null(opt[["point-workers"]]) &&
   (is.na(opt[["point-workers"]]) || opt[["point-workers"]] < 1L)

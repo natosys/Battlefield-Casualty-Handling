@@ -82,7 +82,8 @@ option_list <- list(
               help = "Write the tracked data/sweeps/ and images/ copies")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_hold_threshold_sweep.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -155,7 +156,7 @@ env_data <<- load_elms(config_path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
-arm_checkpoint_dir <- checkpoint_dir("hold_threshold", refresh_requested)
+arm_checkpoint_dir <- checkpoint_dir("hold_threshold", refresh_requested, config_path)
 
 set.seed(opt$seed)
 sweep <- plot_r2b_hold_threshold_sweep(

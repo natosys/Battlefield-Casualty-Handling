@@ -78,7 +78,8 @@ option_list <- list(
               help = "Write the tracked data/sweeps/ and images/ copies")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_transport_sweep.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -153,7 +154,8 @@ sweep <- plot_transport_capacity_margin_by_fleet_size(
   path        = config_path,
   output_dir  = output_dir,
   images_dir  = images_dir,
-  checkpoint_dir = checkpoint_dir("transport", isTRUE(opt$`refresh-baseline`))
+  checkpoint_dir = checkpoint_dir("transport", isTRUE(opt$`refresh-baseline`),
+                                  config_path)
 )
 
 message("\nTransport fleet-size sweep complete.")

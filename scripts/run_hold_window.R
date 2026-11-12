@@ -67,7 +67,8 @@ option_list <- list(
               help = "Write the tracked data/hold_window/ copy")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_hold_window.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -120,7 +121,7 @@ measure_arm <- function(window_min) {
                   window_min, opt$iterations, opt$days))
   set.seed(opt$seed)
   arm <- sprintf("%s_window_%d", opt$scenario, window_min)
-  ckpt <- arm_checkpoint_path("hold_window", arm, refresh_requested)
+  ckpt <- arm_checkpoint_path("hold_window", arm, refresh_requested, config_path)
   rows <- run_hold_window_measurement(window_min, n_iterations = opt$iterations,
                                       n_days = opt$days, max_cores = opt$`max-cores`,
                                       checkpoint_dir = ckpt)

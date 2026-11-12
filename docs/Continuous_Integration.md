@@ -371,8 +371,10 @@ seconds.
 | `check_casualty_surge_protocol.R` | fast | 7 s | the casualty surge stress test's parameters, its responses and its published table agree |
 | `check_casualty_surge_size_protocol.R` | fast | 5 s | the casualty surge event size sweep's parameters, its evidence set and its summary agree |
 | `check_censored_interval_estimation.R` | fast | 22 s | an interval still open when the window closes is carried as the lower bound it is, not dropped |
+| `check_checkpoint_fingerprint.R` | fast | 7 s | a checkpoint resumes only what produced it |
 | `check_ci_apt_guards.R` | fast | 2 s | every CI system-library install carries the same stall guards |
 | `check_ci_check_table.R` | fast | 2 s | the CI guide's check table lists every check |
+| `check_cli_help.R` | fast | 14 s | every entry point's --help shows its banner examples |
 | `check_composition_ilr.R` | slow | 8 s | Simplex invariant regression check |
 | `check_config_option.R` | fast | 75 s | every entry point runs against a named configuration |
 | `check_config_restore.R` | fast | 18 s | a failed sweep or screen restores the configuration |

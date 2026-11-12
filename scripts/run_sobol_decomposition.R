@@ -1,8 +1,7 @@
 #!/usr/bin/env Rscript
 ##############################################################################
 ## scripts/run_sobol_decomposition.R                                        ##
-## CLI entry point for the Sobol decomposition behind data/sensitivity/     ##
-## sobol_n96_d360/                                                          ##
+## The Sobol decomposition behind data/sensitivity/sobol_n96_d360/          ##
 ##############################################################################
 #
 # Unsupported tooling. The screens this script runs are not evidence for any
@@ -48,6 +47,15 @@ source("R/trajectories.R")
 source("R/replication.R")
 source("R/analysis.R")
 source("R/sensitivity.R")
+source("R/cli.R")
+
+suppressPackageStartupMessages(library(optparse))
+
+# The design is fixed (this script is where it is written down), so the parser
+# takes no switch of its own; it exists so --help describes the run and an
+# unknown switch is refused rather than silently ignored.
+invisible(parse_args(do.call(OptionParser, c(list(option_list = list()),
+                                             cli_help("scripts/run_sobol_decomposition.R")))))
 
 set.seed(42)
 # The four globals the execution model requires, bound in the global

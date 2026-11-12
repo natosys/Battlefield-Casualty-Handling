@@ -90,6 +90,7 @@ Every table and every quoted figure is regenerated from the tracked evidence und
 | Wounded in action/run | 2,304.0 [2,246.6, 2,361.4] (p10–p90: 2,058.8–2,473.9) | 8,315.5 [8,175.6, 8,455.5] (p10–p90: 7,883.3–8,771.4) | 3.61× |
 | Died of wounds/run | 21.17 [17.55, 24.79] (p10–p90: 12.9–30.3) | 568.60 [500.55, 636.65] (p10–p90: 349.6–772.7) | 26.9× |
 | Died of wounds, as share of wounded | 0.91% [0.77%, 1.05%] | 6.77% [6.06%, 7.48%] | 7.45× |
+| Time to first incision (hours) | 7.39 [6.03, 8.76] (p10–p90: 5.0–8.9) | 71.06 [57.93, 84.19] (p10–p90: 33.9–105.1) | 9.61× |
 <!-- /GEN -->
 
 ![Four panels of total casualties, wounded in action, deaths of wounds and deaths as a share of wounded at the two casualty intensities](../images/paper_casualty_totals.png)

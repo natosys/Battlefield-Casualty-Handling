@@ -386,6 +386,7 @@ seconds.
 | `check_dow_fitter.R` | fast | 6 s | the died-of-wounds fitter recovers a known value, and the documented calibration table is the shipped one |
 | `check_dow_mechanism.R` | fast | 88 s | the care-state died-of-wounds model's properties, and the legacy setting's reproduction of the earlier model |
 | `check_env_data_summary.R` | fast | 6 s | README environment summary check |
+| `check_evac_delay_sweep.R` | fast | 70 s | the forward evacuation delay holds no vehicle, and its sweep's parameters, responses and published section agree |
 | `check_figure_provenance.R` | fast | 20 s | every figure of the results paper has a render-only producer that runs from tracked data alone |
 | `check_forward_hold_switch.R` | fast | 60 s | disabled forward holding is the model as it stood |
 | `check_high_intensity_evidence.R` | fast | 5 s | the high-intensity replications of the lever experiments are the documented design and sit beside the default sets |

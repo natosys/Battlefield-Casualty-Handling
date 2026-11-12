@@ -51,6 +51,7 @@ The measurements record where queues form at each intensity and which responses 
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
   - [Priority 1 Triage Share](#priority-1-triage-share)
   - [Post-Definitive Intensive Care Share](#post-definitive-intensive-care-share)
+  - [Forward Evacuation Delay](#forward-evacuation-delay)
 - [National Support Base and Strategic Airlift](#national-support-base-and-strategic-airlift)
 - [Critical-Care Places per Sortie](#critical-care-places-per-sortie)
 - [Role 4 Bed Demand](#role-4-bed-demand)
@@ -1307,6 +1308,30 @@ At high intensity the same four arms were run under the `high_intensity` profile
 <!-- /GEN -->
 
 At high intensity R2E intensive care occupancy was <!-- GEN cell:post_definitive_high|R2E ICU occupancy (%)|ICU share 100% (shipped)|mean -->97.5<!-- /GEN -->% at the shipped share and <!-- GEN cell:post_definitive_high|R2E ICU occupancy (%)|ICU share 25%|mean -->95.6<!-- /GEN -->% at a share of a quarter, and post-definitive intensive care access rose from <!-- GEN cell:post_definitive_high|Post-definitive ICU access (%)|ICU share 100% (shipped)|mean -->11.3<!-- /GEN -->% to <!-- GEN cell:post_definitive_high|Post-definitive ICU access (%)|ICU share 25%|mean -->16.5<!-- /GEN -->%. Of the <!-- GEN cell:post_definitive_high|Post-definitive ward recoveries|ICU share 25%|mean -->3645.3<!-- /GEN --> ward recoveries at a share of a quarter, <!-- GEN cell:post_definitive_high|Ward recoveries in overflow|ICU share 25%|mean -->3628.1<!-- /GEN --> were taken in overflow, the holding beds being <!-- GEN cell:post_definitive_high|R2E holding occupancy (%)|ICU share 25%|mean -->100.0<!-- /GEN -->% occupied. Lowering the share to a quarter changed deaths of wounds by <!-- GEN cell:post_definitive_paired_high|Died of wounds|ICU share 25%|full -->+38.50 [−49.02, +126.02]<!-- /GEN --> and returns to duty by <!-- GEN cell:post_definitive_paired_high|Returns to duty|ICU share 25%|full -->+0.1 [−49.8, +50.0]<!-- /GEN -->, and the staging overflow was classified <!-- GEN cell:post_definitive_high|R2E staging overflow, late-half classification|ICU share 25%|full -->**drifting, +11.1%/block**, 127.7 to 2,773.2<!-- /GEN --> at that share.
+
+### Forward Evacuation Delay
+
+**Question.** How far do deaths of wounds, surgical timing and the load on the Role 2 echelons move when every casualty's forward evacuation is delayed, as on a contested axis, from none to thirty days? `[default and high_intensity, delay none to thirty days · 360 d · 30 replications · paired, closing 90 d]`
+
+Each arm is the nominal delay for which every casualty is held after R1 treatment before the road move to Role 2, drawn triangular from half to one and a half times that value. A casualty held forward carries the R1 treatment multiplier times the prolonged-care multiplier, held at its shipped value of one, and one whose drawn death time falls within the wait dies while held. The time to first incision is measured from arrival and so carries the delay, and PMV ambulance utilisation is taken over the whole campaign.
+
+<!-- GEN evac_delay -->
+<!-- /GEN -->
+
+<!-- GEN evac_delay_paired -->
+<!-- /GEN -->
+
+MODERATE_PROSE
+
+At high intensity the same seven arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
+
+<!-- GEN evac_delay_high -->
+<!-- /GEN -->
+
+<!-- GEN evac_delay_paired_high -->
+<!-- /GEN -->
+
+At high intensity deaths of wounds rose from <!-- GEN cell:evac_delay_high|Died of wounds|No delay (shipped)|mean -->0<!-- /GEN --> with no delay to <!-- GEN cell:evac_delay_high|Died of wounds|30 days|mean -->0<!-- /GEN --> at thirty days, of which <!-- GEN cell:evac_delay_high|Died of wounds while held forward|30 days|mean -->0<!-- /GEN --> died while held forward. The paired difference was <!-- GEN cell:evac_delay_paired_high|Died of wounds|6 hours|full -->0<!-- /GEN --> at six hours and <!-- GEN cell:evac_delay_paired_high|Died of wounds|1 day|full -->0<!-- /GEN --> at one day, and the treated-cohort rate rose from <!-- GEN cell:evac_delay_high|Treated-cohort died-of-wounds rate (%)|No delay (shipped)|mean -->0<!-- /GEN -->% to <!-- GEN cell:evac_delay_high|Treated-cohort died-of-wounds rate (%)|30 days|mean -->0<!-- /GEN -->%. The time to first incision rose from <!-- GEN cell:evac_delay_high|Time to first incision (hours)|No delay (shipped)|mean -->0<!-- /GEN --> hours to <!-- GEN cell:evac_delay_high|Time to first incision (hours)|30 days|mean -->0<!-- /GEN -->. The R2E theatre queue changed by <!-- GEN cell:evac_delay_paired_high|R2E theatre mean queue|30 days|full -->0<!-- /GEN --> at thirty days, intensive care occupancy was <!-- GEN cell:evac_delay_high|R2E ICU occupancy (%)|30 days|mean -->0<!-- /GEN -->%, and the staging overflow was classified <!-- GEN cell:evac_delay_high|R2E staging overflow, late-half classification|30 days|full -->0<!-- /GEN --> at that delay. Casualties diverted past R2B because its theatre was busy changed by <!-- GEN cell:evac_delay_paired_high|Diverted from R2B, theatre busy|30 days|full -->0<!-- /GEN -->, returns to duty by <!-- GEN cell:evac_delay_paired_high|Returns to duty|30 days|full -->0<!-- /GEN --> and PMV ambulance utilisation by <!-- GEN cell:evac_delay_paired_high|PMV ambulance utilisation (%)|30 days|full -->0<!-- /GEN --> percentage points at thirty days.
 
 ---
 

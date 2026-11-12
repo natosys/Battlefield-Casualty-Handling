@@ -232,6 +232,14 @@ surgical_high <- read_tracked("surgical_teams", "surgical_team_sweep_summary_hig
 save_figure(plot_surgical_team_sweep(surgical_moderate, surgical_high, "R2E 3, R2B 1"),
             "surgical_team_sweep.png", 10, 13)
 
+ot_moderate <- read_tracked("ot_beds", "ot_bed_sweep_summary.csv")
+ot_high <- read_tracked("ot_beds", "ot_bed_sweep_summary_high_intensity.csv")
+
+# RENDERS: surgical_capacity.png
+save_figure(plot_surgical_capacity(list(moderate = surgical_moderate, high = surgical_high),
+                                   list(moderate = ot_moderate, high = ot_high)),
+            "surgical_capacity.png", 11, 5)
+
 icu_bed_moderate <- read_tracked("icu_beds", "icu_bed_sweep_summary.csv")
 icu_bed_high <- read_tracked("icu_beds", "icu_bed_sweep_summary_high_intensity.csv")
 

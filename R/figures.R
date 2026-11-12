@@ -214,6 +214,77 @@ plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
           axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "bottom")
 }
 
+#' Surgical capacity options the capacity figure compares, with their plain labels
+#'
+#' @details Each option is an arm of the surgical team sweep, or the theatre
+#'   sweep's third theatre at six sections, keyed by `source` and `arm`, and is
+#'   labelled in words a planner reads without the sweep's notation.
+SURGICAL_CAPACITY_OPTIONS <- data.frame(
+  source = c("teams", "teams", "teams", "teams", "teams", "theatres"),
+  arm    = c("R2E 3, R2B 1", "R2E 4, R2B 1", "R2E 6, R2B 1", "R2E 3, R2B 2", "R2E 4, R2B 2",
+             "3 theatres, 6 sections"),
+  label  = c("Shipped: 3 R2E teams, 1 team per R2B, 2 R2E theatres", "4 R2E teams",
+             "6 R2E teams", "2 teams per R2B", "4 R2E teams and 2 teams per R2B",
+             "6 R2E teams and a third R2E theatre"),
+  stringsAsFactors = FALSE
+)
+
+#' Colours of the two casualty intensities in the planning figures
+FIGURE_INTENSITY_COLOURS <- c("Moderate intensity" = "#1f5468", "High intensity" = "#a0442f")
+
+#' Surgical capacity figure: the R2E theatre queue and deaths of wounds by option
+#'
+#' @param teams List of the tracked surgical team sweep summaries, named
+#'   `moderate` and `high`.
+#' @param theatres List of the tracked theatre sweep summaries, named the same.
+#' @return ggplot object of two panels, the options down the side and both
+#'   intensities in each.
+#'
+#' @details Reduces the twelve panels of the team sweep figure to the two
+#'   measures the planning paper's surgical finding rests on, adding the third
+#'   theatre at six sections so the theatre limit beyond a fourth R2E team shows
+#'   beside the team options. Stops naming an option the summaries lack.
+plot_surgical_capacity <- function(teams, theatres) {
+  #' Both intensities of one sweep, tagged with their source
+  #'
+  #' @param pair The sweep's summaries, named `moderate` and `high`.
+  #' @param source The option source the rows belong to.
+  #' @return The rows of both intensities.
+  tag <- function(pair, source) {
+    rbind(cbind(pair$moderate, intensity = "Moderate intensity", source = source),
+          cbind(pair$high, intensity = "High intensity", source = source))
+  }
+  both <- rbind(tag(teams, "teams"), tag(theatres, "theatres"))
+  plot_df <- both %>%
+    filter(response %in% c("theatre_mean_queue", "total_dow")) %>%
+    inner_join(SURGICAL_CAPACITY_OPTIONS, by = c("source", "arm"))
+  found <- unique(plot_df$label)
+  if (!all(SURGICAL_CAPACITY_OPTIONS$label %in% found)) {
+    stop("summaries lack option(s): ",
+         paste(setdiff(SURGICAL_CAPACITY_OPTIONS$label, found), collapse = ", "))
+  }
+  panels <- c(theatre_mean_queue = "Casualties waiting for R2E surgery",
+              total_dow = "Died of wounds per campaign")
+  plot_df <- plot_df %>%
+    mutate(label = factor(label, levels = rev(SURGICAL_CAPACITY_OPTIONS$label)),
+           panel = factor(panels[response], levels = panels),
+           intensity = factor(intensity, levels = names(FIGURE_INTENSITY_COLOURS)))
+  subtitle <- paste("Changes from the shipped establishment; closing 90-day mean queue and",
+                    "deaths per 360-day campaign.\n%d replications per arm, mean and 95%% interval")
+  ggplot(plot_df, aes(x = mean, y = label, colour = intensity)) +
+    geom_pointrange(aes(xmin = ci_lower, xmax = ci_upper),
+                    position = position_dodge(0.5), size = 0.5) +
+    facet_wrap(~ panel, nrow = 1, scales = "free_x") +
+    scale_colour_manual(values = FIGURE_INTENSITY_COLOURS) +
+    labs(title = "Adding Surgical Teams: Queue and Deaths of Wounds",
+         subtitle = sprintf(subtitle, unique(plot_df$n_reps)),
+         x = NULL, y = NULL, colour = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Responses of the R2E intensive care bed sweep figure
 #'
 #' @details `scale` turns a share into percentage points.

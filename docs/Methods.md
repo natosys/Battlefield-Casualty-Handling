@@ -1014,7 +1014,7 @@ The table records the wall-clock time each tracked evidence set took to write in
 | `data/calibration/` (360 days) | `check_dow_calibration.R --days 360 --reps 10` | 25 (both configurations in one run) |  | 4 | 1.6 |
 | **Total** | | | | | **216** |
 
-Every experiment runner saves each finished replication under `outputs/checkpoints/`, the transport fleet sweep each finished fleet-size point, and reads it back rather than re-running it, so an interruption costs only the work in flight. A saved replication is named by its index, seed and horizon, and a baseline refresh and an exploratory run keep separate directories, but the name does not carry the model, so the directory must be emptied after any change to the model or the configuration. `tests/checks/check_replication_checkpoint.R` asserts that a run resumed after an interruption writes what an uninterrupted run writes.
+Every experiment runner saves each finished replication under `outputs/checkpoints/`, the transport fleet sweep each finished fleet-size point, and reads it back rather than re-running it, so an interruption costs only the work in flight. A saved replication is named by its index, seed and horizon, inside a directory named by a fingerprint of the configuration file's content and the model's code, so a run against another configuration or after a change to the model starts afresh rather than resuming; a baseline refresh and an exploratory run keep separate directories. `tests/checks/check_replication_checkpoint.R` asserts that a run resumed after an interruption writes what an uninterrupted run writes, and `tests/checks/check_checkpoint_fingerprint.R` that a resume cannot cross a change to the configuration or the code.
 
 ---
 

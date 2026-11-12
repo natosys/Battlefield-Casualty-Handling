@@ -69,7 +69,8 @@ option_list <- list(
               help = "Write the tracked data/icu_gate/ copy")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_icu_gate.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -124,7 +125,7 @@ measure_arm <- function(gate_enabled) {
                   opt$iterations, opt$days))
   set.seed(opt$seed)
   arm <- sprintf("%s_gate_%d", opt$scenario, gate_enabled)
-  ckpt <- arm_checkpoint_path("icu_gate", arm, refresh_requested)
+  ckpt <- arm_checkpoint_path("icu_gate", arm, refresh_requested, config_path)
   run_icu_gate_measurement(gate_enabled, n_iterations = opt$iterations,
                            n_days = opt$days, max_cores = opt$`max-cores`,
                            checkpoint_dir = ckpt)

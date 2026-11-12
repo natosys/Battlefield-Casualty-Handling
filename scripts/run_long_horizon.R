@@ -63,7 +63,8 @@ option_list <- list(
               help = "Write the tracked data/long_horizon/ copies")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_long_horizon.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -108,7 +109,7 @@ run_profile <- function(scenario) {
   message(sprintf("Scenario '%s': %d replications x %d days", scenario,
                   opt$iterations, opt$days))
   set.seed(opt$seed)
-  ckpt <- arm_checkpoint_path("long_horizon", scenario, refresh_requested)
+  ckpt <- arm_checkpoint_path("long_horizon", scenario, refresh_requested, config_path)
   series <- run_long_horizon(n_iterations = opt$iterations, n_days = opt$days,
                              max_cores = opt$`max-cores`, checkpoint_dir = ckpt)
   series$scenario <- scenario

@@ -51,7 +51,8 @@ option_list <- list(
               help = "Write the tracked data/casualty_surge/ size sweep files")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/run_casualty_surge_size_sweep.R"))))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
 config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
@@ -77,7 +78,7 @@ if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 #' Directory each size's checkpoint is written to and resumed from
-CHECKPOINT_DIR <- checkpoint_dir("casualty_surge_size", refresh_requested)
+CHECKPOINT_DIR <- checkpoint_dir("casualty_surge_size", refresh_requested, config_path)
 
 #' Suffix every file of this run carries, so a named scenario is kept beside the default
 OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)

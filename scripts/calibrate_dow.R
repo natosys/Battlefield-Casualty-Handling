@@ -112,7 +112,8 @@ option_list <- list(
               help = "Wiring test: 1 x 8 replications over 5 days, two iterations")
 )
 
-opt <- parse_args(OptionParser(option_list = option_list))
+opt <- parse_args(do.call(OptionParser, c(list(option_list = option_list),
+                                          cli_help("scripts/calibrate_dow.R"))))
 config_path <- resolve_config_path(opt$config)
 json_data <- read_config(config_path)
 

@@ -25,7 +25,7 @@ The **Run** tab shows the exact command for your configuration, at the replicati
 1. Move the saved file to the repository root, or give its path in the command.
 2. Copy the command from the Run tab and run it in a terminal from the repository root, for example `Rscript run.R --config my_config.json --seed 42 --iterations 30 --days 360`.
 
-The run writes its outputs and a `run_manifest.json` (the configuration's hash, the command, the seed, the commit and the package versions) under `outputs/`. The README's [Model Outputs](../README.md#model-outputs) section describes each output, and [Reproducing the Published Results](../README.md#reproducing-the-published-results) maps each published experiment to its own script.
+Every command-line entry point lists its options and worked examples under `--help` (for example `Rscript run.R --help`). The run writes its outputs and a `run_manifest.json` (the configuration's hash, the command, the seed, the commit and the package versions) under `outputs/`. The README's [Model Outputs](../README.md#model-outputs) section describes each output, and [Reproducing the Published Results](../README.md#reproducing-the-published-results) maps each published experiment to its own script.
 
 ## Key Parameters Worth Adjusting First
 

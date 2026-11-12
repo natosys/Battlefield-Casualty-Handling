@@ -102,6 +102,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Codebase Structure](#codebase-structure)
     - [Running the simulation](#running-the-simulation)
     - [Reproducing the Published Results](#reproducing-the-published-results)
+    - [Running the Experiments](#running-the-experiments)
     - [Shiny Console Structure](#shiny-console-structure)
     - [Analysis Pipeline Structure](#analysis-pipeline-structure)
     - [Verification and Continuous Integration](#verification-and-continuous-integration)
@@ -901,7 +902,7 @@ env_data <- load_scenario("env_data.json", "default")              # base config
 env_data <- load_elms("env_data.json")                              # equivalent to the line above
 ```
 
-Every entry point that does not name a profile (`run.R`, `scripts/run_warmup.R`, `scripts/run_sensitivity.R`) calls `load_elms()` directly, so it runs the base configuration exactly as it would were the scenario mechanism absent. Profiles are selectable interactively through the Shiny console's Casualty Intensity Profile dropdown, which lists the base configuration and `high_intensity` under the labels "Moderate Intensity" and "High Intensity" (see [Shiny Application](#shiny-application)), and from the command line through the comparative scenario runner ([Comparative Scenario Runner](#comparative-scenario-runner)).
+An entry point that takes no profile (`scripts/run_warmup.R`, `scripts/run_sensitivity.R`) calls `load_elms()` directly, and `run.R` under its default `--scenario default` resolves to the same base configuration, so each runs it exactly as it would were the scenario mechanism absent. Profiles are selectable interactively through the Shiny console's Casualty Intensity Profile dropdown, which lists the base configuration and `high_intensity` under the labels "Moderate Intensity" and "High Intensity" (see [Shiny Application](#shiny-application)), and from the command line through the comparative scenario runner ([Comparative Scenario Runner](#comparative-scenario-runner)).
 
 A distribution family is itself a scenario-specific choice, not just a distribution's parameters: FORECAS fits casualty incidence to either a lognormal or an exponential distribution depending on battle intensity, so `generators.*` entries carry an explicit `distribution` field (`"lognormal"` or `"exponential"`) alongside `mean_daily`/`sd_daily`. `generate_casualty_arrivals()` (`R/environment.R`) dispatches to `make_ln_arrival_generator()` or `make_exp_arrival_generator()` on this field, defaulting to lognormal where the field is absent. `make_exp_arrival_generator()` draws each day's rate per 1,000 personnel via `qexp(u, rate = 1 / mean_daily)`, a single-parameter distribution, as `make_ln_arrival_generator()` draws it from a lognormal.
 
@@ -1025,7 +1026,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | ---------------------------------- | ------- |
 | `run.R`                            | CLI entry point; parses arguments, orchestrates modules, and writes outputs |
 | `env_data.json`                    | All simulation parameters: populations, health system establishment, transport fleet, distributions, schedules, and the named scenario profiles under its `scenarios` block (see [Model Parameters and Model Configuration](#model-parameters-and-model-configuration)) |
-| `R/cli.R`                          | Command-line argument validation shared by `run.R` and the `scripts/run_*.R` entry points: range and directory rules, the warm-up-against-run-length rule, execution mode resolution, the two conditions guarding a baseline refresh, `resolve_config_path()`, which resolves the `--config` switch and rejects any file but the shipped one under a refresh, and `checkpoint_dir()` and `arm_checkpoint_path()`, the untracked directories under `outputs/checkpoints/` an experiment resumes from. Base R only, so a regression check can source it alone and exercise every rule without loading simmer or running the model |
+| `R/cli.R`                          | Command-line argument validation shared by `run.R` and the `scripts/run_*.R` entry points: range and directory rules, the warm-up-against-run-length rule, execution mode resolution, the two conditions guarding a baseline refresh, `resolve_config_path()`, which resolves the `--config` switch and rejects any file but the shipped one under a refresh, `checkpoint_dir()` and `arm_checkpoint_path()`, the untracked directories under `outputs/checkpoints/` an experiment resumes from, each named by `checkpoint_fingerprint()` of the configuration and the code so a resume cannot cross a change to either, and `cli_help()`, which builds every entry point's `--help` from its banner. Base R only, so a regression check can source it alone and exercise every rule without loading simmer or running the model |
 | `R/run_manifest.R`                 | The record a run leaves of what it ran: `write_run_manifest()` writes `run_manifest.json` (configuration SHA-256, command, seed, replication count, horizon, git commit, R and package versions), a byte copy of the configuration and its form under the scenario in force beside a run's outputs. Written by every entry point outside the tracked evidence set, so a result can be cited and repeated from its own output folder |
 | `R/constants.R`                    | Values shared across modules: `DAY_MIN` (minutes per simulated day) and `MODEL_ATTRIBUTE_KEYS`, every per-casualty attribute key the model can set. Each module that needs one sources this file, the modules under `R/` being otherwise independent of each other |
 | `R/queue_series.R`                 | A resource pool's total queue as a step function of time, its time-weighted mean over a series of bins, and whether it ever cleared. The resource monitor records each bed separately, so the pool total appears in none of its rows and is recovered by differencing each bed's series into changes and accumulating them in time order. Base R and independent of every other module, so `R/analysis.R` and `R/long_horizon.R` both source it |
@@ -1129,6 +1130,9 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 #### Running the simulation
 
 ```sh
+# Every option, its default and worked examples
+Rscript run.R --help
+
 # Standard single run (seed 42, 360 days, 1 iteration)
 Rscript run.R --seed 42 --days 360 --iterations 1
 
@@ -1251,6 +1255,29 @@ Every measurement of [docs/Results.md](docs/Results.md) comes from a tracked evi
 | Annex A, one seed-42 campaign | `run.R --iterations 1` | `data/seed42/` |
 
 The tables and quoted figures of the results and planning papers are not typed. `scripts/render_results_tables.R` regenerates them from the evidence sets, and `scripts/render_check_table.R` does the same for the per-check table of [docs/Continuous_Integration.md](docs/Continuous_Integration.md). The figures are drawn from the same evidence without running the model: `scripts/render_sweep_figures.R` for the sweep, comparison and surge figures, `scripts/render_paper_figures.R` for the three summary figures, `scripts/render_dow_care_states.R` for the died-of-wounds worked casualties, and `scripts/render_long_horizon_warmup.R` for the sustained-horizon Welch diagnostic. The [table of `images/` by producer](#running-the-simulation) names each image's script, and `tests/checks/run_all_checks.R` asserts that the evidence sets, the documents and the figures agree.
+
+#### Running the Experiments
+
+Every entry point is run from the repository root and prints its usage, a one-line description, its options with their defaults and the worked invocations its banner gives under `--help` (for example `Rscript scripts/run_icu_bed_sweep.R --help`), so the switches particular to one experiment, such as the arms, levels or grid it sweeps, are listed there rather than here. A run without `--refresh-baseline` writes under `outputs/data/<experiment>/` with a `run_manifest.json`, and `--config` runs the experiment against a configuration saved from the console; a run with it executes the documented protocol and writes the tracked set.
+
+```sh
+# A short exploratory run of one sweep, written under outputs/
+Rscript scripts/run_icu_bed_sweep.R --iterations 2 --days 30
+
+# The same sweep at the full protocol against a configuration saved from the console
+Rscript scripts/run_icu_bed_sweep.R --config my_config.json --iterations 30 --days 360
+
+# The tracked evidence set: the shipped configuration, then its high-intensity half
+Rscript scripts/run_icu_bed_sweep.R --refresh-baseline
+Rscript scripts/run_icu_bed_sweep.R --scenario high_intensity --refresh-baseline
+
+# Discard every saved replication
+rm -rf outputs/checkpoints
+```
+
+Where an evidence set holds `_high_intensity` files, the second pass above writes them, and a complete refresh of that set needs both commands; `scripts/run_long_horizon.R`, `scripts/run_role4_demand.R` and `scripts/run_scenarios.R` run both intensities in one invocation.
+
+Every experiment saves each finished replication, and the transport fleet sweep each finished fleet-size point, under `outputs/checkpoints/<run|baseline>/<experiment>/<fingerprint>/`, and reads it back rather than re-running it, so an interrupted run resumes when the same command is issued again. The fingerprint (`checkpoint_fingerprint()` in `R/cli.R`) is a hash of the configuration file's content, every source under `R/`, the entry point and `renv.lock`, so a run against another configuration or after any change to the code starts afresh rather than resuming a measurement of something else, and a run returning to an earlier configuration resumes it. Nothing is deleted automatically: removing `outputs/checkpoints/`, or one experiment's directory within it, reclaims the space. `scripts/run_scenarios.R` and `scripts/run_sensitivity.R` resume instead from an explicit `--cache-dir` (see [Comparative Scenario Runner](#comparative-scenario-runner)), and `run.R`, `scripts/run_warmup.R` and `scripts/render_time_series_figures.R --run` keep no checkpoint.
 
 #### Shiny Console Structure
 

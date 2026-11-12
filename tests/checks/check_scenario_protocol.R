@@ -417,7 +417,8 @@ if (!is.null(totals_rows) && !is.null(totals)) {
     list("Total casualties", "total_casualties", 1, 1),
     list("Wounded in action", "wia_count", 1, 1),
     list("Died of wounds/run", "dow_count", 1, 2),
-    list("Died of wounds, as share", "dow_rate", 100, 2)
+    list("Died of wounds, as share", "dow_rate", 100, 2),
+    list("Time to first incision", "first_incision_hours", 1, 2)
   )
   for (spec in specs) {
     expected <- vapply(held_profiles, function(s) {

@@ -178,7 +178,8 @@ build_scenario_totals <- function(data_dir) {
     list("Total casualties/run", "total_casualties", 1L, 1, FALSE, 2L),
     list("Wounded in action/run", "wia_count", 1L, 1, FALSE, 2L),
     list("Died of wounds/run", "dow_count", 2L, 1, FALSE, 1L),
-    list("Died of wounds, as share of wounded", "dow_rate", 2L, 100, TRUE, 2L)
+    list("Died of wounds, as share of wounded", "dow_rate", 2L, 100, TRUE, 2L),
+    list("Time to first incision (hours)", "first_incision_hours", 2L, 1, FALSE, 2L)
   )
   #' One totals cell: the mean with its interval, and the p10 to p90 band for a count
   #'

@@ -78,10 +78,23 @@ FORBIDDEN_PATTERNS <- c("Issue #", "Rscript", "refresh-baseline", "scripts/", "d
                         "\\.csv", "seed vector", "migrated", "Design\\.\\*\\*")
 
 #' The scripts that sized each resolution row's replication count
-HALF_WIDTH_SCRIPTS <- c("hold_window/hold_window_paired.csv" = "scripts/run_hold_window.R",
-                        "icu_gate/icu_gate_paired.csv" = "scripts/run_icu_gate.R",
-                        "policy/policy_sweep_paired.csv" = "scripts/run_policy_sweep.R",
-                        "policy/saturation_sweep_paired.csv" = "scripts/run_saturation_sweep.R")
+#'
+#' @details Keyed on the evidence file's directory and stem, so a high-intensity
+#'   copy of a file maps to the same source as the shipped configuration's. The
+#'   older experiments state their half-widths in the script, the sweeps in their
+#'   module.
+HALF_WIDTH_SCRIPTS <- c("hold_window/hold_window_paired" = "scripts/run_hold_window.R",
+                        "icu_gate/icu_gate_paired" = "scripts/run_icu_gate.R",
+                        "policy/policy_sweep_paired" = "scripts/run_policy_sweep.R",
+                        "policy/saturation_sweep_paired" = "scripts/run_saturation_sweep.R",
+                        "surgical_teams/surgical_team_sweep_paired" = "R/surgical_team_sweep.R",
+                        "ot_beds/ot_bed_sweep_paired" = "R/ot_bed_sweep.R",
+                        "icu_beds/icu_bed_sweep_paired" = "R/icu_bed_sweep.R",
+                        "triage_split/triage_sweep_paired" = "R/triage_sweep.R",
+                        "post_definitive/post_definitive_sweep_paired" =
+                          "R/post_definitive_sweep.R",
+                        "airlift_places/airlift_places_paired" = "R/airlift_places_sweep.R",
+                        "evac_delay/evac_delay_sweep_paired" = "R/evac_delay_sweep.R")
 
 failures <- character(0)
 
@@ -120,7 +133,7 @@ slug <- function(heading) {
 #' @return The half-width as a numeric, or NA where the script does not state one.
 script_half_width <- function(script_path, response) {
   text <- paste(readLines(script_path, warn = FALSE), collapse = " ")
-  block <- regmatches(text, regexpr("PAIRED_HALF_WIDTHS <- c\\([^)]*\\)", text))
+  block <- regmatches(text, regexpr("[A-Z_]*HALF_WIDTHS <- c\\([^)]*\\)", text))
   if (length(block) == 0L) return(NA_real_)
   hit <- regmatches(block, regexpr(sprintf("\\b%s *= *[0-9.]+", response), block))
   if (length(hit) == 0L) return(NA_real_)
@@ -286,7 +299,8 @@ report(identical(res_resolution_resolved_rows(inject_resolved_row(text)), "Injec
 
 
 for (spec in RESOLUTION_ROWS) {
-  stated <- script_half_width(HALF_WIDTH_SCRIPTS[[spec[[1]]]], spec[[2]])
+  stem <- sub("(_high_intensity)?\\.csv$", "", spec[[1]])
+  stated <- script_half_width(HALF_WIDTH_SCRIPTS[[stem]], spec[[2]])
   report(!is.na(stated) && abs(stated - spec[[6]]) < 1e-9,
          "'%s' is sized against %s, the script's %s", spec[[7]], format(spec[[6]]),
          format(stated))

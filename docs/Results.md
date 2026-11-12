@@ -1860,6 +1860,27 @@ At 20 casualties per event the peak R2E post-operative overflow census was <!-- 
 | Policy 60 days against 21, died of wounds | −1.20 [−6.07, +3.67] | 1.000 | 1.0 | 653 |
 | Saturation release at 2, died of wounds | −2.33 [−9.73, +5.06] | 1.000 | 1.0 | 1,506 |
 | Saturation release at 2, returns to duty | +13.67 [−34.40, +61.74] | 1.000 | 10.0 | 637 |
+| Saturation release at 2, R2E theatre queue | −0.61 [−1.22, −0.01] | 1.000 | 1.0 | 11 |
+| Intensive care gate, intensive care utilisation (percentage points) | +0.93 [−0.12, +1.98] | 0.649 | 2.0 | 8 |
+| Intensive care gate, died of wounds, high intensity | −29.33 [−138.46, +79.79] | 1.000 | 0.5 | 1,312,369 |
+| Second R2B section, died of wounds | −1.40 [−5.46, +2.66] | 1.000 | 1.0 | 455 |
+| Fourth R2E section, died of wounds | +4.63 [−6.22, +15.48] | 1.000 | 1.0 | 3,245 |
+| Third theatre at three sections, R2E theatre queue | −0.43 [−0.79, −0.06] | 1.000 | 1.0 | 4 |
+| Third theatre at three sections, died of wounds | +1.07 [−5.00, +7.13] | 1.000 | 1.0 | 1,015 |
+| Third theatre at six sections, died of wounds | +0.80 [−2.15, +3.75] | 1.000 | 1.0 | 240 |
+| Third theatre at three sections, R2E theatre queue, high intensity | −23.72 [−48.04, +0.60] | 1.000 | 1.0 | 16,294 |
+| Third theatre at three sections, died of wounds, high intensity | −79.07 [−135.37, −22.76] | 0.249 | 1.0 | 87,344 |
+| Twelve intensive care beds, died of wounds | −0.67 [−4.95, +3.62] | 1.000 | 1.0 | 506 |
+| Twelve intensive care beds, returns to duty | −17.27 [−60.11, +25.58] | 1.000 | 10.0 | 506 |
+| Six intensive care beds, died of wounds, high intensity | +23.80 [−67.86, +115.46] | 1.000 | 1.0 | 231,484 |
+| Sixteen intensive care beds, died of wounds, high intensity | +49.17 [−57.08, +155.41] | 1.000 | 1.0 | 310,988 |
+| Priority 1 share of 30%, died of wounds | −5.33 [−10.09, −0.58] | 0.468 | 1.0 | 623 |
+| Post-definitive share of a quarter, died of wounds | +1.77 [−2.40, +5.93] | 1.000 | 1.0 | 478 |
+| Post-definitive share of a quarter, died of wounds, high intensity | +38.50 [−49.02, +126.02] | 1.000 | 1.0 | 211,036 |
+| 45 critical places every three days, died of wounds | −1.70 [−6.35, +2.95] | 1.000 | 1.0 | 595 |
+| Six-hour evacuation delay, died of wounds, high intensity | +52.90 [−39.93, +145.73] | 1.000 | 1.0 | 237,397 |
+| One-day evacuation delay, died of wounds, high intensity | +156.77 [+49.16, +264.38] | 0.237 | 1.0 | 319,045 |
+| Thirty-day evacuation delay, R2E theatre queue, high intensity | −6.70 [−37.65, +24.25] | 1.000 | 1.0 | 26,389 |
 <!-- /GEN -->
 
 A comparison whose 95% interval excludes zero and whose Holm-adjusted $p$-value is within the family-wise level is listed in the second table rather than the first, the split being taken from the evidence each time the document is generated; the second table is empty where no comparison is resolved.
@@ -1869,7 +1890,7 @@ A comparison whose 95% interval excludes zero and whose Holm-adjusted $p$-value 
 |---|---|---|
 <!-- /GEN -->
 
-The count for each row is $\lceil (z_{0.975}\, s_d / h)^2 \rceil$, where $s_d$ is the standard deviation of the within-replication differences observed at 30 replications and $h$ the half-width sought, chosen in the response's own units by the script that ran the experiment. The hold window's R2E first-surgery difference was <!-- GEN cell:resolution|Hold window, R2E first surgeries|Paired difference|full -->−18.00 [−75.22, +39.22]<!-- /GEN --> against a half-width sought of <!-- GEN cell:resolution|Hold window, R2E first surgeries|Half-width sought|full -->2.0<!-- /GEN --> operations, which needs <!-- GEN cell:resolution|Hold window, R2E first surgeries|Replications needed|full -->22,554<!-- /GEN --> replications. The intensive care gate's died-of-wounds difference was <!-- GEN cell:resolution|Intensive care gate, died of wounds|Paired difference|full -->−0.20 [−5.03, +4.63]<!-- /GEN --> and needs <!-- GEN cell:resolution|Intensive care gate, died of wounds|Replications needed|full -->2,570<!-- /GEN -->. Against a half-width sought of <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Half-width sought|full -->1.0<!-- /GEN --> death per campaign, the 15-day and 45-day policy comparisons against the shipped 21 days need <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Replications needed|full -->537<!-- /GEN --> and <!-- GEN cell:resolution|Policy 45 days against 21, died of wounds|Replications needed|full -->581<!-- /GEN --> replications. The 60-day policy's died-of-wounds difference against 21 days was <!-- GEN cell:resolution|Policy 60 days against 21, died of wounds|Paired difference|full -->−1.20 [−6.07, +3.67]<!-- /GEN --> and needs <!-- GEN cell:resolution|Policy 60 days against 21, died of wounds|Replications needed|full -->653<!-- /GEN -->. The saturation release's died-of-wounds difference at the shipped threshold of two needs <!-- GEN cell:resolution|Saturation release at 2, died of wounds|Replications needed|full -->1,506<!-- /GEN -->.
+The count for each row is $\lceil (z_{0.975}\, s_d / h)^2 \rceil$, where $s_d$ is the standard deviation of the within-replication differences observed at 30 replications and $h$ the half-width sought, chosen in the response's own units by the experiment, in its script or, for a sweep, in its module. A row marked high intensity is that experiment's high-intensity comparison. The hold window's R2E first-surgery difference was <!-- GEN cell:resolution|Hold window, R2E first surgeries|Paired difference|full -->−18.00 [−75.22, +39.22]<!-- /GEN --> against a half-width sought of <!-- GEN cell:resolution|Hold window, R2E first surgeries|Half-width sought|full -->2.0<!-- /GEN --> operations, which needs <!-- GEN cell:resolution|Hold window, R2E first surgeries|Replications needed|full -->22,554<!-- /GEN --> replications. The intensive care gate's died-of-wounds difference was <!-- GEN cell:resolution|Intensive care gate, died of wounds|Paired difference|full -->−0.20 [−5.03, +4.63]<!-- /GEN --> and needs <!-- GEN cell:resolution|Intensive care gate, died of wounds|Replications needed|full -->2,570<!-- /GEN -->. Against a half-width sought of <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Half-width sought|full -->1.0<!-- /GEN --> death per campaign, the 15-day and 45-day policy comparisons against the shipped 21 days need <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Replications needed|full -->537<!-- /GEN --> and <!-- GEN cell:resolution|Policy 45 days against 21, died of wounds|Replications needed|full -->581<!-- /GEN --> replications. The 60-day policy's died-of-wounds difference against 21 days was <!-- GEN cell:resolution|Policy 60 days against 21, died of wounds|Paired difference|full -->−1.20 [−6.07, +3.67]<!-- /GEN --> and needs <!-- GEN cell:resolution|Policy 60 days against 21, died of wounds|Replications needed|full -->653<!-- /GEN -->. The saturation release's died-of-wounds difference at the shipped threshold of two needs <!-- GEN cell:resolution|Saturation release at 2, died of wounds|Replications needed|full -->1,506<!-- /GEN -->.
 
 ---
 

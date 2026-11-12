@@ -50,6 +50,7 @@ The measurements record where queues form at each intensity and which responses 
   - [R2E Operating Theatre Establishment](#r2e-operating-theatre-establishment)
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
   - [Priority 1 Triage Share](#priority-1-triage-share)
+  - [Post-Definitive Intensive Care Share](#post-definitive-intensive-care-share)
 - [National Support Base and Strategic Airlift](#national-support-base-and-strategic-airlift)
 - [Critical-Care Places per Sortie](#critical-care-places-per-sortie)
 - [Role 4 Bed Demand](#role-4-bed-demand)
@@ -1194,6 +1195,118 @@ At high intensity the same four arms were run under the `high_intensity` profile
 <!-- /GEN -->
 
 At the shipped share the high-intensity treated-cohort died-of-wounds rate was <!-- GEN cell:triage_split_high|Treated-cohort died-of-wounds rate|P1 65% (shipped)|full -->5.696% [5.080%, 6.311%]<!-- /GEN --> and at fifteen per cent it was <!-- GEN cell:triage_split_high|Treated-cohort died-of-wounds rate|P1 15%|full -->1.635% [1.497%, 1.773%]<!-- /GEN -->. The R2E theatre queue was classified <!-- GEN cell:triage_split_high|R2E theatre queue, late-half classification|P1 65% (shipped)|full -->converged at 71.0<!-- /GEN --> at the shipped share and <!-- GEN cell:triage_split_high|R2E theatre queue, late-half classification|P1 15%|full -->converged at 16.0<!-- /GEN --> at fifteen per cent, the post-operative overflow <!-- GEN cell:triage_split_high|R2E post-operative overflow, late-half classification|P1 65% (shipped)|full -->converged at 19.8<!-- /GEN --> and <!-- GEN cell:triage_split_high|R2E post-operative overflow, late-half classification|P1 15%|full -->converged at 17.6<!-- /GEN -->, and the staging overflow <!-- GEN cell:triage_split_high|R2E staging overflow, late-half classification|P1 65% (shipped)|full -->**drifting, +11.2%/block**, 117.7 to 2,739.6<!-- /GEN --> and <!-- GEN cell:triage_split_high|R2E staging overflow, late-half classification|P1 15%|full -->**drifting, +11.6%/block**, 68.2 to 1,163.5<!-- /GEN -->. Lowering the share from sixty-five per cent to fifteen per cent changed the R2E theatre queue by <!-- GEN cell:triage_split_paired_high|R2E theatre mean queue|P1 15%|full -->−57.30 [−78.90, −35.70]<!-- /GEN -->, the critical airlift backlog at the close by <!-- GEN cell:triage_split_paired_high|Critical airlift backlog at the close|P1 15%|full -->−2995.2 [−3042.1, −2948.3]<!-- /GEN -->, the R2E holding queue by <!-- GEN cell:triage_split_paired_high|R2E holding mean queue|P1 15%|full -->+63.56 [+59.80, +67.32]<!-- /GEN -->, deaths of wounds by <!-- GEN cell:triage_split_paired_high|Died of wounds|P1 15%|full -->−401.03 [−469.36, −332.70]<!-- /GEN --> and returns to duty by <!-- GEN cell:triage_split_paired_high|Returns to duty|P1 15%|full -->+1838.2 [+1771.7, +1904.7]<!-- /GEN -->.
+
+### Post-Definitive Intensive Care Share
+
+**Question.** Do intensive care and holding load, and the outcomes they bear on, change when the share of the operated cohort owed intensive care after the definitive repair is lowered from the shipped upper bound of one? `[default and high_intensity, share 0.25 to 1 · 360 d · 30 replications · paired, closing 90 d]`
+
+Each arm is the probability that an operated casualty owed the post-definitive episode needs intensive care; one who does not recovers on the ward for the same requirement, in a holding bed or in overflow. Post-definitive intensive care access is the share of the casualties placed for the intensive care episode who received an intensive care bed, so it excludes the ward recoveries. Holding bed-days are taken over the whole campaign and divided by the stay that held the bed.
+
+<!-- GEN post_definitive -->
+| Response | ICU share 25% | ICU share 50% | ICU share 75% | ICU share 100% (shipped) |
+|---|---|---|---|---|
+| Post-definitive ward recoveries | 1607.9 [1583.1, 1632.8] | 1061.6 [1042.7, 1080.5] | 522.0 [512.4, 531.6] | 0.0 [0.0, 0.0] |
+| Ward recoveries in overflow | 1489.8 [1461.3, 1518.3] | 980.5 [960.1, 1001.0] | 478.5 [466.5, 490.4] | 0.0 [0.0, 0.0] |
+| Placed for post-definitive ICU | 534.9 [523.2, 546.5] | 1073.0 [1050.6, 1095.4] | 1578.1 [1545.3, 1611.0] | 2149.7 [2115.3, 2184.2] |
+| Post-definitive ICU access (%) | 59.3 [58.0, 60.6] | 48.9 [48.1, 49.7] | 42.4 [41.4, 43.3] | 35.2 [34.6, 35.9] |
+| R2E ICU occupancy (%) | 67.7 [66.4, 69.1] | 77.8 [76.6, 79.0] | 82.3 [81.3, 83.4] | 86.8 [86.0, 87.6] |
+| R2E ICU mean queue | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] |
+| R2E holding occupancy (%) | 99.5 [99.3, 99.6] | 99.5 [99.4, 99.6] | 99.4 [99.2, 99.6] | 99.6 [99.4, 99.7] |
+| R2E holding mean queue | 23.25 [21.68, 24.81] | 22.45 [21.29, 23.62] | 22.85 [21.37, 24.34] | 24.38 [22.59, 26.16] |
+| Holding bed-days, post-definitive care | 141 [132, 150] | 123 [115, 130] | 117 [110, 124] | 102 [96, 108] |
+| of which ward recoveries | 128 [120, 136] | 88 [83, 93] | 47 [43, 50] | 0 [0, 0] |
+| Holding bed-days, in-theatre recovery | 9375 [9305, 9445] | 9389 [9322, 9456] | 9247 [9159, 9336] | 9431 [9345, 9517] |
+| Holding bed-days, awaiting airlift | 1128 [1067, 1190] | 1122 [1062, 1181] | 1248 [1168, 1328] | 1091 [1016, 1165] |
+| R2E post-operative overflow census | 5.90 [5.62, 6.19] | 5.82 [5.50, 6.13] | 5.43 [5.13, 5.74] | 5.72 [5.36, 6.09] |
+| R2E staging overflow census | 29.44 [24.61, 34.28] | 30.53 [25.33, 35.73] | 31.34 [24.66, 38.03] | 32.16 [26.87, 37.46] |
+| R2E ICU queue, late-half classification | converged at 0.00 | converged at 0.00 | converged at 0.00 | converged at 0.00 |
+| R2E holding queue, late-half classification | converged at 23.7 | converged at 23.6 | converged at 23.2 | converged at 23.8 |
+| R2E post-operative overflow, late-half classification | converged at 6.33 | converged at 5.88 | converged at 5.53 | converged at 5.54 |
+| R2E staging overflow, late-half classification | converged at 31.7 | converged at 29.8 | converged at 32.7 | converged at 30.1 |
+| Post-operative care in a holding bed (%) | 25.0 [24.5, 25.6] | 30.2 [29.6, 30.8] | 33.8 [33.3, 34.4] | 36.5 [36.1, 36.9] |
+| R2E theatre entry deferred | 255.1 [243.0, 267.2] | 310.7 [298.2, 323.3] | 334.0 [318.7, 349.3] | 375.1 [361.6, 388.7] |
+| Died of wounds | 22.93 [19.33, 26.53] | 18.07 [15.89, 20.25] | 22.47 [18.55, 26.39] | 21.17 [17.55, 24.79] |
+| Returns to duty | 2048.7 [2017.0, 2080.3] | 2048.9 [2020.4, 2077.4] | 2006.2 [1975.5, 2037.0] | 2062.4 [2031.8, 2093.0] |
+| Critical-route evacuation wait (days) | 6.15 [5.51, 6.78] | 5.75 [5.24, 6.26] | 6.34 [5.10, 7.58] | 5.65 [5.12, 6.18] |
+| Role 4 peak census | 211.5 [207.5, 215.5] | 206.8 [202.7, 211.0] | 209.9 [205.1, 214.8] | 209.2 [205.2, 213.2] |
+<!-- /GEN -->
+
+<!-- GEN post_definitive_paired -->
+| Paired difference against the shipped share | ICU share 25% | ICU share 50% | ICU share 75% |
+|---|---|---|---|
+| Post-definitive ward recoveries | +1607.9 [+1583.1, +1632.8] | +1061.6 [+1042.7, +1080.5] | +522.0 [+512.4, +531.6] |
+| Post-definitive ICU access (%) | +24.0 [+22.7, +25.4] | +13.7 [+12.7, +14.7] | +7.2 [+6.0, +8.3] |
+| R2E ICU occupancy (%) | −19.1 [−20.6, −17.5] | −9.0 [−10.4, −7.7] | −4.5 [−5.9, −3.1] |
+| R2E ICU mean queue | +0.00 [+0.00, +0.00] | +0.00 [+0.00, +0.00] | +0.00 [+0.00, +0.00] |
+| R2E holding occupancy (%) | −0.1 [−0.3, +0.1] | −0.1 [−0.2, +0.1] | −0.2 [−0.4, +0.0] |
+| R2E holding mean queue | −1.13 [−3.70, +1.45] | −1.92 [−4.05, +0.21] | −1.52 [−3.85, +0.80] |
+| Holding bed-days, post-definitive care | +39 [+28, +49] | +21 [+12, +30] | +15 [+6, +23] |
+| of which ward recoveries | +128 [+120, +136] | +88 [+83, +93] | +47 [+43, +50] |
+| R2E post-operative overflow census | +0.18 [−0.28, +0.64] | +0.09 [−0.35, +0.54] | −0.29 [−0.83, +0.25] |
+| R2E staging overflow census | −2.72 [−9.97, +4.53] | −1.63 [−8.57, +5.30] | −0.82 [−8.68, +7.04] |
+| Post-operative care in a holding bed (%) | −11.5 [−12.2, −10.8] | −6.3 [−7.1, −5.5] | −2.7 [−3.4, −2.1] |
+| R2E theatre entry deferred | −120.1 [−139.2, −101.0] | −64.4 [−82.4, −46.4] | −41.2 [−61.3, −21.0] |
+| Died of wounds | +1.77 [−2.40, +5.93] | −3.10 [−7.14, +0.94] | +1.30 [−3.79, +6.39] |
+| Returns to duty | −13.7 [−60.4, +33.0] | −13.5 [−58.1, +31.1] | −56.2 [−96.0, −16.3]† |
+| Critical-route evacuation wait (days) | +0.50 [−0.28, +1.27] | +0.10 [−0.76, +0.96] | +0.69 [−0.64, +2.02] |
+| Role 4 peak census | +2.3 [−2.9, +7.5] | −2.4 [−8.5, +3.7] | +0.7 [−6.0, +7.4] |
+<!-- /GEN -->
+
+At the shipped share R2E intensive care occupancy was <!-- GEN cell:post_definitive|R2E ICU occupancy (%)|ICU share 100% (shipped)|mean -->86.8<!-- /GEN -->% and at a share of 0.25 it was <!-- GEN cell:post_definitive|R2E ICU occupancy (%)|ICU share 25%|mean -->67.7<!-- /GEN -->%, while post-definitive intensive care access rose from <!-- GEN cell:post_definitive|Post-definitive ICU access (%)|ICU share 100% (shipped)|mean -->35.2<!-- /GEN -->% to <!-- GEN cell:post_definitive|Post-definitive ICU access (%)|ICU share 25%|mean -->59.3<!-- /GEN -->% and post-operative care in a holding bed fell from <!-- GEN cell:post_definitive|Post-operative care in a holding bed (%)|ICU share 100% (shipped)|mean -->36.5<!-- /GEN -->% to <!-- GEN cell:post_definitive|Post-operative care in a holding bed (%)|ICU share 25%|mean -->25.0<!-- /GEN -->%. The holding beds were <!-- GEN cell:post_definitive|R2E holding occupancy (%)|ICU share 100% (shipped)|mean -->99.6<!-- /GEN -->% and <!-- GEN cell:post_definitive|R2E holding occupancy (%)|ICU share 25%|mean -->99.5<!-- /GEN -->% occupied, and of the <!-- GEN cell:post_definitive|Post-definitive ward recoveries|ICU share 25%|mean -->1607.9<!-- /GEN --> ward recoveries at a share of 0.25, <!-- GEN cell:post_definitive|Ward recoveries in overflow|ICU share 25%|mean -->1489.8<!-- /GEN --> were taken in overflow. Lowering the share to 0.25 changed deaths of wounds by <!-- GEN cell:post_definitive_paired|Died of wounds|ICU share 25%|full -->+1.77 [−2.40, +5.93]<!-- /GEN --> and returns to duty by <!-- GEN cell:post_definitive_paired|Returns to duty|ICU share 25%|full -->−13.7 [−60.4, +33.0]<!-- /GEN -->.
+
+At high intensity the same four arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
+
+<!-- GEN post_definitive_high -->
+| Response | ICU share 25% | ICU share 50% | ICU share 75% | ICU share 100% (shipped) |
+|---|---|---|---|---|
+| Post-definitive ward recoveries | 3645.3 [3614.3, 3676.3] | 2414.9 [2394.7, 2435.0] | 1212.8 [1199.8, 1225.8] | 0.0 [0.0, 0.0] |
+| Ward recoveries in overflow | 3628.1 [3597.2, 3659.0] | 2402.5 [2382.3, 2422.7] | 1206.6 [1193.7, 1219.5] | 0.0 [0.0, 0.0] |
+| Placed for post-definitive ICU | 1209.3 [1196.5, 1222.1] | 2420.1 [2400.3, 2440.0] | 3638.1 [3614.2, 3661.9] | 4840.4 [4807.7, 4873.1] |
+| Post-definitive ICU access (%) | 16.5 [15.8, 17.1] | 14.2 [13.9, 14.6] | 12.5 [12.3, 12.8] | 11.3 [11.1, 11.5] |
+| R2E ICU occupancy (%) | 95.6 [95.2, 95.9] | 96.4 [96.2, 96.5] | 96.9 [96.8, 97.1] | 97.5 [97.4, 97.7] |
+| R2E ICU mean queue | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] |
+| R2E holding occupancy (%) | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
+| R2E holding mean queue | 54.53 [52.88, 56.19] | 52.03 [50.26, 53.80] | 54.40 [52.25, 56.55] | 54.06 [52.01, 56.12] |
+| Holding bed-days, post-definitive care | 23 [21, 25] | 22 [21, 24] | 21 [19, 23] | 23 [21, 25] |
+| of which ward recoveries | 19 [17, 20] | 13 [12, 15] | 6 [6, 7] | 0 [0, 0] |
+| Holding bed-days, in-theatre recovery | 9890 [9767, 10014] | 9800 [9675, 9925] | 9763 [9634, 9892] | 9816 [9675, 9956] |
+| Holding bed-days, awaiting airlift | 840 [717, 963] | 929 [805, 1053] | 967 [839, 1095] | 911 [771, 1051] |
+| R2E post-operative overflow census | 20.49 [20.26, 20.72] | 19.93 [19.69, 20.17] | 19.78 [19.55, 20.01] | 19.79 [19.47, 20.12] |
+| R2E staging overflow census | 2549.18 [2507.35, 2591.00] | 2541.84 [2515.25, 2568.43] | 2521.10 [2490.27, 2551.93] | 2515.75 [2474.07, 2557.42] |
+| R2E ICU queue, late-half classification | converged at 0.00 | converged at 0.00 | converged at 0.00 | converged at 0.00 |
+| R2E holding queue, late-half classification | converged at 54.2 | converged at 53.1 | converged at 53.3 | converged at 54.1 |
+| R2E post-operative overflow, late-half classification | converged at 20.6 | converged at 20.2 | converged at 19.9 | converged at 19.8 |
+| R2E staging overflow, late-half classification | **drifting, +11.1%/block**, 127.7 to 2,773.2 | **drifting, +11.3%/block**, 122.9 to 2,757.4 | **drifting, +11.2%/block**, 127.6 to 2,741.2 | **drifting, +11.2%/block**, 117.7 to 2,739.6 |
+| Post-operative care in a holding bed (%) | 40.9 [40.6, 41.1] | 42.0 [41.8, 42.2] | 42.7 [42.5, 42.9] | 43.4 [43.1, 43.6] |
+| R2E theatre entry deferred | 1517.8 [1493.9, 1541.7] | 1544.8 [1519.4, 1570.2] | 1561.0 [1539.5, 1582.5] | 1587.8 [1554.3, 1621.2] |
+| Died of wounds | 607.10 [536.03, 678.17] | 611.97 [545.86, 678.07] | 548.67 [503.29, 594.04] | 568.60 [500.55, 636.65] |
+| Returns to duty | 2862.0 [2835.0, 2889.0] | 2844.8 [2817.5, 2872.1] | 2841.1 [2815.5, 2866.6] | 2861.9 [2824.1, 2899.7] |
+| Critical-route evacuation wait (days) | 110.99 [109.83, 112.15] | 110.46 [109.28, 111.64] | 110.71 [109.82, 111.60] | 109.67 [108.40, 110.95] |
+| Role 4 peak census | 281.4 [279.2, 283.7] | 281.8 [279.0, 284.5] | 280.8 [278.7, 283.0] | 281.3 [279.0, 283.6] |
+<!-- /GEN -->
+
+<!-- GEN post_definitive_paired_high -->
+| Paired difference against the shipped share | ICU share 25% | ICU share 50% | ICU share 75% |
+|---|---|---|---|
+| Post-definitive ward recoveries | +3645.3 [+3614.3, +3676.3] | +2414.9 [+2394.7, +2435.0] | +1212.8 [+1199.8, +1225.8] |
+| Post-definitive ICU access (%) | +5.2 [+4.5, +5.9] | +3.0 [+2.6, +3.4] | +1.3 [+0.9, +1.6] |
+| R2E ICU occupancy (%) | −2.0 [−2.4, −1.5] | −1.1 [−1.4, −0.9] | −0.6 [−0.8, −0.4] |
+| R2E ICU mean queue | +0.00 [+0.00, +0.00] | +0.00 [+0.00, +0.00] | +0.00 [+0.00, +0.00] |
+| R2E holding occupancy (%) | −0.0 [−0.0, +0.0] | −0.0 [−0.0, +0.0] | +0.0 [−0.0, +0.0] |
+| R2E holding mean queue | +0.47 [−2.44, +3.38] | −2.03 [−4.72, +0.65] | +0.33 [−3.01, +3.68] |
+| Holding bed-days, post-definitive care | −0 [−2, +2] | −1 [−3, +2] | −2 [−5, +0] |
+| of which ward recoveries | +19 [+17, +20] | +13 [+12, +15] | +6 [+6, +7] |
+| R2E post-operative overflow census | +0.69 [+0.27, +1.12]† | +0.14 [−0.22, +0.49] | −0.01 [−0.46, +0.43] |
+| R2E staging overflow census | +33.43 [−26.41, +93.27] | +26.10 [−17.29, +69.48] | +5.35 [−52.18, +62.88] |
+| Post-operative care in a holding bed (%) | −2.5 [−2.9, −2.2] | −1.4 [−1.7, −1.1] | −0.7 [−0.9, −0.4] |
+| R2E theatre entry deferred | −70.0 [−114.6, −25.3]† | −42.9 [−86.7, +0.8] | −26.8 [−71.8, +18.2] |
+| Died of wounds | +38.50 [−49.02, +126.02] | +43.37 [−48.58, +135.31] | −19.93 [−91.60, +51.73] |
+| Returns to duty | +0.1 [−49.8, +50.0] | −17.1 [−56.6, +22.3] | −20.8 [−73.0, +31.3] |
+| Critical-route evacuation wait (days) | +1.32 [−0.30, +2.94] | +0.79 [−0.82, +2.39] | +1.04 [−0.53, +2.60] |
+| Role 4 peak census | +0.1 [−3.3, +3.5] | +0.5 [−3.3, +4.3] | −0.5 [−3.4, +2.5] |
+<!-- /GEN -->
+
+At high intensity R2E intensive care occupancy was <!-- GEN cell:post_definitive_high|R2E ICU occupancy (%)|ICU share 100% (shipped)|mean -->97.5<!-- /GEN -->% at the shipped share and <!-- GEN cell:post_definitive_high|R2E ICU occupancy (%)|ICU share 25%|mean -->95.6<!-- /GEN -->% at a share of 0.25, and post-definitive intensive care access rose from <!-- GEN cell:post_definitive_high|Post-definitive ICU access (%)|ICU share 100% (shipped)|mean -->11.3<!-- /GEN -->% to <!-- GEN cell:post_definitive_high|Post-definitive ICU access (%)|ICU share 25%|mean -->16.5<!-- /GEN -->%. Of the <!-- GEN cell:post_definitive_high|Post-definitive ward recoveries|ICU share 25%|mean -->3645.3<!-- /GEN --> ward recoveries at a share of 0.25, <!-- GEN cell:post_definitive_high|Ward recoveries in overflow|ICU share 25%|mean -->3628.1<!-- /GEN --> were taken in overflow, the holding beds being <!-- GEN cell:post_definitive_high|R2E holding occupancy (%)|ICU share 25%|mean -->100.0<!-- /GEN -->% occupied. Lowering the share to 0.25 changed deaths of wounds by <!-- GEN cell:post_definitive_paired_high|Died of wounds|ICU share 25%|full -->+38.50 [−49.02, +126.02]<!-- /GEN --> and returns to duty by <!-- GEN cell:post_definitive_paired_high|Returns to duty|ICU share 25%|full -->+0.1 [−49.8, +50.0]<!-- /GEN -->, and the staging overflow was classified <!-- GEN cell:post_definitive_high|R2E staging overflow, late-half classification|ICU share 25%|full -->**drifting, +11.1%/block**, 127.7 to 2,773.2<!-- /GEN --> at that share.
 
 ---
 

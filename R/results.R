@@ -1933,8 +1933,12 @@ build_icu_gate_pathways <- function(data_dir, suffix = "") {
 #'
 #' @details One entry per paired difference the resolution table prints: the
 #'   evidence file, the response, the arm it is measured from and to, the arm
-#'   column, the half-width the experiment's own script sized it against (its
-#'   `PAIRED_HALF_WIDTHS`), and the row label. A half-width is a target the
+#'   column, the half-width the experiment sized it against (the
+#'   `PAIRED_HALF_WIDTHS` of its script, or the `*_HALF_WIDTHS` of a sweep's
+#'   module), and the row label. A high-intensity comparison reads that copy of
+#'   the file and says so in its label. An optional eighth element scales the
+#'   difference and the half-width for printing, a proportion being shown in
+#'   percentage points. A half-width is a target the
 #'   script chose in the response's own units, so it is held beside the
 #'   difference rather than recomputed from it.
 RESOLUTION_ROWS <- list(
@@ -1957,7 +1961,64 @@ RESOLUTION_ROWS <- list(
   list("policy/saturation_sweep_paired.csv", "total_dow", NA, 0, 2, 1,
        "Saturation release at 2, died of wounds"),
   list("policy/saturation_sweep_paired.csv", "total_rtd", NA, 0, 2, 10,
-       "Saturation release at 2, returns to duty")
+       "Saturation release at 2, returns to duty"),
+  list("policy/saturation_sweep_paired.csv", "theatre_mean_queue", "arm", 0, 2, 1,
+       "Saturation release at 2, R2E theatre queue"),
+  list("icu_gate/icu_gate_paired.csv", "icu_occupancy", "arm", 0, 1, 0.02,
+       "Intensive care gate, intensive care utilisation (percentage points)", 100),
+  list("icu_gate/icu_gate_paired_high_intensity.csv", "total_dow", "arm", 0, 1, 0.5,
+       "Intensive care gate, died of wounds, high intensity"),
+  list("surgical_teams/surgical_team_sweep_paired.csv",
+       "total_dow", "arm", "R2E 3, R2B 1", "R2E 3, R2B 2", 1,
+       "Second R2B section, died of wounds"),
+  list("surgical_teams/surgical_team_sweep_paired.csv",
+       "total_dow", "arm", "R2E 3, R2B 1", "R2E 4, R2B 1", 1,
+       "Fourth R2E section, died of wounds"),
+  list("ot_beds/ot_bed_sweep_paired.csv",
+       "theatre_mean_queue", "arm", "2 theatres, 3 sections", "3 theatres, 3 sections", 1,
+       "Third theatre at three sections, R2E theatre queue"),
+  list("ot_beds/ot_bed_sweep_paired.csv",
+       "total_dow", "arm", "2 theatres, 3 sections", "3 theatres, 3 sections", 1,
+       "Third theatre at three sections, died of wounds"),
+  list("ot_beds/ot_bed_sweep_paired.csv",
+       "total_dow", "arm", "2 theatres, 6 sections", "3 theatres, 6 sections", 1,
+       "Third theatre at six sections, died of wounds"),
+  list("ot_beds/ot_bed_sweep_paired_high_intensity.csv",
+       "theatre_mean_queue", "arm", "2 theatres, 3 sections", "3 theatres, 3 sections", 1,
+       "Third theatre at three sections, R2E theatre queue, high intensity"),
+  list("ot_beds/ot_bed_sweep_paired_high_intensity.csv",
+       "total_dow", "arm", "2 theatres, 3 sections", "3 theatres, 3 sections", 1,
+       "Third theatre at three sections, died of wounds, high intensity"),
+  list("icu_beds/icu_bed_sweep_paired.csv", "total_dow", "arm", "4 beds", "12 beds", 1,
+       "Twelve intensive care beds, died of wounds"),
+  list("icu_beds/icu_bed_sweep_paired.csv", "total_rtd", "arm", "4 beds", "12 beds", 10,
+       "Twelve intensive care beds, returns to duty"),
+  list("icu_beds/icu_bed_sweep_paired_high_intensity.csv",
+       "total_dow", "arm", "4 beds", "6 beds", 1,
+       "Six intensive care beds, died of wounds, high intensity"),
+  list("icu_beds/icu_bed_sweep_paired_high_intensity.csv",
+       "total_dow", "arm", "4 beds", "16 beds", 1,
+       "Sixteen intensive care beds, died of wounds, high intensity"),
+  list("triage_split/triage_sweep_paired.csv", "total_dow", "arm", "P1 65%", "P1 30%", 1,
+       "Priority 1 share of 30%, died of wounds"),
+  list("post_definitive/post_definitive_sweep_paired.csv",
+       "total_dow", "arm", "ICU share 100%", "ICU share 25%", 1,
+       "Post-definitive share of a quarter, died of wounds"),
+  list("post_definitive/post_definitive_sweep_paired_high_intensity.csv",
+       "total_dow", "arm", "ICU share 100%", "ICU share 25%", 1,
+       "Post-definitive share of a quarter, died of wounds, high intensity"),
+  list("airlift_places/airlift_places_paired.csv",
+       "total_dow", "arm", "36/54, 7 days", "45/45, 3 days", 1,
+       "45 critical places every three days, died of wounds"),
+  list("evac_delay/evac_delay_sweep_paired_high_intensity.csv",
+       "total_dow", "arm", "No delay", "6 hours", 1,
+       "Six-hour evacuation delay, died of wounds, high intensity"),
+  list("evac_delay/evac_delay_sweep_paired_high_intensity.csv",
+       "total_dow", "arm", "No delay", "1 day", 1,
+       "One-day evacuation delay, died of wounds, high intensity"),
+  list("evac_delay/evac_delay_sweep_paired_high_intensity.csv",
+       "theatre_mean_queue", "arm", "No delay", "30 days", 1,
+       "Thirty-day evacuation delay, R2E theatre queue, high intensity")
 )
 
 #' Every paired comparison the resolution tables draw on, read from its evidence
@@ -2036,10 +2097,20 @@ res_p_cell <- function(p) {
 #' A paired difference and its interval as one cell
 #'
 #' @param hit One paired-difference row.
+#' @param scale Factor the difference and its bounds are multiplied by for printing.
 #' @return The cell text, signed to two decimal places.
-res_paired_cell <- function(hit) {
-  sprintf("%s [%s, %s]", res_num(hit$difference, 2L, plus = TRUE),
-          res_num(hit$ci_lower, 2L, plus = TRUE), res_num(hit$ci_upper, 2L, plus = TRUE))
+res_paired_cell <- function(hit, scale = 1) {
+  sprintf("%s [%s, %s]", res_num(scale * hit$difference, 2L, plus = TRUE),
+          res_num(scale * hit$ci_lower, 2L, plus = TRUE),
+          res_num(scale * hit$ci_upper, 2L, plus = TRUE))
+}
+
+#' Print scale of one resolution row
+#'
+#' @param spec One entry of `RESOLUTION_ROWS`.
+#' @return Its eighth element where it has one, otherwise 1.
+res_row_scale <- function(spec) {
+  if (length(spec) >= 8L) spec[[8]] else 1
 }
 
 #' Resolution of the paired differences the experiments leave open
@@ -2057,8 +2128,9 @@ res_paired_cell <- function(hit) {
 build_resolution <- function(data_dir) {
   hits <- Filter(function(h) !res_resolved(h$hit), res_resolution_hits(data_dir))
   rows <- lapply(hits, function(h) {
-    c(h$spec[[7]], res_paired_cell(h$hit), res_p_cell(h$hit$p_holm),
-      res_num(h$spec[[6]], 1L), res_num(h$hit$reps_needed, 0L, big = TRUE))
+    k <- res_row_scale(h$spec)
+    c(h$spec[[7]], res_paired_cell(h$hit, k), res_p_cell(h$hit$p_holm),
+      res_num(k * h$spec[[6]], 1L), res_num(h$hit$reps_needed, 0L, big = TRUE))
   })
   res_table(c("Comparison", "Paired difference", "Holm-adjusted p", "Half-width sought",
               "Replications needed"), rows)
@@ -2072,7 +2144,8 @@ build_resolution <- function(data_dir) {
 build_resolved <- function(data_dir) {
   hits <- Filter(function(h) res_resolved(h$hit), res_resolution_hits(data_dir))
   rows <- lapply(hits, function(h) {
-    c(h$spec[[7]], res_paired_cell(h$hit), res_p_cell(h$hit$p_holm))
+    k <- res_row_scale(h$spec)
+    c(h$spec[[7]], res_paired_cell(h$hit, k), res_p_cell(h$hit$p_holm))
   })
   res_table(c("Comparison", "Paired difference", "Holm-adjusted p"), rows)
 }

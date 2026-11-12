@@ -128,7 +128,8 @@ report(identical(render_results(once, ".", toy_tables), once),
 cat("\n-- the resolution and pathway tables are correct on hand-computed inputs --\n")
 
 toy_dir <- file.path(tempdir(), "results_toy")
-for (d in c("hold_window", "icu_gate", "policy")) {
+for (d in unique(c("hold_window", "icu_gate", "policy",
+                   vapply(RESOLUTION_ROWS, function(r) dirname(r[[1]]), character(1))))) {
   dir.create(file.path(toy_dir, d), recursive = TRUE, showWarnings = FALSE)
 }
 #' Write one paired-difference file whose every row carries the same known figures
@@ -147,8 +148,10 @@ spec_files <- unique(vapply(RESOLUTION_ROWS, function(r) r[[1]], character(1)))
 for (path in spec_files) {
   rows <- Filter(function(r) identical(r[[1]], path), RESOLUTION_ROWS)
   write_toy_paired(path, data.frame(response = vapply(rows, function(r) r[[2]], character(1)),
-                                    from = vapply(rows, function(r) r[[4]], numeric(1)),
-                                    to = vapply(rows, function(r) r[[5]], numeric(1))))
+                                    from = vapply(rows, function(r) as.character(r[[4]]),
+                                                  character(1)),
+                                    to = vapply(rows, function(r) as.character(r[[5]]),
+                                                character(1))))
 }
 resolution <- build_resolution(toy_dir)
 report(length(resolution) == length(RESOLUTION_ROWS) + 2L,

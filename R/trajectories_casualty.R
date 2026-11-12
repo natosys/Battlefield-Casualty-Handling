@@ -205,7 +205,7 @@ prolonged_care_multiplier <- function() {
 #'   road move, seizing no vehicle and no R1 staff.
 #'
 #' @details The wait represents prolonged casualty care forward of Role 2 while
-#'   the evacuation axis is closed (README R1 Trajectory). The delay is drawn
+#'   the evacuation axis is closed (README Core Trajectory). The delay is drawn
 #'   once and recorded in `evac_delay_min` with its start in `evac_delay_start`.
 #'   Under the care-state model the casualty accrues risk at the pre-operative
 #'   rate times prolonged_care_multiplier() for the whole wait, settled by a

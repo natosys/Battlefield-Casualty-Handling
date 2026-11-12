@@ -51,6 +51,7 @@ check_ot_bed_sweep_protocol.R,12
 check_planning_implications.R,8
 check_policy_sweep_protocol.R,22
 check_post_definitive_share.R,120
+check_post_definitive_sweep.R,178
 check_pre_open_window.R,39
 check_r1_evacuation.R,60
 check_r2b_evac_wait.R,118

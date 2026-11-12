@@ -1076,7 +1076,7 @@ A reader who wants to reproduce a result in the companion paper has the replicat
 
 <!-- REFERENCES START -->
 
-[1] Battlefield Casualty Handling project. (2026). *Surgical Hours, Not Operating Theatres: Sizing the Land-Based Trauma System for Large Scale Combat Operations*. Retrieved 03 Oct 26, from https://github.com/natosys/Battlefield-Casualty-Handling/blob/main/docs/Planning_Implications.md
+[1] Battlefield Casualty Handling project. (2026). *Surgical Hours Before Operating Theatres: Sizing the Land-Based Trauma System for Large Scale Combat Operations*. Retrieved 03 Oct 26, from https://github.com/natosys/Battlefield-Casualty-Handling/blob/main/docs/Planning_Implications.md
 
 [2] Battlefield Casualty Handling project. (2026). *Measured Results of a Replicated Simulation of the Land-Based Trauma System*. Retrieved 02 Oct 26, from https://github.com/natosys/Battlefield-Casualty-Handling/blob/main/docs/Results.md
 

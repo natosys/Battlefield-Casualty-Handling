@@ -625,6 +625,27 @@
           ]
         },
         {
+          "acty": "evacuation_delay",
+          "vals": [
+            {
+              "var": "enabled",
+              "val": 0
+            },
+            {
+              "var": "min",
+              "val": 360
+            },
+            {
+              "var": "max",
+              "val": 4320
+            },
+            {
+              "var": "mode",
+              "val": 1440
+            }
+          ]
+        },
+        {
           "acty": "wia_transport",
           "vals": [
             {
@@ -765,7 +786,8 @@
             { "var": "resuscitation",    "val": 0.9 },
             { "var": "post_op",          "val": 0.01548 },
             { "var": "r2b_icu_penalty",  "val": 1.31 },
-            { "var": "hold_bed_penalty", "val": 1.64 }
+            { "var": "hold_bed_penalty", "val": 1.64 },
+            { "var": "prolonged_care",   "val": 1.0 }
           ]
         },
         {

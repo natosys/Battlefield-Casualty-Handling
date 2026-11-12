@@ -162,6 +162,76 @@ r1_transport_wia <- function() {
     synchronize(wait = FALSE)
 }
 
+# ── Forward evacuation delay ──────────────────────────────────────────────────
+
+#' The forward evacuation delay in force, or NULL where it is disabled
+#'
+#' @return The `r1.evacuation_delay` block (`enabled`, `min`, `mode`, `max`,
+#'   minutes) when `enabled` is 1, otherwise NULL.
+#'
+#' @details An absent block reads as disabled, so a configuration saved before
+#'   the field existed runs unchanged. The trajectory is built without the wait
+#'   when this returns NULL, so a disabled delay takes no random draw and the
+#'   shipped stream is untouched.
+forward_evacuation_delay <- function() {
+  delay <- env_data$vars$r1$evacuation_delay
+  if (is.null(delay) || is.null(delay$enabled) || delay$enabled != 1) return(NULL)
+  delay
+}
+
+#' Minutes one casualty is held forward before its evacuation from R1 begins
+#'
+#' @return One draw from the triangular `r1.evacuation_delay` distribution.
+draw_forward_evacuation_delay <- function() {
+  delay <- env_data$vars$r1$evacuation_delay
+  rtriangle(n = 1, a = delay$min, b = delay$max, c = delay$mode)
+}
+
+#' Multiplier on the pre-operative rate while a casualty is held forward
+#'
+#' @return The care-state multiplier earned so far (`dow_care`) times
+#'   `dow.multipliers.prolonged_care`, which reads as 1 where absent.
+prolonged_care_multiplier <- function() {
+  care <- get_attribute(env, "dow_care")
+  factor <- dow_multipliers()$prolonged_care
+  (if (is.na(care)) 1 else care) * (if (is.null(factor)) 1 else factor)
+}
+
+#' Builds the wait of a casualty held forward awaiting evacuation from R1
+#'
+#' @param died Trajectory a casualty who dies while held takes, or NULL for a
+#'   casualty who carries no died-of-wounds risk (battle fatigue).
+#' @return Simmer trajectory holding the casualty for a drawn delay before the
+#'   road move, seizing no vehicle and no R1 staff.
+#'
+#' @details The wait represents prolonged casualty care forward of Role 2 while
+#'   the evacuation axis is closed (README Core Trajectory). The delay is drawn
+#'   once and recorded in `evac_delay_min` with its start in `evac_delay_start`.
+#'   Under the care-state model the casualty accrues risk at the pre-operative
+#'   rate times prolonged_care_multiplier() for the whole wait, settled by a
+#'   died-of-wounds check at its end, outside the treated cohort as the R1 check
+#'   is; a death here records `evac_delay_died`. The care state then returns to
+#'   the one R1 treatment earned. Under the legacy model no check is added: its
+#'   next check charges the wait through the elapsed time since injury.
+r1_forward_wait <- function(died = NULL) {
+  wait <- trajectory("Held Forward Awaiting Evacuation") %>%
+    set_attribute("evac_delay_min", draw_forward_evacuation_delay) %>%
+    set_attribute("evac_delay_start", function() now(env))
+  checked <- !is.null(died) && dow_care_state_enabled()
+  if (checked) wait <- wait %>% set_dow_state(prolonged_care_multiplier, 0)
+  wait <- wait %>% timeout_from_attribute("evac_delay_min")
+  if (!checked) return(wait)
+  died_forward <- trajectory("Died of Wounds Held Forward") %>%
+    set_attribute("evac_delay_died", 1) %>%
+    join(died)
+  restored <- trajectory("Evacuation Window Opens") %>%
+    set_dow_state(function() {
+      care <- get_attribute(env, "dow_care")
+      if (is.na(care)) 1 else care
+    }, 0)
+  wait %>% dow_check(cohort = FALSE, died = died_forward, survived = restored)
+}
+
 # ── Core casualty trajectory ──────────────────────────────────────────────────
 
 #' Assign the attributes a casualty carries from the point of injury
@@ -443,8 +513,10 @@ r1_standard_path <- function() {
     r1_mortuary_handling()
 
   evacuate <- trajectory("Evacuate") %>%
-    set_attribute("last_dow_t", function() now(env)) %>%
-    join(r1_evacuate_to_r2(r2b_treat_wia, r2e_treat_wia))
+    set_attribute("last_dow_t", function() now(env))
+  # A casualty held forward waits here, after the R1 check, before the move.
+  if (!is.null(forward_evacuation_delay())) evacuate <- evacuate %>% join(r1_forward_wait(died))
+  evacuate <- evacuate %>% join(r1_evacuate_to_r2(r2b_treat_wia, r2e_treat_wia))
 
   # Under the care-state model the check settles the risk accrued since injury.
   if (dow_care_state_enabled()) {
@@ -488,6 +560,25 @@ r1_standard_path <- function() {
     )
 }
 
+#' Builds the evacuation of a battle fatigue casualty to a Role 2 holding bed
+#'
+#' @return Simmer trajectory moving the casualty to Role 2 for restoration,
+#'   after the forward evacuation delay where one is in force.
+#'
+#' @details A battle fatigue casualty is held forward like any other while the
+#'   evacuation axis is closed, but carries no died-of-wounds risk, so the wait
+#'   adds no check.
+r1_battle_fatigue_evacuation <- function() {
+  move <- r1_evacuate_to_r2(
+    function(i) battle_fatigue_restoration(env_data$elms$r2b[[i]][["hold_bed"]], 2),
+    function(i) battle_fatigue_restoration(env_data$elms$r2eheavy[[i]][["hold_bed"]], 3)
+  )
+  if (is.null(forward_evacuation_delay())) return(move)
+  trajectory("Battle Fatigue Evacuation") %>%
+    join(r1_forward_wait()) %>%
+    join(move)
+}
+
 #' Builds the R1 pathway for wounded and disease or non-battle injury casualties
 #'
 #' @return Simmer trajectory treating the casualty at its R1 team, applying the
@@ -522,10 +613,7 @@ r1_wia_dnbi_path <- function() {
         2
       },
       continue = TRUE,
-      r1_evacuate_to_r2(
-        function(i) battle_fatigue_restoration(env_data$elms$r2b[[i]][["hold_bed"]], 2),
-        function(i) battle_fatigue_restoration(env_data$elms$r2eheavy[[i]][["hold_bed"]], 3)
-      ),
+      r1_battle_fatigue_evacuation(),
       r1_standard_path()
     )
 }

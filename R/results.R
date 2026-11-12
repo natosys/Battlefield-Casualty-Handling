@@ -1135,6 +1135,128 @@ build_post_definitive_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference against the shipped share", arms), rows)
 }
 
+#' Rows of the forward evacuation delay sweep tables: label, response key, decimal places, scale
+#'
+#' @details The same set, in the same order, in the summary table and the paired
+#'   table; the paired table omits a response the sweep does not pair. The scale
+#'   of 100 turns a share into percentage points.
+EVAC_DELAY_ROWS <- list(
+  list("Mean delay held forward (days)", "mean_delay_days", 2L, 1),
+  list("Casualties held forward", "held_forward", 1L, 1),
+  list("Died of wounds while held forward", "died_held_forward", 2L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Died of wounds per wounded in action (%)", "dow_per_wounded", 2L, 100),
+  list("Treated-cohort died-of-wounds rate (%)", "treated_dow_rate", 3L, 100),
+  list("Time to first incision (hours)", "first_incision_hours", 2L, 1),
+  list("Casualties requiring surgery operated on (%)", "surgical_delivery_share", 1L, 100),
+  list("R2B surgeries", "r2b_surgeries", 1L, 1),
+  list("Diverted from R2B, team off shift", "diverted_offshift", 1L, 1),
+  list("Diverted from R2B, theatre busy", "diverted_busy", 1L, 1),
+  list("R2E first surgeries", "r2e_first_surgeries", 1L, 1),
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("R2E staging overflow census", "overflow_r2e_staging", 2L, 1),
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("Returns to duty", "total_rtd", 1L, 1),
+  list("PMV ambulance utilisation (%)", "pmv_utilisation", 1L, 100)
+)
+
+#' Pools the forward evacuation delay table classifies, with their row labels
+EVAC_DELAY_STABILITY_ROWS <- c(
+  "R2B theatre queue, late-half classification" = "R2B operating theatres",
+  "R2B holding queue, late-half classification" = "R2B holding beds",
+  "R2E theatre queue, late-half classification" = "R2E operating theatres",
+  "R2E post-operative overflow, late-half classification" = "R2E post-operative overflow",
+  "R2E holding queue, late-half classification" = "R2E holding beds",
+  "R2E staging overflow, late-half classification" = "R2E staging overflow"
+)
+
+#' The forward evacuation delay sweep's arms in ascending order of delay
+#'
+#' @param arms Arm labels, as "No delay", "6 hours", "1 day" or "7 days".
+#' @return The labels sorted by the delay they name.
+evac_delay_arm_order <- function(arms) {
+  hours <- vapply(arms, function(a) {
+    if (a == "No delay") return(0)
+    n <- as.numeric(sub(" (hours?|days?)$", "", a))
+    if (grepl(" hours?$", a)) n else 24 * n
+  }, numeric(1))
+  arms[order(hours)]
+}
+
+#' Forward evacuation delay sweep table: each response and each pool's classification, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per delay, the shipped configuration first.
+#'
+#' @details The classifications are read from the stability file the sweep wrote
+#'   from its own daily series, in the stability table's words.
+build_evac_delay <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("evac_delay/evac_delay_sweep_summary", suffix), data_dir)
+  st <- res_read(res_file("evac_delay/evac_delay_sweep_stability", suffix), data_dir)
+  arms <- evac_delay_arm_order(unique(d$arm))
+  #' One response's row across the arms
+  #'
+  #' @param r A row specification of EVAC_DELAY_ROWS.
+  #' @return The row's cells.
+  one <- function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1)))
+  }
+  #' One pool's classification row across the arms
+  #'
+  #' @param label Row label.
+  #' @param pool Pool name.
+  #' @return The row's cells.
+  verdicts <- function(label, pool) {
+    c(label, vapply(arms, function(a) {
+      r <- st[st$arm == a & st$pool == pool, ]
+      if (nrow(r) != 1L) stop(sprintf("expected one stability row for arm '%s', pool '%s'",
+                                      a, pool), call. = FALSE)
+      res_stability_cell(r)
+    }, character(1)))
+  }
+  rows <- c(
+    lapply(EVAC_DELAY_ROWS[1:12], one),
+    lapply(seq_along(EVAC_DELAY_STABILITY_ROWS), function(i) {
+      verdicts(names(EVAC_DELAY_STABILITY_ROWS)[i], EVAC_DELAY_STABILITY_ROWS[[i]])
+    }),
+    lapply(EVAC_DELAY_ROWS[-(1:12)], one)
+  )
+  header <- c("Response", ifelse(arms == "No delay", paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
+#' Forward evacuation delay sweep table of paired differences against no delay
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per delay, in ascending order.
+build_evac_delay_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("evac_delay/evac_delay_sweep_paired", suffix), data_dir)
+  arms <- evac_delay_arm_order(unique(d$to))
+  keep <- EVAC_DELAY_ROWS[vapply(EVAC_DELAY_ROWS, function(r) r[[2]] %in% d$response,
+                                 logical(1))]
+  rows <- lapply(keep, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$to == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
+                                      r[[2]], a, nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c("Paired difference against no delay", arms), rows)
+}
+
 #' The two R2B holding sweep tables
 #'
 #' @param data_dir The data directory.
@@ -3561,6 +3683,10 @@ RESULTS_TABLES <- list(
   post_definitive_high = function(dd) build_post_definitive(dd, "_high_intensity"),
   post_definitive_paired = build_post_definitive_paired,
   post_definitive_paired_high = function(dd) build_post_definitive_paired(dd, "_high_intensity"),
+  evac_delay = build_evac_delay,
+  evac_delay_high = function(dd) build_evac_delay(dd, "_high_intensity"),
+  evac_delay_paired = build_evac_delay_paired,
+  evac_delay_paired_high = function(dd) build_evac_delay_paired(dd, "_high_intensity"),
   policy_establishment_high = build_policy_establishment_high,
   policy_establishment_high_stability = build_policy_establishment_high_stability,
   policy_establishment_high_paired = build_policy_establishment_high_paired,

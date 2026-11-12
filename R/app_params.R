@@ -298,6 +298,20 @@ SRC_R2B_CAPACITY      <- "Design parameter, not literature-derived: a casualty i
 SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of requirement outstanding. Ships at 24h, the deployed evacuation norm. Binds both the stability window and the capacity hold, so zero disables forward holding outright."
 SRC_POST_DEFINITIVE_ICU <- "Informed estimate. The mode is anchored on the Camp Bastion observation that coalition casualties are usually evacuated within 24 hours of deployed ICU admission, but that is a whole-cohort figure rather than a post-definitive-phase one, and no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The spread around it is not sourced. High uncertainty — see README R2E Heavy Trajectory. The remainder of critical care occurs at Role 4."
 SRC_POST_DEFINITIVE_SHARE <- "Informed estimate. No open-access source reports the share of adult battle casualties admitted to intensive care after a definitive repair; the shipped value of 1 is an upper bound, and a share below it is a sensitivity setting rather than a sourced value. See README Post-Definitive Care."
+#' Source note for the forward evacuation delay fields
+SRC_EVAC_DELAY <- paste(
+  "Informed estimate. Reports from Ukraine describe evacuation forward of Role 2",
+  "delayed by hours to days, up to 12 days in one account, while drone surveillance",
+  "closes the axis; the default range of 6 to 72 hours with a mode of 24 is a",
+  "placeholder for a sensitivity setting rather than a sourced value, and the delay",
+  "ships disabled. See README Core Trajectory."
+)
+#' Source note for the prolonged-care died-of-wounds multiplier
+SRC_PROLONGED_CARE <- paste(
+  "Informed estimate. Prolonged casualty care continues treatment forward without",
+  "surgery; the default of 1 charges the wait at the pre-operative rate R1 treatment",
+  "earned, neither raised nor reduced. See README Died of Wounds."
+)
 SRC_R2B_PRE_OPEN      <- "Informed estimate; no open-access source states how far ahead of a surgical section's shift a forward facility should hold a casualty rather than divert them. Anchored on the 60-minute time-to-surgical-care standard and on the 15 to 45 minute road move to R2E that is the alternative. High uncertainty — see README R2B Trajectory."
 SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). Applied to the post-operative rate while an operated casualty is in an R2B ICU bed. See README Died of Wounds."
 SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
@@ -784,6 +798,30 @@ r1_fields <- function() {
   }), recursive = FALSE))
 
   # ── Medevac: R1 — Forward Aid Post ────────────────────────────────────────
+  delay_group <- "R1 — Forward Evacuation Delay"
+  registry <- c(registry, list(
+    var_field("r1_evac_delay_enabled", GRP_LOGISTICS, delay_group, "r1",
+              "evacuation_delay", "enabled", "Forward Evacuation Delay (0 Off, 1 On)",
+              paste("1 holds every casualty forward of Role 2 for a drawn delay after R1",
+                    "treatment, under prolonged casualty care and without a vehicle, before",
+                    "the road move begins. 0, the shipped value, moves the casualty as soon",
+                    "as a vehicle is free."),
+              type = "integer", min = 0, max = 1, step = 1, source = SRC_EVAC_DELAY)
+  ))
+  registry <- c(registry, tri_fields(
+    "r1_evac_delay", GRP_LOGISTICS, delay_group, "r1", "evacuation_delay",
+    "Forward Evacuation Delay",
+    "Time a casualty is held forward awaiting an evacuation window, when the delay is on.",
+    bound = c(0, 43200), source = SRC_EVAC_DELAY
+  ))
+  registry <- c(registry, list(
+    var_field("prolonged_care", GRP_LOGISTICS, delay_group, "dow", "multipliers",
+              "prolonged_care", "Prolonged-Care DOW Multiplier",
+              paste("Multiplier on the pre-operative died-of-wounds rate while a casualty",
+                    "is held forward awaiting evacuation, applied on top of what R1",
+                    "treatment earned. 1 charges the wait at the rate R1 treatment earned."),
+              min = 0, max = 6, step = 0.01, source = SRC_PROLONGED_CARE)
+  ))
   registry <- c(registry, tri_fields("r1_wia_transport", GRP_LOGISTICS, "R1 — Transport (R1 → R2B)", "r1", "wia_transport",
                                      "WIA Transport Time", "Transport time from point of injury to R1/R2B for a WIA casualty.",
                                      range_mode_name = "r1_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))

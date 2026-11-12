@@ -310,6 +310,60 @@ post_definitive_share_faults <- function(vars) {
   character(0)
 }
 
+#' Find a forward evacuation delay or prolonged-care multiplier the model cannot use
+#'
+#' @param vars The `vars` block of a parsed configuration.
+#' @return A character vector of fault messages, empty when the delay's switch
+#'   is 0 or 1, its minimum is at least zero and the multiplier is a single
+#'   number of at least zero.
+#' @details An absent block or multiplier is allowed, reading as disabled and
+#'   as 1, so a configuration saved before the fields existed still runs. The
+#'   order of the delay's minimum, mode and maximum is triangular_order_faults()'s.
+evacuation_delay_faults <- function(vars) {
+  #' The named values of one activity, or NULL where it is absent
+  #'
+  #' @param elm_name Element name.
+  #' @param acty_name Activity name.
+  #' @return A named list of the activity's values.
+  values_of <- function(elm_name, acty_name) {
+    for (elm in Filter(function(e) identical(e$elm, elm_name), vars)) {
+      for (acty in elm$actys) {
+        if (!identical(acty$acty, acty_name)) next
+        return(setNames(lapply(acty$vals, `[[`, "val"),
+                        vapply(acty$vals, `[[`, character(1), "var")))
+      }
+    }
+    NULL
+  }
+  #' Whether a value is one finite number of at least zero
+  #'
+  #' @param v The value.
+  #' @return TRUE or FALSE.
+  non_negative <- function(v) is.numeric(v) && length(v) == 1L && is.finite(v) && v >= 0
+  faults <- character(0)
+  delay <- values_of("r1", "evacuation_delay")
+  if (!is.null(delay)) {
+    on <- delay$enabled
+    if (!is.null(on) && !(is.numeric(on) && length(on) == 1L && on %in% c(0, 1))) {
+      found <- paste(format(on), collapse = ", ")
+      fault <- "vars[r1]$evacuation_delay: enabled must be 0 or 1, found "
+      faults <- c(faults, paste0(fault, found))
+    }
+    if (!is.null(delay$min) && !non_negative(delay$min)) {
+      found <- paste(format(delay$min), collapse = ", ")
+      fault <- "vars[r1]$evacuation_delay: min must be a single number of at least 0, found "
+      faults <- c(faults, paste0(fault, found))
+    }
+  }
+  factor <- values_of("dow", "multipliers")$prolonged_care
+  if (!is.null(factor) && !non_negative(factor)) {
+    found <- paste(format(factor), collapse = ", ")
+    fault <- "vars[dow]$multipliers: prolonged_care must be a single number of at least 0, found "
+    faults <- c(faults, paste0(fault, found))
+  }
+  faults
+}
+
 #' Find the casualty surge events whose minimum casualties exceed the maximum
 #'
 #' @param vars The `vars` block of a parsed configuration.
@@ -381,7 +435,8 @@ validate_env_data_values <- function(data, source_label = "env_data.json") {
     }
   }
   problems <- c(problems, triangular_order_faults(data$vars), surge_size_faults(data$vars),
-                generator_rate_faults(data$vars), post_definitive_share_faults(data$vars))
+                generator_rate_faults(data$vars), post_definitive_share_faults(data$vars),
+                evacuation_delay_faults(data$vars))
 
   if (length(problems) > 0) {
     stop(sprintf("validate_env_data_values: %s carries values the model cannot run:\n  - %s",

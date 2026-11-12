@@ -158,6 +158,8 @@ report(identical(marker("hours"), paste(EVAC_DELAY_SWEEP_HOURS, collapse = ";"))
 report(identical(marker("spread"), paste(EVAC_DELAY_SPREAD, collapse = ";")),
        "delay spread: code '%s', methods paper '%s'",
        paste(EVAC_DELAY_SPREAD, collapse = ";"), marker("spread"))
+report(identical(EVAC_DELAY_SWEEP_POOLS[-(1:3)], TRIAGE_SWEEP_POOLS),
+       "the classified R2E pools are the triage sweep's, written out for load order")
 
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 described <- build_environment(resolve_scenario(json_data, "default"))

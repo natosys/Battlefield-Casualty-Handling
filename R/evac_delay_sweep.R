@@ -80,9 +80,14 @@ EVAC_DELAY_SWEEP_BASELINE_ARM <- evac_delay_arm_label(0)
 #'
 #' @details The triage sweep's R2E pools and overflow points, with the R2B
 #'   theatres, holding beds and reception overflow that casualties released
-#'   forward in numbers reach first.
+#'   forward in numbers reach first. Written out rather than built from
+#'   TRIAGE_SWEEP_POOLS, since Shiny sources every file under `R/` in
+#'   alphabetical order and this file precedes `R/triage_sweep.R`;
+#'   `tests/checks/check_evac_delay_sweep.R` holds the two lists equal.
 EVAC_DELAY_SWEEP_POOLS <- c("R2B operating theatres", "R2B holding beds",
-                            "R2B reception overflow", TRIAGE_SWEEP_POOLS)
+                            "R2B reception overflow", "R2E operating theatres",
+                            "R2E intensive care", "R2E holding beds",
+                            "R2E post-operative overflow", "R2E staging overflow")
 
 #' Responses the paired comparison against the shipped configuration reports
 EVAC_DELAY_SWEEP_PAIRED_RESPONSES <- c(

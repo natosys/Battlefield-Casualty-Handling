@@ -248,6 +248,12 @@ places_summary_high <- read_tracked("airlift_places", "airlift_places_summary_hi
 save_figure(plot_airlift_places(places_collapse_high, places_summary_high, "36/54, 7 days"),
             "airlift_places.png", 13, 5.5)
 
+delay_moderate <- read_tracked("evac_delay", "evac_delay_sweep_summary.csv")
+delay_high <- read_tracked("evac_delay", "evac_delay_sweep_summary_high_intensity.csv")
+
+# RENDERS: evac_delay.png
+save_figure(plot_evac_delay(delay_moderate, delay_high), "evac_delay.png", 11, 5)
+
 icu_bed_moderate <- read_tracked("icu_beds", "icu_bed_sweep_summary.csv")
 icu_bed_high <- read_tracked("icu_beds", "icu_bed_sweep_summary_high_intensity.csv")
 

@@ -354,6 +354,55 @@ plot_airlift_places <- function(collapse_df, summary_df, shipped) {
           panel.grid.minor = element_blank())
 }
 
+#' Evacuation delay figure: deaths of wounds as a share of wounded, by where they occur
+#'
+#' @param moderate_df Tracked `data/evac_delay/evac_delay_sweep_summary.csv`.
+#' @param high_df Tracked `..._summary_high_intensity.csv`.
+#' @return ggplot object of one panel per intensity, a stacked bar per delay.
+#'
+#' @details Each bar is the mean deaths of wounds per campaign over the mean
+#'   wounded in action, split into the deaths while held forward and every other
+#'   death of wounds, so the two intensities share one scale although their
+#'   wounded differ several fold. The delays keep the order the summary lists
+#'   them. Stops where a response the bars need is absent.
+plot_evac_delay <- function(moderate_df, high_df) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  needed <- c("total_dow", "died_held_forward", "wounded")
+  missing <- setdiff(needed, both$response)
+  if (length(missing) > 0) {
+    stop("summary lacks response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  arms <- unique(moderate_df$arm)
+  wide <- both %>%
+    filter(response %in% needed) %>%
+    select(arm, intensity, response, mean) %>%
+    tidyr::pivot_wider(names_from = response, values_from = mean)
+  segments <- c("Died while held forward", "Died at any other point")
+  plot_df <- rbind(
+    data.frame(arm = wide$arm, intensity = wide$intensity, where = segments[1],
+               share = 100 * wide$died_held_forward / wide$wounded),
+    data.frame(arm = wide$arm, intensity = wide$intensity, where = segments[2],
+               share = 100 * (wide$total_dow - wide$died_held_forward) / wide$wounded)
+  ) %>%
+    mutate(arm = factor(arm, levels = arms),
+           intensity = factor(intensity, levels = names(FIGURE_INTENSITY_COLOURS)),
+           where = factor(where, levels = segments))
+  ggplot(plot_df, aes(x = arm, y = share, fill = where)) +
+    geom_col(width = 0.7) +
+    facet_wrap(~ intensity, nrow = 1) +
+    scale_fill_manual(values = stats::setNames(rev(unname(FIGURE_INTENSITY_COLOURS)), segments)) +
+    labs(title = "Forward Evacuation Delay: Deaths of Wounds and Where They Occur",
+         subtitle = paste("Every casualty held at R1 for the nominal delay before the move to",
+                          "Role 2; mean of 30 campaigns of 360 days"),
+         x = "Forward evacuation delay", y = "Died of wounds, % of wounded in action",
+         fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Responses of the R2E intensive care bed sweep figure
 #'
 #' @details `scale` turns a share into percentage points.

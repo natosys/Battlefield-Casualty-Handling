@@ -903,6 +903,10 @@ The R2E theatre queue and the diversions, deaths of wounds and returns to duty o
 
 The closing 90-day mean R2E theatre queue (left) and deaths of wounds per campaign (right) for the shipped establishment, four and six R2E teams, two teams per R2B unit, four R2E teams with two per R2B unit, and six R2E teams with a third R2E theatre, the last from the operating theatre sweep, at both intensities, each with its 95% interval.
 
+![Two panels of stacked bars of R2B operations and casualties sent on to R2E, with one or two surgical teams per R2B unit, at moderate and high intensity](../images/r2b_routing.png)
+
+The operations performed at R2B and the casualties sent on to R2E because the R2B team was off shift or its theatre busy, per campaign, with the shipped one surgical team per R2B unit and with two, at moderate intensity (left) and high intensity (right) on a shared scale.
+
 
 ### R2E Operating Theatre Establishment
 

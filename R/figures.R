@@ -456,6 +456,54 @@ plot_post_op_pressure <- function(summary_df) {
           panel.grid.minor = element_blank())
 }
 
+#' Outcomes at R2B the routing figure stacks, from the surgical team sweep's responses
+R2B_ROUTING_OUTCOMES <- c(r2b_surgeries = "Operated at R2B",
+                          diverted_offshift = "Sent to R2E: R2B team off shift",
+                          diverted_busy = "Sent to R2E: R2B theatre busy")
+
+#' R2B routing figure: what happens to casualties requiring surgery at R2B
+#'
+#' @param moderate_df Tracked `data/surgical_teams/surgical_team_sweep_summary.csv`.
+#' @param high_df Tracked `..._summary_high_intensity.csv`.
+#' @param shipped Arm label of the shipped establishment.
+#' @param second Arm label of the establishment with a second team per R2B unit.
+#' @return ggplot object of one panel per intensity, a stacked bar per
+#'   establishment.
+#'
+#' @details Each bar stacks the mean per campaign of the operations performed at
+#'   R2B and of the casualties sent on to R2E because the R2B team was off shift
+#'   or its theatre busy. The panels share one scale, so the intensities compare
+#'   directly. Stops where an outcome or arm is absent.
+plot_r2b_routing <- function(moderate_df, high_df, shipped, second) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  plot_df <- both %>%
+    filter(response %in% names(R2B_ROUTING_OUTCOMES), arm %in% c(shipped, second))
+  if (nrow(plot_df) != 2L * 2L * length(R2B_ROUTING_OUTCOMES)) {
+    stop("summaries lack an R2B outcome or arm the figure draws")
+  }
+  arms <- c("Shipped: 1 team per R2B", "2 teams per R2B")
+  colours <- c("#1f5468", "#a0442f", "#d9a27a")
+  plot_df <- plot_df %>%
+    mutate(arm = factor(ifelse(arm == shipped, arms[1], arms[2]), levels = arms),
+           outcome = factor(R2B_ROUTING_OUTCOMES[response], levels = rev(R2B_ROUTING_OUTCOMES)),
+           intensity = factor(intensity, levels = names(FIGURE_INTENSITY_COLOURS)))
+  ggplot(plot_df, aes(x = arm, y = mean, fill = outcome)) +
+    geom_col(width = 0.6) +
+    facet_wrap(~ intensity, nrow = 1) +
+    scale_fill_manual(values = stats::setNames(colours, R2B_ROUTING_OUTCOMES),
+                      breaks = unname(R2B_ROUTING_OUTCOMES)) +
+    scale_y_continuous(labels = scales::comma) +
+    labs(title = "Where R2B's Surgical Casualties Go, with One or Two Teams per Unit",
+         subtitle = paste("Casualties requiring surgery at R2B per 360-day campaign, by outcome;",
+                          "mean of 30 campaigns"),
+         x = NULL, y = "Casualties per campaign", fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Responses of the R2E intensive care bed sweep figure
 #'
 #' @details `scale` turns a share into percentage points.

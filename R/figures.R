@@ -403,6 +403,59 @@ plot_evac_delay <- function(moderate_df, high_df) {
           panel.grid.minor = element_blank())
 }
 
+#' Theatre and team options the post-operative pressure figure compares, with their labels
+#'
+#' @details The arms of the operating theatre sweep in its order. Three theatres at
+#'   three sections is the sweep's null control: two sections on the larger shift
+#'   never outnumber three theatres, so the added theatre cannot be used, and the
+#'   label says so.
+POST_OP_PRESSURE_OPTIONS <- c(
+  "2 theatres, 3 sections" = "Shipped: 3 R2E teams, 2 theatres",
+  "3 theatres, 3 sections" = "3 R2E teams, 3 theatres (third theatre unusable)",
+  "2 theatres, 6 sections" = "6 R2E teams, 2 theatres",
+  "3 theatres, 6 sections" = "6 R2E teams, 3 theatres",
+  "4 theatres, 8 sections" = "8 R2E teams, 4 theatres"
+)
+
+#' Post-operative pressure figure: the surgery queue against the beds behind it
+#'
+#' @param summary_df Tracked `data/ot_beds/ot_bed_sweep_summary_high_intensity.csv`.
+#' @return ggplot object of three panels, the theatre and team options down the
+#'   side.
+#'
+#' @details Shows the R2E theatre queue, the operated casualties in post-operative
+#'   overflow and the R2E holding queue at high intensity, where relieving surgery
+#'   moves the pressure onto the post-operative beds. Every axis starts at zero, so
+#'   a rise of a fraction of a level is not drawn as a large one. Stops naming an
+#'   option or response the summary lacks.
+plot_post_op_pressure <- function(summary_df) {
+  panels <- c(theatre_mean_queue = "Casualties waiting for R2E surgery",
+              overflow_r2e_post_op = "Operated casualties in overflow",
+              hold_mean_queue = "Casualties waiting for an R2E holding bed")
+  plot_df <- summary_df %>%
+    filter(response %in% names(panels), arm %in% names(POST_OP_PRESSURE_OPTIONS))
+  found <- unique(paste(plot_df$arm, plot_df$response))
+  wanted <- as.vector(outer(names(POST_OP_PRESSURE_OPTIONS), names(panels), paste))
+  if (!all(wanted %in% found)) {
+    stop("summary lacks: ", paste(setdiff(wanted, found), collapse = ", "))
+  }
+  plot_df <- plot_df %>%
+    mutate(arm = factor(POST_OP_PRESSURE_OPTIONS[arm], levels = rev(POST_OP_PRESSURE_OPTIONS)),
+           panel = factor(panels[response], levels = panels))
+  subtitle <- sprintf(paste("High intensity; closing 90-day means of %d campaigns of 360 days",
+                            "per option, with 95%% interval"), unique(plot_df$n_reps))
+  ggplot(plot_df, aes(x = mean, y = arm)) +
+    geom_pointrange(aes(xmin = ci_lower, xmax = ci_upper),
+                    colour = FIGURE_INTENSITY_COLOURS[["High intensity"]], size = 0.4) +
+    facet_wrap(~ panel, nrow = 1, scales = "free_x") +
+    expand_limits(x = 0) +
+    labs(title = "Relieving Surgery Moves the Pressure onto Post-Operative Beds",
+         subtitle = subtitle, x = NULL, y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title.position = "plot", strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Responses of the R2E intensive care bed sweep figure
 #'
 #' @details `scale` turns a share into percentage points.

@@ -240,6 +240,9 @@ save_figure(plot_surgical_capacity(list(moderate = surgical_moderate, high = sur
                                    list(moderate = ot_moderate, high = ot_high)),
             "surgical_capacity.png", 11, 5)
 
+# RENDERS: post_op_pressure.png
+save_figure(plot_post_op_pressure(ot_high), "post_op_pressure.png", 12.5, 4.4)
+
 places_collapse_high <- read_tracked("airlift_places",
                                      "airlift_places_collapse_high_intensity.csv")
 places_summary_high <- read_tracked("airlift_places", "airlift_places_summary_high_intensity.csv")

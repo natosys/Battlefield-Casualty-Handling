@@ -539,6 +539,51 @@ plot_ambulance_fleet <- function(moderate_df, high_df, shipped, min_vehicles = 2
           panel.grid.minor = element_blank())
 }
 
+#' Plain labels of the transport holders the asset use figure draws, in display order
+EVACUATION_ASSET_LABELS <- c(
+  "PMV Ambulance fleet" = "Shared PMV ambulance fleet (R1 to R2B)",
+  "HX2 40M fleet" = "Shared HX2 40M truck fleet (the dead)",
+  "R2B evacuation crews" = "Integral R2B evacuation crews (R2B to R2E)",
+  "R2E evacuation sections" = "Integral R2E evacuation sections"
+)
+
+#' Evacuation asset use figure: time in use of each transport holder
+#'
+#' @param holders_df Tracked `data/scenarios/scenario_transport_holders.csv`.
+#' @return ggplot object of one bar per holder and intensity.
+#'
+#' @details Draws the closing 90-day utilisation with its 95% interval, labelled
+#'   past the interval's upper bound so a label never sits on its bar. Stops
+#'   naming a holder the evidence lacks.
+plot_evacuation_asset_use <- function(holders_df) {
+  missing <- setdiff(names(EVACUATION_ASSET_LABELS), holders_df$holder)
+  if (length(missing) > 0) {
+    stop("transport holder evidence lacks: ", paste(missing, collapse = ", "))
+  }
+  intensities <- c(moderate_intensity = "Moderate intensity", high_intensity = "High intensity")
+  plot_df <- holders_df %>%
+    filter(holder %in% names(EVACUATION_ASSET_LABELS), scenario %in% names(intensities)) %>%
+    mutate(holder = factor(EVACUATION_ASSET_LABELS[holder], levels = rev(EVACUATION_ASSET_LABELS)),
+           intensity = factor(intensities[scenario], levels = names(FIGURE_INTENSITY_COLOURS)))
+  dodge <- position_dodge(0.7)
+  ggplot(plot_df, aes(x = 100 * util_mean, y = holder, fill = intensity)) +
+    geom_col(position = dodge, width = 0.65) +
+    geom_errorbar(aes(xmin = 100 * util_ci_lower, xmax = 100 * util_ci_upper),
+                  position = dodge, width = 0.2, colour = "grey30", orientation = "y") +
+    geom_text(aes(x = 100 * util_ci_upper, label = sprintf("%.0f%%", 100 * util_mean)),
+              position = dodge, hjust = -0.25, size = 3.3) +
+    scale_fill_manual(values = FIGURE_INTENSITY_COLOURS) +
+    scale_x_continuous(limits = c(0, 100)) +
+    labs(title = "How Much of the Time Each Evacuation Asset Is in Use",
+         subtitle = sprintf(paste("Closing 90-day utilisation, mean of %d campaigns of 360 days",
+                                  "with 95%% interval; shipped establishment"),
+                            unique(plot_df$n_reps)),
+         x = "Time in use (%)", y = NULL, fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          panel.grid.minor = element_blank())
+}
+
 #' Responses of the R2E intensive care bed sweep figure
 #'
 #' @details `scale` turns a share into percentage points.

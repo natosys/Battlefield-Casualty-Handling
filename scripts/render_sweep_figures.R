@@ -166,6 +166,11 @@ save_figure(p_transport_high, "transport_capacity_margin_by_fleet_size_high_inte
 save_figure(plot_ambulance_fleet(transport, transport_high, current_qty[["PMVAmb"]]),
             "ambulance_fleet.png", 9, 5)
 
+holders <- read_tracked("scenarios", "scenario_transport_holders.csv")
+
+# RENDERS: evacuation_asset_use.png
+save_figure(plot_evacuation_asset_use(holders), "evacuation_asset_use.png", 10, 4.8)
+
 post_op_rule <- env_json$vars$r2b$post_op_icu
 forward_shipped <- FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_dcs &
   FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_single_stage &

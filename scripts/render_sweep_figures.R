@@ -162,6 +162,10 @@ p_transport_high <- render_transport_sweep_plot(transport_high, current_qty,
                                                 scenario = "high_intensity")
 save_figure(p_transport_high, "transport_capacity_margin_by_fleet_size_high_intensity.png", 12, 8)
 
+# RENDERS: ambulance_fleet.png
+save_figure(plot_ambulance_fleet(transport, transport_high, current_qty[["PMVAmb"]]),
+            "ambulance_fleet.png", 9, 5)
+
 post_op_rule <- env_json$vars$r2b$post_op_icu
 forward_shipped <- FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_dcs &
   FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_single_stage &

@@ -393,6 +393,10 @@ Utilisation is the time-weighted share of the established units in use over the 
 
 At moderate intensity the R2B evacuation crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|Moderate intensity utilisation|mean -->13.9%<!-- /GEN --> of the window and the ambulance fleet for <!-- GEN cell:transport_holders|PMV Ambulance fleet|Moderate intensity utilisation|mean -->24.6%<!-- /GEN -->. At high intensity the crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|mean -->41.6%<!-- /GEN --> (interval <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|ci -->[40.4%, 42.8%]<!-- /GEN -->) and queued <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity mean queue|mean -->0.622<!-- /GEN --> casualties, the ambulance fleet was in use for <!-- GEN cell:transport_holders|PMV Ambulance fleet|High intensity utilisation|mean -->51.1%<!-- /GEN --> and the truck fleet for <!-- GEN cell:transport_holders|HX2 40M fleet|High intensity utilisation|mean -->5.7%<!-- /GEN -->. The R2E evacuation sections were in use for <!-- GEN cell:transport_holders|R2E evacuation sections|High intensity utilisation|mean -->1.1%<!-- /GEN --> at high intensity.
 
+![Casualties waiting for an ambulance against the number of ambulances in the shared fleet at moderate and high intensity](../images/ambulance_fleet.png)
+
+The closing 90-day mean queue for the shared PMV ambulance fleet at two to five vehicles, with its 95% interval, at both intensities on one scale, the shipped fleet marked; the single-vehicle fleet, whose high-intensity queue is in the table above, is left out.
+
 ### Forward Holding of Post-Operative Intensive Care
 
 **Question.** What changes when a casualty operated on at R2B is held there for part of their post-operative intensive care, for a stability window or while R2E intensive care is saturated? `[default, seven forward holding arms · 360 d · 30 replications · pool totals, closing 90 d]`

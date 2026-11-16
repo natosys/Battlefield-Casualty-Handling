@@ -504,6 +504,41 @@ plot_r2b_routing <- function(moderate_df, high_df, shipped, second) {
           panel.grid.minor = element_blank())
 }
 
+#' Ambulance fleet figure: casualties waiting for an ambulance by fleet size
+#'
+#' @param moderate_df Tracked `data/sweeps/transport_capacity_by_fleet_size.csv`.
+#' @param high_df Tracked `..._high_intensity.csv`.
+#' @param shipped Shipped number of ambulances.
+#' @param min_vehicles Smallest fleet drawn; the single-vehicle fleet is left out,
+#'   its high-intensity queue being orders of magnitude above the rest.
+#' @return ggplot object of one panel, both intensities against the fleet size.
+#'
+#' @details Draws the PMV ambulance fleet's closing 90-day mean queue with its
+#'   95% interval at each intensity on one shared scale, the shipped fleet marked.
+#'   Stops where the ambulance rows are absent.
+plot_ambulance_fleet <- function(moderate_df, high_df, shipped, min_vehicles = 2L) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  plot_df <- both %>% filter(vehicle == "PMVAmb", qty >= min_vehicles)
+  if (nrow(plot_df) == 0L) stop("transport sweep carries no PMV ambulance rows")
+  plot_df$intensity <- factor(plot_df$intensity, levels = names(FIGURE_INTENSITY_COLOURS))
+  ggplot(plot_df, aes(x = qty, y = mean_q, colour = intensity)) +
+    geom_vline(xintercept = shipped, linetype = "dashed", colour = "grey50") +
+    geom_line(linewidth = 0.8) +
+    geom_pointrange(aes(ymin = ci_lower_q, ymax = ci_upper_q), size = 0.4) +
+    scale_colour_manual(values = FIGURE_INTENSITY_COLOURS) +
+    scale_x_continuous(breaks = sort(unique(plot_df$qty))) +
+    expand_limits(y = 0) +
+    labs(title = "Casualties Waiting for an Ambulance, by Fleet Size",
+         subtitle = sprintf(paste("Shared PMV ambulance fleet; closing 90-day mean queue with",
+                                  "95%% interval; dashed line marks the shipped %d vehicles"),
+                            as.integer(shipped)),
+         x = "Ambulances in the shared fleet", y = "Casualties waiting", colour = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          panel.grid.minor = element_blank())
+}
+
 #' Responses of the R2E intensive care bed sweep figure
 #'
 #' @details `scale` turns a share into percentage points.

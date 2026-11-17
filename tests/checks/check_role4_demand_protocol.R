@@ -170,7 +170,7 @@ if (!is.null(series)) {
          paste("the series carries the census, the demand owed within, after and in all,",
                "and the load left when the campaign ends"))
   tail_subjects <- unique(series$subject[series$series == "census_tail"])
-  report(setequal(tail_subjects, ROLE4_TAIL_MEASURES),
+  report(setequal(tail_subjects, c(ROLE4_TAIL_MEASURES, ROLE4_BACKLOG_MEASURES)),
          "the load left at the end carries every measure (%s)",
          paste(sort(tail_subjects), collapse = ", "))
   ops_subjects <- unique(series$subject[series$series == "operations"])
@@ -448,8 +448,8 @@ check_census_table <- function(marker, subjects) {
 }
 
 check_census_table("<!-- GEN role4_census_ward -->",
-                   c("Total" = ROLE4_TOTAL, "Intensive care phase" = "icu",
-                     "Step-down ward phase" = "hold"))
+                   c("Total" = ROLE4_TOTAL, "Intensive care" = "icu",
+                     "Holding" = "hold"))
 check_census_table("<!-- GEN role4_census_origin -->",
                    c("Total" = ROLE4_TOTAL, "Battle injury" = ROLE4_ORIGINS[["battle_injury"]],
                      "Disease and non-battle injury" = ROLE4_ORIGINS[["dnbi"]],
@@ -530,7 +530,7 @@ report(identical(role4_origin(origin_in),
 report(identical(role4_origin(data.frame(injury_type = c(1, 2))), c("battle_injury", "dnbi")),
        "a configuration drawing no reconstruction classes everyone by injury type")
 
-# Census: three phases over eight days, [1,2] intensive care, [3,6] step-down,
+# Census: three phases over eight days, [1,2] intensive care, [3,6] holding,
 # and [5,12] intensive care, which runs past the horizon and is counted to it.
 phases <- data.frame(phase_ward = c("icu", "hold", "icu"),
                      origin = unname(ROLE4_ORIGINS[c("battle_injury", "battle_injury",
@@ -624,6 +624,26 @@ report(identical(unname(tl), c(3, 4, 11, 11, 15)) &&
        paste(tl, collapse = ", "))
 report(all(role4_census_tail(tail_phases[0, ], n_days = 10L) == 0),
        "a campaign that sent nobody home leaves no load")
+
+# The airlift backlog at a ten-day horizon on a weekly schedule with one place
+# per route: the next sorties fly on days 14 and 21. Casualty 2 heads the
+# critical queue but dies on day 12, so 1 boards on day 14 and 3 on day 21;
+# on the standard route 4 boards on day 14, before its day-30 death, and 5 on
+# day 21, when the theatre clears.
+dr <- drain_airlift_backlog(route = c(1, 1, 1, 2, 2), queued_at = c(100, 50, 200, 10, 20),
+                            death_time = c(NA, 12, NA, 30, NA) * DAY_MIN, n_days = 10,
+                            interval_days = 7, places = c(1, 1), failure_probability = 0)
+report(identical(dr$board_time, c(14, NA, 21, 14, 21) * DAY_MIN) &&
+         identical(dr$died, c(FALSE, TRUE, FALSE, FALSE, FALSE)) &&
+         identical(dr$clear_time, 21 * DAY_MIN),
+       "the backlog flies out in queue order, a death freeing its place (%s)",
+       paste(dr$board_time / DAY_MIN, collapse = ", "))
+shut <- drain_airlift_backlog(route = c(1, 1), queued_at = c(1, 2),
+                              death_time = c(40, NA) * DAY_MIN, n_days = 10,
+                              interval_days = 7, places = c(0, 1), failure_probability = 0)
+report(all(is.na(shut$board_time)) && identical(shut$died, c(TRUE, FALSE)) &&
+         is.na(shut$clear_time),
+       "a route with no places never clears, its casualties at risk dying waiting")
 
 # ── 7. Demand only ──────────────────────────────────────────────────────────
 

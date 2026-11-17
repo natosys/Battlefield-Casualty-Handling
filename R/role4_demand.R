@@ -171,9 +171,9 @@ ROLE4_TAIL_MEASURES <- c("census_end", "days_to_half", "days_to_tenth", "days_to
 #' @details Counts a phase on every day from its start to its end inclusive, as
 #'   role4_census_from_phases() does, but without clipping it to the campaign
 #'   window, so the stays still running at the horizon are followed until they
-#'   end. Admissions cease at the horizon, so after it the census can only fall
-#'   and these casualties are the whole of the load the model can see; casualties
-#'   still in theatre awaiting evacuation at the horizon are not among them.
+#'   end. Admissions cease at the horizon, so after it the census can only fall;
+#'   the casualties still in theatre awaiting evacuation at the horizon are added
+#'   by role4_backlog_tail_detail().
 role4_census_tail <- function(phases, n_days) {
   out <- stats::setNames(numeric(length(ROLE4_TAIL_MEASURES)), ROLE4_TAIL_MEASURES)
   if (nrow(phases) == 0) return(out)
@@ -220,6 +220,143 @@ role4_census_tail <- function(phases, n_days) {
 role4_census_tail_detail <- function(arrivals_log, r4_params, n_days) {
   assigned <- assign_role4_los(arrivals_log, r4_params)
   role4_census_tail(role4_ward_phases(assigned, r4_params), n_days)
+}
+
+#' Measures of the casualties still awaiting strategic airlift when the campaign ends
+#'
+#' @details `backlog_end` is the casualties queued for an airlift place on the
+#'   campaign's last day; `backlog_boarded` and `backlog_died` are those of them
+#'   who boarded a later sortie and who died first; `days_to_clear` is the days
+#'   after the last day until the last of them boarded or died, missing where a
+#'   route never flies again. The `_all` measures repeat the census tail with the
+#'   boarded casualties admitted to Role 4 on their sortie's day, and
+#'   `census_peak_after_all` is that census's highest day after the horizon.
+ROLE4_BACKLOG_MEASURES <- c("backlog_end", "backlog_boarded", "backlog_died", "days_to_clear",
+                            "census_peak_after_all", "days_to_half_all", "days_to_tenth_all",
+                            "days_to_empty_all", "bed_days_after_all")
+
+#' Fly the airlift backlog out on the sorties that follow the campaign
+#'
+#' @param route Airlift route of each casualty waiting, 1 critical and 2 standard.
+#' @param queued_at Time each joined the queue, in minutes; sets the boarding order.
+#' @param death_time Time each would die waiting, in minutes, or NA for none.
+#' @param n_days Campaign length in days.
+#' @param interval_days Days between sorties.
+#' @param places Places per sortie, critical then standard.
+#' @param failure_probability Probability a sortie is cancelled.
+#' @return List of `board_time` (NA for a casualty who never boards), `died`
+#'   (logical) and `clear_time`, the minute the last casualty boarded or died,
+#'   NA where some casualty never does.
+#'
+#' @details Continues the sortie schedule the campaign flew, every
+#'   `interval_days` from the first sortie after the horizon, each route boarding
+#'   in queue order up to its places, as build_ame_sortie_trajectory() does. A
+#'   casualty whose death time comes before the sortie that would carry them dies
+#'   instead and frees the place, as the queued casualty reneges in
+#'   r2e_ame_queue_and_board(). The death time is the one the model drew when the
+#'   casualty was staged, so the wait continues the campaign's rather than a fresh
+#'   draw; a death time already past at the horizon, possible for a casualty still
+#'   in pre-flight intensive care, takes effect at the first sortie. A
+#'   cancellation draw is made only where cancellation is possible.
+drain_airlift_backlog <- function(route, queued_at, death_time, n_days, interval_days,
+                                  places, failure_probability) {
+  n <- length(route)
+  board <- rep(NA_real_, n)
+  died <- rep(FALSE, n)
+  if (n == 0) return(list(board_time = board, died = died, clear_time = n_days * DAY_MIN))
+  sortie <- floor(n_days / interval_days) + 1
+  stranded <- FALSE
+  repeat {
+    pending <- which(is.na(board) & !died)
+    if (length(pending) == 0) break
+    t <- sortie * interval_days * DAY_MIN
+    dead <- pending[!is.na(death_time[pending]) & death_time[pending] <= t]
+    died[dead] <- TRUE
+    pending <- setdiff(pending, dead)
+    if (length(pending) == 0) break
+    if (failure_probability >= 1 || all(places[route[pending]] <= 0)) {
+      at_risk <- pending[!is.na(death_time[pending])]
+      died[at_risk] <- TRUE
+      stranded <- length(at_risk) < length(pending)
+      break
+    }
+    flies <- failure_probability <= 0 || stats::runif(1) >= failure_probability
+    if (flies) {
+      for (r in 1:2) {
+        q <- pending[route[pending] == r]
+        q <- q[order(queued_at[q])]
+        board[utils::head(q, places[r])] <- t
+      }
+    }
+    sortie <- sortie + 1
+  }
+  ends <- c(board[!is.na(board)], pmax(death_time[died], n_days * DAY_MIN), n_days * DAY_MIN)
+  list(board_time = board, died = died, clear_time = if (stranded) NA_real_ else max(ends))
+}
+
+#' The airlift backlog at the horizon and the Role 4 load once it is flown out
+#'
+#' @param arrivals_log Per-casualty arrivals and attributes, as
+#'   compute_role4_census() takes.
+#' @param r4_params `env_data$vars$role4` list.
+#' @param n_days Campaign length in days.
+#' @return Named numeric vector of ROLE4_BACKLOG_MEASURES.
+#'
+#' @details A casualty is in the backlog where their evacuation was decided and
+#'   a route assigned but no sortie had carried them by the horizon and they had
+#'   not died. Casualties still in surgery or in a Role 2 bed at the horizon,
+#'   their evacuation not yet decided, are not among them.
+role4_backlog_tail_detail <- function(arrivals_log, r4_params, n_days) {
+  #' One attribute column of the arrivals log, missing throughout where absent
+  #'
+  #' @param name Attribute name.
+  #' @return The column, or NA for every casualty where the run never set it.
+  col <- function(name) {
+    if (name %in% names(arrivals_log)) arrivals_log[[name]] else rep(NA_real_, nrow(arrivals_log))
+  }
+  dead <- !is.na(col("dow")) & col("dow") == 1
+  waiting <- which(!is.na(col("ame_route")) & is.na(col("evacuation_day")) &
+                     !is.na(col("r2e_evac")) & col("r2e_evac") == 1 & !dead)
+  airframe <- resolve_ame_airframe(r4_params)
+  places <- c(as.numeric(airframe$critical_capacity), as.numeric(airframe$standard_capacity))
+  failure <- as.numeric(r4_params$ame$failure_probability)
+  if (length(failure) == 0 || is.na(failure)) failure <- 0
+  drained <- drain_airlift_backlog(
+    route = col("ame_route")[waiting], queued_at = col("r2e_departure_time")[waiting],
+    death_time = col("ame_death_time")[waiting], n_days = n_days,
+    interval_days = as.numeric(r4_params$ame$schedule_interval_days), places = places,
+    failure_probability = failure
+  )
+  boarded <- !is.na(drained$board_time)
+  flown <- arrivals_log
+  flown$evacuation_day[waiting[boarded]] <- floor(drained$board_time[boarded] / DAY_MIN) + 1
+  phases <- role4_ward_phases(assign_role4_los(flown, r4_params), r4_params)
+  all <- role4_census_tail(phases, n_days)
+  out <- stats::setNames(numeric(length(ROLE4_BACKLOG_MEASURES)), ROLE4_BACKLOG_MEASURES)
+  out[["backlog_end"]] <- length(waiting)
+  out[["backlog_boarded"]] <- sum(boarded)
+  out[["backlog_died"]] <- sum(drained$died)
+  out[["days_to_clear"]] <- ceiling(drained$clear_time / DAY_MIN) - n_days
+  out[["census_peak_after_all"]] <- role4_census_peak_after(phases, n_days)
+  out[c("days_to_half_all", "days_to_tenth_all", "days_to_empty_all", "bed_days_after_all")] <-
+    all[c("days_to_half", "days_to_tenth", "days_to_empty", "bed_days_after")]
+  out
+}
+
+#' The highest Role 4 census on any day after the horizon
+#'
+#' @param phases Ward phases as role4_ward_phases() returns them.
+#' @param n_days Campaign length in days.
+#' @return The highest count of phases covering one day after `n_days`, 0 where
+#'   none runs past it.
+role4_census_peak_after <- function(phases, n_days) {
+  if (nrow(phases) == 0) return(0)
+  start <- pmax(as.integer(phases$phase_start), n_days + 1L)
+  end <- as.integer(phases$phase_end)
+  ok <- !is.na(start) & !is.na(end) & start <= end
+  if (!any(ok)) return(0)
+  days <- sequence(end[ok] - start[ok] + 1L, from = start[ok]) - n_days
+  max(tabulate(days))
 }
 
 #' Sources of the operations owed at Role 4, in display order
@@ -332,6 +469,10 @@ reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
     set.seed(seed)
     role4_census_tail_detail(wide, r4_params, n_days)
   })
+  backlog <- with_preserved_rng({
+    set.seed(seed)
+    role4_backlog_tail_detail(wide, r4_params, n_days)
+  })
   daily <- ops$daily
   label <- unname(ROLE4_OPERATION_SOURCES[daily$source])
   per_day <- aggregate(cbind(operations, theatre_minutes) ~ day, data = daily, FUN = sum)
@@ -349,7 +490,9 @@ reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
     data.frame(day = n_days, series = "operations_admitted", subject = ROLE4_TOTAL,
                value = sum(daily$operations) + ops$after_horizon, stringsAsFactors = FALSE),
     data.frame(day = n_days, series = "census_tail", subject = names(tail),
-               value = unname(tail), stringsAsFactors = FALSE)
+               value = unname(tail), stringsAsFactors = FALSE),
+    data.frame(day = n_days, series = "census_tail", subject = names(backlog),
+               value = unname(backlog), stringsAsFactors = FALSE)
   )
 }
 

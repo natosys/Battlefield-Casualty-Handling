@@ -856,7 +856,7 @@ plot_casualty_surge_timeline <- function(events, n_sim_days) {
 #'
 #' @details Keyed by the ward level `env_data.json` names, so a ward the figure
 #'   has no name for is drawn under its own level rather than dropped.
-ROLE4_FIGURE_WARDS <- c(icu = "Intensive care phase", hold = "Step-down ward phase")
+ROLE4_FIGURE_WARDS <- c(icu = "Intensive care", hold = "Holding")
 
 #' Role 4 census over time figure
 #'

@@ -1659,7 +1659,7 @@ The share of campaigns in which each airlift route collapsed (left), the mean wa
 
 **Question.** How many national support base beds does a campaign commit, what is the demand made of, has it settled by the closing window, how long does it outlast the campaign, and how do the forward evacuation levers move it? `[default, both intensities, the evacuation policy, R2E holding establishment, saturation release and sortie cancellation sweeps · 360 d · 30 replications · daily census, mean, peak and closing 90 d]`
 
-The model gives the national support base no capacity, queue or shortfall, so every figure here is demand: the casualties in a Role 4 bed on a day, counted as the other sections count the Role 4 peak. The mean is taken over the whole campaign, the peak is the busiest day of one campaign, and the closing mean is the mean over the last 90 days. A casualty is counted by the ward phase it is in, intensive care or step-down, and by its origin, battle injury, disease and non-battle injury or the reconstruction cohort.
+The model gives the national support base no capacity, queue or shortfall, so every figure here is demand: the casualties in a Role 4 bed on a day, counted as the other sections count the Role 4 peak. The mean is taken over the whole campaign, the peak is the busiest day of one campaign, and the closing mean is the mean over the last 90 days. A casualty is counted by the ward phase it is in, intensive care or holding, and by its origin, battle injury, disease and non-battle injury or the reconstruction cohort.
 
 <!-- GEN role4_census_ward -->
 | Census by ward phase | Moderate intensity | High intensity |
@@ -1667,15 +1667,15 @@ The model gives the national support base no capacity, queue or shortfall, so ev
 | Total, mean beds | 139.02 [136.18, 141.85] | 210.23 [209.23, 211.23] |
 | Total, peak beds | 209.23 [205.24, 213.23] | 281.30 [278.98, 283.62] |
 | Total, closing 90-day mean beds | 150.38 [145.47, 155.29] | 219.86 [217.41, 222.31] |
-| Intensive care phase, mean beds | 33.59 [32.85, 34.33] | 42.77 [42.57, 42.97] |
-| Intensive care phase, peak beds | 63.80 [62.77, 64.83] | 67.57 [66.87, 68.26] |
-| Intensive care phase, closing 90-day mean beds | 35.74 [34.43, 37.06] | 43.72 [43.32, 44.13] |
-| Step-down ward phase, mean beds | 105.43 [103.26, 107.59] | 167.46 [166.45, 168.47] |
-| Step-down ward phase, peak beds | 154.17 [150.14, 158.19] | 223.53 [220.98, 226.08] |
-| Step-down ward phase, closing 90-day mean beds | 114.64 [110.88, 118.40] | 176.14 [173.72, 178.55] |
+| Intensive care, mean beds | 33.59 [32.85, 34.33] | 42.77 [42.57, 42.97] |
+| Intensive care, peak beds | 63.80 [62.77, 64.83] | 67.57 [66.87, 68.26] |
+| Intensive care, closing 90-day mean beds | 35.74 [34.43, 37.06] | 43.72 [43.32, 44.13] |
+| Holding, mean beds | 105.43 [103.26, 107.59] | 167.46 [166.45, 168.47] |
+| Holding, peak beds | 154.17 [150.14, 158.19] | 223.53 [220.98, 226.08] |
+| Holding, closing 90-day mean beds | 114.64 [110.88, 118.40] | 176.14 [173.72, 178.55] |
 <!-- /GEN -->
 
-At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->139.02 [136.18, 141.85]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->209.23 [205.24, 213.23]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->150.38 [145.47, 155.29]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->210.23 [209.23, 211.23]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->281.30 [278.98, 283.62]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->219.86 [217.41, 222.31]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The step-down ward phase carried <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|Moderate intensity|mean -->105.43<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->139.02<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|High intensity|mean -->167.46<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->210.23<!-- /GEN --> at high, and the intensive care phase the remainder.
+At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->139.02 [136.18, 141.85]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->209.23 [205.24, 213.23]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->150.38 [145.47, 155.29]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->210.23 [209.23, 211.23]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->281.30 [278.98, 283.62]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->219.86 [217.41, 222.31]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The holding phase carried <!-- GEN cell:role4_census_ward|Holding, mean beds|Moderate intensity|mean -->105.43<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->139.02<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Holding, mean beds|High intensity|mean -->167.46<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->210.23<!-- /GEN --> at high, and the intensive care phase the remainder.
 
 ![Daily Role 4 census over a 360-day campaign at each casualty intensity, divided by ward phase and by origin](../images/role4_demand_census.png)
 
@@ -1734,12 +1734,19 @@ Admissions end with the campaign, so the census on its last day is a load the na
 
 The census on day 360 halved in <!-- GEN cell:role4_tail|Days after day 360 until the census halves|Moderate intensity|mean -->12.9<!-- /GEN --> days at moderate intensity and <!-- GEN cell:role4_tail|Days after day 360 until the census halves|High intensity|mean -->11.4<!-- /GEN --> at high, fell to a tenth in <!-- GEN cell:role4_tail|Days after day 360 until it falls to a tenth|Moderate intensity|mean -->28.3<!-- /GEN --> and <!-- GEN cell:role4_tail|Days after day 360 until it falls to a tenth|High intensity|mean -->26.9<!-- /GEN -->, and emptied in <!-- GEN cell:role4_tail|Days after day 360 until the last bed empties|Moderate intensity|mean -->39.3<!-- /GEN --> and <!-- GEN cell:role4_tail|Days after day 360 until the last bed empties|High intensity|mean -->40.4<!-- /GEN -->. The beds occupied after day 360 came to <!-- GEN cell:role4_tail|Bed-days occupied after day 360|Moderate intensity|mean -->2,088<!-- /GEN --> bed-days at moderate intensity and <!-- GEN cell:role4_tail|Bed-days occupied after day 360|High intensity|mean -->2,827<!-- /GEN --> at high. The figures exclude the casualties still in theatre on day 360, who have not reached Role 4.
 
+The casualties awaiting a strategic airlift place on day 360 were then flown out on the sorties that would have followed, at the configured interval and places, each route boarding in queue order. A casualty whose drawn death time came before the sortie that would have carried them died waiting, as during the campaign. Each casualty flown out was admitted to Role 4 on the sortie's day with a length of stay drawn as for any other. Casualties still in surgery or in a Role 2 bed on day 360, their evacuation not yet decided, are not included.
+
+<!-- GEN role4_backlog -->
+<!-- /GEN -->
+
+On day 360, <!-- GEN cell:role4_backlog|Casualties awaiting airlift on day 360|Moderate intensity|mean -->0<!-- /GEN --> casualties were awaiting airlift at moderate intensity and <!-- GEN cell:role4_backlog|Casualties awaiting airlift on day 360|High intensity|mean -->0<!-- /GEN --> at high. The last was flown out <!-- GEN cell:role4_backlog|Days after day 360 until the last is flown out|Moderate intensity|mean -->0<!-- /GEN --> days after the campaign ended at moderate intensity and <!-- GEN cell:role4_backlog|Days after day 360 until the last is flown out|High intensity|mean -->0<!-- /GEN --> days after at high, and <!-- GEN cell:role4_backlog|Of them, died awaiting airlift|Moderate intensity|mean -->0<!-- /GEN --> and <!-- GEN cell:role4_backlog|Of them, died awaiting airlift|High intensity|mean -->0<!-- /GEN --> died waiting. With those casualties admitted, the Role 4 census emptied <!-- GEN cell:role4_backlog|Days after day 360 until the last bed empties|Moderate intensity|mean -->0<!-- /GEN --> days after the campaign at moderate intensity and <!-- GEN cell:role4_backlog|Days after day 360 until the last bed empties|High intensity|mean -->0<!-- /GEN --> days after at high, occupying <!-- GEN cell:role4_backlog|Bed-days occupied after day 360|Moderate intensity|mean -->0<!-- /GEN --> and <!-- GEN cell:role4_backlog|Bed-days occupied after day 360|High intensity|mean -->0<!-- /GEN --> bed-days after day 360.
+
 <!-- GEN role4_stability -->
 | Census | Moderate intensity classification | Moderate intensity settles by block | Moderate intensity late mean beds | High intensity classification | High intensity settles by block | High intensity late mean beds |
 |---|---|---|---|---|---|---|
 | Total | converged | 2 | 146.96 | converged | 2 | 219.81 |
-| Intensive care phase | converged | 2 | 34.77 | converged | 2 | 43.79 |
-| Step-down ward phase | converged | 2 | 112.19 | converged | 2 | 176.02 |
+| Intensive care | converged | 2 | 34.77 | converged | 2 | 43.79 |
+| Holding | converged | 2 | 112.19 | converged | 2 | 176.02 |
 | Battle injury | converged | 2 | 103.59 | converged | 2 | 180.92 |
 | Disease and non-battle injury | converged | 2 | 19.46 | converged | 2 | 10.92 |
 | Reconstruction cohort | converged | 2 | 23.91 | converged | 2 | 27.97 |

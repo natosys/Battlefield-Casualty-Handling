@@ -1657,7 +1657,7 @@ The share of campaigns in which each airlift route collapsed (left), the mean wa
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** How many national support base beds does a campaign commit, what is the demand made of, has it settled by the closing window, and how do the forward evacuation levers move it? `[default, both intensities, the evacuation policy, R2E holding establishment, saturation release and sortie cancellation sweeps · 360 d · 30 replications · daily census, mean, peak and closing 90 d]`
+**Question.** How many national support base beds does a campaign commit, what is the demand made of, has it settled by the closing window, how long does it outlast the campaign, and how do the forward evacuation levers move it? `[default, both intensities, the evacuation policy, R2E holding establishment, saturation release and sortie cancellation sweeps · 360 d · 30 replications · daily census, mean, peak and closing 90 d]`
 
 The model gives the national support base no capacity, queue or shortfall, so every figure here is demand: the casualties in a Role 4 bed on a day, counted as the other sections count the Role 4 peak. The mean is taken over the whole campaign, the peak is the busiest day of one campaign, and the closing mean is the mean over the last 90 days. A casualty is counted by the ward phase it is in, intensive care or step-down, and by its origin, battle injury, disease and non-battle injury or the reconstruction cohort.
 
@@ -1719,6 +1719,20 @@ The operations owed alongside the census were counted three ways. <!-- GEN cell:
 ![Mean operations owed per day at Role 4 over each week of a 360-day campaign at each casualty intensity, by source and in all](../images/role4_demand_operations.png)
 
 The mean operations owed per day over each week of the campaign, with the 95% interval across replications, at each casualty intensity, for the definitive repairs, the debridements and the reconstructions and for their total.
+
+Admissions end with the campaign, so the census on its last day is a load the national support base carries afterwards without new arrivals. Each casualty in a Role 4 bed on day 360 was followed to the end of the length of stay already drawn for it, and the census after day 360 was counted from those stays alone.
+
+<!-- GEN role4_tail -->
+| Load left when the campaign ends | Moderate intensity | High intensity |
+|---|---|---|
+| Census on day 360 | 155.8 [147.6, 163.9] | 230.1 [225.8, 234.4] |
+| Days after day 360 until the census halves | 12.9 [12.4, 13.4] | 11.4 [11.1, 11.7] |
+| Days after day 360 until it falls to a tenth | 28.3 [27.6, 28.9] | 26.9 [26.5, 27.3] |
+| Days after day 360 until the last bed empties | 39.3 [38.4, 40.1] | 40.4 [39.8, 41.0] |
+| Bed-days occupied after day 360 | 2,088 [1,960, 2,216] | 2,827 [2,777, 2,876] |
+<!-- /GEN -->
+
+The census on day 360 halved in <!-- GEN cell:role4_tail|Days after day 360 until the census halves|Moderate intensity|mean -->12.9<!-- /GEN --> days at moderate intensity and <!-- GEN cell:role4_tail|Days after day 360 until the census halves|High intensity|mean -->11.4<!-- /GEN --> at high, fell to a tenth in <!-- GEN cell:role4_tail|Days after day 360 until it falls to a tenth|Moderate intensity|mean -->28.3<!-- /GEN --> and <!-- GEN cell:role4_tail|Days after day 360 until it falls to a tenth|High intensity|mean -->26.9<!-- /GEN -->, and emptied in <!-- GEN cell:role4_tail|Days after day 360 until the last bed empties|Moderate intensity|mean -->39.3<!-- /GEN --> and <!-- GEN cell:role4_tail|Days after day 360 until the last bed empties|High intensity|mean -->40.4<!-- /GEN -->. The beds occupied after day 360 came to <!-- GEN cell:role4_tail|Bed-days occupied after day 360|Moderate intensity|mean -->2,088<!-- /GEN --> bed-days at moderate intensity and <!-- GEN cell:role4_tail|Bed-days occupied after day 360|High intensity|mean -->2,827<!-- /GEN --> at high. The figures exclude the casualties still in theatre on day 360, who have not reached Role 4.
 
 <!-- GEN role4_stability -->
 | Census | Moderate intensity classification | Moderate intensity settles by block | Moderate intensity late mean beds | High intensity classification | High intensity settles by block | High intensity late mean beds |

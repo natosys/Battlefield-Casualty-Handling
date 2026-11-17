@@ -2796,6 +2796,33 @@ build_role4_operations <- function(data_dir) {
   res_table(c("Demand owed alongside the census", unname(ROLE4_INTENSITY_HEADINGS)), rows)
 }
 
+#' Role 4 load left when the campaign ends
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the census on the campaign's last day, the days
+#'   after it until the census of the casualties already admitted falls to half,
+#'   to a tenth and to none of it, and the bed-days they occupy after the last
+#'   day, at each casualty intensity.
+build_role4_tail <- function(data_dir) {
+  d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
+  spec <- list(
+    list("Census on day 360", "census_end", 1L),
+    list("Days after day 360 until the census halves", "days_to_half", 1L),
+    list("Days after day 360 until it falls to a tenth", "days_to_tenth", 1L),
+    list("Days after day 360 until the last bed empties", "days_to_empty", 1L),
+    list("Bed-days occupied after day 360", "bed_days_after", 0L)
+  )
+  rows <- lapply(spec, function(r) {
+    c(r[[1]], vapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
+      x <- d[d$scenario == sc & d$series == "census_tail" & d$subject == r[[2]] &
+               d$response == "total", ]
+      stopifnot(nrow(x) == 1L)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], big = TRUE, floor0 = TRUE)
+    }, character(1)))
+  })
+  res_table(c("Load left when the campaign ends", unname(ROLE4_INTENSITY_HEADINGS)), rows)
+}
+
 #' Role 4 census stationarity table
 #'
 #' @param data_dir The data directory.
@@ -3802,6 +3829,7 @@ RESULTS_TABLES <- list(
   role4_census_ward = function(dd) build_role4_census(dd, "ward"),
   role4_census_origin = function(dd) build_role4_census(dd, "origin"),
   role4_operations = build_role4_operations,
+  role4_tail = build_role4_tail,
   role4_stability = build_role4_stability,
   role4_cma = build_role4_cma,
   role4_levers_policy = function(dd) build_role4_levers(dd, "policy"),

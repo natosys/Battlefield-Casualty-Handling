@@ -151,6 +151,77 @@ role4_census_detail <- function(arrivals_log, r4_params, n_days) {
   role4_census_from_phases(phases, role4_ward_levels(r4_params), n_days)
 }
 
+#' Measures of the Role 4 load left when the campaign ends, in display order
+#'
+#' @details `census_end` is the census on the campaign's last day; the three
+#'   `days_to_*` are the days after it until the census, counting only casualties
+#'   admitted during the campaign, first falls to half, to a tenth and to none of
+#'   that census; `bed_days_after` is the beds those casualties occupy after the
+#'   last day, summed over days.
+ROLE4_TAIL_MEASURES <- c("census_end", "days_to_half", "days_to_tenth", "days_to_empty",
+                         "bed_days_after")
+
+#' The Role 4 load left when the campaign ends, from the phases of its stays
+#'
+#' @param phases Ward phases as role4_ward_phases() returns them, with
+#'   `phase_start` and `phase_end` in campaign days.
+#' @param n_days Campaign length in days.
+#' @return Named numeric vector of ROLE4_TAIL_MEASURES.
+#'
+#' @details Counts a phase on every day from its start to its end inclusive, as
+#'   role4_census_from_phases() does, but without clipping it to the campaign
+#'   window, so the stays still running at the horizon are followed until they
+#'   end. Admissions cease at the horizon, so after it the census can only fall
+#'   and these casualties are the whole of the load the model can see; casualties
+#'   still in theatre awaiting evacuation at the horizon are not among them.
+role4_census_tail <- function(phases, n_days) {
+  out <- stats::setNames(numeric(length(ROLE4_TAIL_MEASURES)), ROLE4_TAIL_MEASURES)
+  if (nrow(phases) == 0) return(out)
+  start <- pmax(1L, as.integer(phases$phase_start))
+  end <- as.integer(phases$phase_end)
+  ok <- !is.na(start) & !is.na(end) & start <= end
+  start <- start[ok]
+  end <- end[ok]
+  census_end <- sum(start <= n_days & end >= n_days)
+  after_start <- pmax(start, n_days + 1L)
+  running <- end >= after_start
+  lens <- end[running] - after_start[running] + 1L
+  out[["census_end"]] <- census_end
+  out[["bed_days_after"]] <- sum(lens)
+  if (census_end == 0 || !any(running)) return(out)
+  days <- sequence(lens, from = after_start[running]) - n_days
+  occupancy <- tabulate(days, nbins = max(days))
+  #' Days after the horizon until the census first falls to a share of its last day's
+  #'
+  #' @param share Share of the last day's census the census must fall to.
+  #' @return The first day after the horizon on which it does, the day after the
+  #'   last occupied day where it never does before.
+  days_to <- function(share) {
+    hit <- which(occupancy <= share * census_end)
+    if (length(hit) == 0) length(occupancy) + 1L else hit[1]
+  }
+  out[["days_to_half"]] <- days_to(0.5)
+  out[["days_to_tenth"]] <- days_to(0.1)
+  out[["days_to_empty"]] <- length(occupancy) + 1L
+  out
+}
+
+#' The Role 4 load left when the campaign ends, from the casualties' arrivals
+#'
+#' @param arrivals_log Per-casualty arrivals and attributes, as
+#'   compute_role4_census() takes.
+#' @param r4_params `env_data$vars$role4` list.
+#' @param n_days Campaign length in days.
+#' @return The measures role4_census_tail() returns.
+#'
+#' @details Draws the same lengths of stay as role4_census_detail() when called
+#'   from the same seed position, so the tail continues the census the campaign
+#'   reported rather than a fresh draw of it.
+role4_census_tail_detail <- function(arrivals_log, r4_params, n_days) {
+  assigned <- assign_role4_los(arrivals_log, r4_params)
+  role4_census_tail(role4_ward_phases(assigned, r4_params), n_days)
+}
+
 #' Sources of the operations owed at Role 4, in display order
 #'
 #' @details A definitive repair is the operation a casualty released with it
@@ -240,7 +311,8 @@ role4_operations_detail <- function(arrivals_log, r4_params, n_days) {
 #'   `census` of each subject, the `operations` owed each day by source and in
 #'   all, the `theatre_minutes` owed each day, and two single-row series on the last day: the
 #'   `operations_after_horizon` owed after it and the `operations_admitted`
-#'   owed in all by the casualties the campaign admitted.
+#'   owed in all by the casualties the campaign admitted, and the `census_tail`,
+#'   one row per measure of role4_census_tail() on the last day.
 #'
 #' @details The census and the demand are each drawn under the replication's
 #'   own seed, from the same position, so the two rest on one length-of-stay
@@ -255,6 +327,10 @@ reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
   ops <- with_preserved_rng({
     set.seed(seed)
     role4_operations_detail(wide, r4_params, n_days)
+  })
+  tail <- with_preserved_rng({
+    set.seed(seed)
+    role4_census_tail_detail(wide, r4_params, n_days)
   })
   daily <- ops$daily
   label <- unname(ROLE4_OPERATION_SOURCES[daily$source])
@@ -271,7 +347,9 @@ reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
     data.frame(day = n_days, series = "operations_after_horizon", subject = ROLE4_TOTAL,
                value = ops$after_horizon, stringsAsFactors = FALSE),
     data.frame(day = n_days, series = "operations_admitted", subject = ROLE4_TOTAL,
-               value = sum(daily$operations) + ops$after_horizon, stringsAsFactors = FALSE)
+               value = sum(daily$operations) + ops$after_horizon, stringsAsFactors = FALSE),
+    data.frame(day = n_days, series = "census_tail", subject = names(tail),
+               value = unname(tail), stringsAsFactors = FALSE)
   )
 }
 

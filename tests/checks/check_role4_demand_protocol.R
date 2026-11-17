@@ -166,8 +166,13 @@ if (!is.null(series)) {
          "the series spans days 1 to %d", ROLE4_DEMAND_DAYS)
   report(setequal(unique(series$series),
                   c("census", "operations", "theatre_minutes", "operations_after_horizon",
-                    "operations_admitted")),
-         "the series carries the census and the demand owed within, after and in all")
+                    "operations_admitted", "census_tail")),
+         paste("the series carries the census, the demand owed within, after and in all,",
+               "and the load left when the campaign ends"))
+  tail_subjects <- unique(series$subject[series$series == "census_tail"])
+  report(setequal(tail_subjects, ROLE4_TAIL_MEASURES),
+         "the load left at the end carries every measure (%s)",
+         paste(sort(tail_subjects), collapse = ", "))
   ops_subjects <- unique(series$subject[series$series == "operations"])
   report(setequal(ops_subjects, c(ROLE4_TOTAL, unname(ROLE4_OPERATION_SOURCES))),
          "the operations owed are divided by the three sources and the total (%s)",
@@ -606,6 +611,19 @@ report(abs(m$mean - 3.5) < TOL && abs(m$ci_lower - (3.5 - half)) < TOL &&
 d <- role4_census_daily(transform(hand, scenario = "default"))
 report(all(d$mean == c(1.5, 2.5, 4.5, 5.5)) && all(d$n_reps == 2L),
        "the daily mean is the mean across replications of each day")
+
+# The load left at a ten-day horizon: three stays running on day 10 and a phase
+# beginning after it. After the horizon the census is 3, 3, 2 and then 1 to day
+# 20, so it falls to half on the fourth day, never to a tenth before emptying on
+# the eleventh, and the stays occupy 2 + 10 + 3 bed-days after the horizon.
+tail_phases <- data.frame(phase_start = c(5, 8, 9, 11), phase_end = c(12, 10, 20, 13))
+tl <- role4_census_tail(tail_phases, n_days = 10L)
+report(identical(unname(tl), c(3, 4, 11, 11, 15)) &&
+         identical(names(tl), ROLE4_TAIL_MEASURES),
+       "the load left at the horizon is the one computed by hand (%s)",
+       paste(tl, collapse = ", "))
+report(all(role4_census_tail(tail_phases[0, ], n_days = 10L) == 0),
+       "a campaign that sent nobody home leaves no load")
 
 # ── 7. Demand only ──────────────────────────────────────────────────────────
 

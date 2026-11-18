@@ -1651,6 +1651,16 @@ At the shipped split and interval at high intensity the critical airlift's closi
 
 The share of campaigns in which each airlift route collapsed (left), the mean wait for a critical place (centre) and deaths of wounds per campaign (right) for the eight arms at high intensity, each with its 95% interval: exact binomial for the collapse shares, Student $t$ for the means.
 
+The Role 4 load each arm delivers is set out below at both intensities, with the casualties still awaiting airlift on day 360 flown out after it at the arm's own interval and split ([Methods](Methods.md#critical-care-places-per-sortie-sweep)).
+
+<!-- GEN airlift_places_role4 -->
+<!-- /GEN -->
+
+<!-- GEN airlift_places_role4_high -->
+<!-- /GEN -->
+
+At high intensity the shipped split and interval held <!-- GEN cell:airlift_places_role4_high|Total, closing 90-day mean beds|36/54, 7 days (shipped)|mean -->0<!-- /GEN --> Role 4 beds over the closing 90 days, <!-- GEN cell:airlift_places_role4_high|Intensive care, closing 90-day mean beds|36/54, 7 days (shipped)|mean -->0<!-- /GEN --> of them intensive care, and left <!-- GEN cell:airlift_places_role4_high|Casualties awaiting airlift on day 360|36/54, 7 days (shipped)|mean -->0<!-- /GEN --> casualties awaiting airlift on day 360; Role 4 emptied <!-- GEN cell:airlift_places_role4_high|Days after day 360 until the last bed empties|36/54, 7 days (shipped)|mean -->0<!-- /GEN --> days after it. At 45/45 every three days the closing mean was <!-- GEN cell:airlift_places_role4_high|Total, closing 90-day mean beds|45/45, 3 days|mean -->0<!-- /GEN --> beds, <!-- GEN cell:airlift_places_role4_high|Intensive care, closing 90-day mean beds|45/45, 3 days|mean -->0<!-- /GEN --> of them intensive care, <!-- GEN cell:airlift_places_role4_high|Casualties awaiting airlift on day 360|45/45, 3 days|mean -->0<!-- /GEN --> casualties were awaiting airlift on day 360, and Role 4 emptied <!-- GEN cell:airlift_places_role4_high|Days after day 360 until the last bed empties|45/45, 3 days|mean -->0<!-- /GEN --> days after it. The bed-days occupied during and after the campaign together were <!-- GEN cell:airlift_places_role4_high|Bed-days in all|36/54, 7 days (shipped)|mean -->0<!-- /GEN --> at the shipped split and interval and <!-- GEN cell:airlift_places_role4_high|Bed-days in all|45/45, 3 days|mean -->0<!-- /GEN --> at 45/45 every three days.
+
 ---
 
 ## Role 4 Bed Demand

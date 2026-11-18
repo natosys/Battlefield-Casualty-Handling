@@ -879,6 +879,52 @@ build_airlift_places_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference against the shipped split", arms), rows)
 }
 
+#' Rows of the places sweep's Role 4 table: label, response key, decimal places
+#'
+#' @details `role4_bed_days_all` is not a column of the evidence: it is each
+#'   replication's bed-days during the campaign and after it, summed before the
+#'   interval is taken.
+AIRLIFT_PLACES_ROLE4_ROWS <- list(
+  list("Intensive care, closing 90-day mean beds", "role4_icu_closing", 1L),
+  list("Holding, closing 90-day mean beds", "role4_hold_closing", 1L),
+  list("Total, closing 90-day mean beds", "role4_total_closing", 1L),
+  list("Peak beds", "role4_peak", 1L),
+  list("Bed-days to day 360", "role4_bed_days", 0L),
+  list("Casualties awaiting airlift on day 360", "role4_backlog_end", 1L),
+  list("Days after day 360 until the last bed empties", "role4_days_to_empty", 1L),
+  list("Bed-days after day 360", "role4_bed_days_after", 0L),
+  list("Bed-days in all", "role4_bed_days_all", 0L)
+)
+
+#' Critical-care places sweep table of the Role 4 load, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per arm.
+#'
+#' @details Each cell is the mean and Student t interval of the per-replication
+#'   values, read from the replications file so that the bed-days during and
+#'   after the campaign can be summed within replication. The backlog is flown
+#'   out after day 360 at the arm's own interval and split.
+build_airlift_places_role4 <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("airlift_places/airlift_places_replications", suffix), data_dir)
+  d$role4_bed_days_all <- d$role4_bed_days + d$role4_bed_days_after
+  arms <- unique(d$arm)
+  rows <- lapply(AIRLIFT_PLACES_ROLE4_ROWS, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[[r[[2]]]][d$arm == a]
+      if (length(x) == 0L || anyNA(x)) {
+        stop(sprintf("arm '%s' carries no complete '%s'", a, r[[2]]), call. = FALSE)
+      }
+      ci <- res_t_interval(x)
+      res_ci(ci[["mean"]], ci[["lower"]], ci[["upper"]], dp = r[[3]], big = TRUE,
+             floor0 = TRUE)
+    }, character(1)))
+  })
+  header <- c("Role 4", ifelse(arms == AIRLIFT_PLACES_BASELINE, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
 #' Rows of the triage share sweep tables: label, response key, decimal places, scale
 TRIAGE_ROWS <- list(
   list("Wounded in action", "wounded", 1L, 1),
@@ -3807,6 +3853,8 @@ RESULTS_TABLES <- list(
   airlift_places_high = function(dd) build_airlift_places(dd, "_high_intensity"),
   airlift_places_paired = build_airlift_places_paired,
   airlift_places_paired_high = function(dd) build_airlift_places_paired(dd, "_high_intensity"),
+  airlift_places_role4 = build_airlift_places_role4,
+  airlift_places_role4_high = function(dd) build_airlift_places_role4(dd, "_high_intensity"),
   triage_split = build_triage_split,
   triage_split_high = function(dd) build_triage_split(dd, "_high_intensity"),
   triage_split_paired = build_triage_split_paired,

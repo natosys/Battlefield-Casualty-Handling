@@ -37,8 +37,8 @@
 #      both intensities, reproduces in every response the two sweeps share the
 #      tracked replications of the strategic airlift sweep's identical
 #      configurations under the same seed.
-#   4. Results.md prints the sweep's summary, paired and collapse tables for
-#      both intensities as generated spans.
+#   4. Results.md prints the sweep's summary, paired, collapse and Role 4
+#      tables for both intensities as generated spans.
 #   5. The collapse rule judges a route against the places its own sorties
 #      open, on a series computable by hand.
 #   6. The places setter changes only the configured airframe's split, refuses
@@ -363,7 +363,8 @@ cat("\n-- the results paper prints the sweep's tables --\n")
 
 paper <- paste(readLines(PAPER_PATH, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
 for (name in c("airlift_places", "airlift_places_high", "airlift_places_paired",
-               "airlift_places_paired_high")) {
+               "airlift_places_paired_high", "airlift_places_role4",
+               "airlift_places_role4_high")) {
   report(grepl(sprintf("<!-- GEN %s -->", name), paper, fixed = TRUE),
          "Results.md prints the generated table '%s'", name)
 }

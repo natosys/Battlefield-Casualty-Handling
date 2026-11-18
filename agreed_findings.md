@@ -74,6 +74,15 @@ Figures: images/ambulance_fleet.png (two to five vehicles, both intensities, sha
 Figure: images/role4_load.png (bed-days by day 360 and after it, eight airlift options, both intensities).
 Table: airlift_places_role4 / _high, shipped weekly vs 45/45 every three days (closing beds, intensive care, awaiting on day 360, days to empty, bed-days in all).
 
+## Finding 9 (draft, not yet agreed)
+**The findings hold when the two most uncertain assumptions about the casualties are relaxed: how many are Priority 1, and how many need intensive care after surgery.**
+
+*Priority 1 share.* The model assumes 65% of wounded are Priority 1, an informed estimate well above the historical comparators. At 15% the R2E theatre queue at high intensity shortens from about 73 casualties to about 15 but still does not clear, so surgical teams remain the first constraint at every share. The critical-care airlift backlog almost disappears, but the standard airlift then falls behind instead: the airlift is short of places at every share, and acuity only decides which places. One requirement grows with a less acute force: more casualties stay in theatre to recover, so the casualties waiting for an R2E holding bed rise from about 24 to about 41 at moderate intensity. Deaths of wounds fall with the share (0.51% of treated casualties at 65%, 0.41% at 15%), so every mortality figure in this paper is a figure at the assumed acuity.
+Table: triage share 65% (shipped) vs 15% x (theatre queue, critical backlog, standard backlog or staging overflow, waiting for a holding bed, treated-cohort DOW rate), both intensities.
+
+*Intensive care after surgery.* The model assumes every operated casualty needs intensive care after definitive surgery, an upper bound. If only a quarter do, at moderate intensity intensive care occupancy falls from 87% to 68% and the share of those owed it who receive it rises from 35% to 59%, part of what extra beds would achieve. At high intensity intensive care stays full (96%) at every share. The holding beds are full at every share, so casualties moved off intensive care go to overflow rather than to a holding bed. No share changes deaths of wounds measurably.
+Table: post-definitive share 1 (shipped) vs 0.25 x (ICU occupancy, access, holding occupancy, ward recoveries in overflow, deaths change), both intensities.
+
 Note 8: The returns to duty a longer policy buys rest on the model's recovery-to-duty factors, which are not calibrated beyond the shipped policy (README L23). The one historical figure for in-theatre retention sits at the shipped 21 days.
 
 Note 9: The load after day 360 assumes sorties continue at the campaign's interval and split and that no further casualties arrive. It counts the backlog against Role 4 only once each casualty is flown out.

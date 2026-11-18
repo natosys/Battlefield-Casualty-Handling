@@ -264,6 +264,13 @@ places_summary_high <- read_tracked("airlift_places", "airlift_places_summary_hi
 save_figure(plot_airlift_places(places_collapse_high, places_summary_high, "36/54, 7 days"),
             "airlift_places.png", 13, 5.5)
 
+# RENDERS: role4_load.png
+save_figure(plot_role4_load(read_tracked("airlift_places", "airlift_places_replications.csv"),
+                            read_tracked("airlift_places",
+                                         "airlift_places_replications_high_intensity.csv"),
+                            "36/54, 7 days"),
+            "role4_load.png", 12, 5)
+
 delay_moderate <- read_tracked("evac_delay", "evac_delay_sweep_summary.csv")
 delay_high <- read_tracked("evac_delay", "evac_delay_sweep_summary_high_intensity.csv")
 

@@ -36,7 +36,8 @@ POLICY_PANELS <- data.frame(
                "overflow_r2e_post_op", "role4_peak", "hold_occupancy", "icu_occupancy",
                "post_definitive_icu_share", "mean_evac_wait_days"),
   label    = c("Returns to duty", "Died of wounds", "In-theatre share (%)",
-               "R2E hold mean queue", "R2E post-operative overflow", "Role 4 peak beds",
+               "Waiting for an R2E holding bed", "Operated casualties in overflow",
+               "Role 4 peak beds",
                "R2E hold occupancy (%)", "R2E ICU occupancy (%)",
                "Post-definitive ICU access (%)", "Mean evacuation wait (d)"),
   scale    = c(1, 1, 100, 1, 1, 1, 100, 100, 100, 1),
@@ -126,7 +127,7 @@ plot_policy_sweep <- function(summary_df, shipped_days) {
   n_reps <- unique(plot_df$n_reps)
   sweep_panels(plot_df, shipped_days, "Evacuation policy (days recoverable in theatre)",
                "Evacuation Policy Sweep at the Sustained Horizon",
-               sprintf("%d replications per policy over 360 days", n_reps))
+               sprintf("Moderate intensity; %d replications per policy over 360 days", n_reps))
 }
 
 #' R2E holding establishment figure
@@ -140,7 +141,8 @@ plot_establishment_sweep <- function(summary_df, shipped_beds) {
     mutate(x = hold_beds)
   sweep_panels(plot_df, shipped_beds, "R2E holding beds per unit",
                "R2E Holding Establishment Sweep at the Shipped Evacuation Policy",
-               sprintf("%d replications per establishment over 360 days", unique(plot_df$n_reps)))
+               sprintf("Moderate intensity; %d replications per establishment over 360 days",
+                       unique(plot_df$n_reps)))
 }
 
 #' Forward surgical saturation release figure
@@ -154,7 +156,8 @@ plot_saturation_sweep <- function(summary_df, shipped_threshold) {
     mutate(x = saturation_threshold)
   sweep_panels(plot_df, shipped_threshold, "R2E theatre queue at which a casualty is released",
                "Forward Surgical Saturation Release Threshold Sweep",
-               sprintf("%d replications per threshold over 360 days", unique(plot_df$n_reps)))
+               sprintf("Moderate intensity; %d replications per threshold over 360 days",
+                       unique(plot_df$n_reps)))
 }
 
 #' Responses of the surgical team establishment figure
@@ -348,6 +351,69 @@ plot_airlift_places <- function(collapse_df, summary_df, shipped) {
     labs(title = "Critical-Care Airlift at High Intensity: Places and Sortie Frequency",
          subtitle = sprintf(subtitle, unique(collapse_df$n_reps)),
          x = NULL, y = NULL, colour = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+#' Role 4 load figure: bed-days during and after the campaign per airlift option
+#'
+#' @param moderate_df Tracked `data/airlift_places/airlift_places_replications.csv`.
+#' @param high_df Tracked `..._replications_high_intensity.csv`.
+#' @param shipped Arm label of the shipped split and interval.
+#' @return ggplot object of one panel per intensity, a stacked bar per arm.
+#'
+#' @details Each bar is the mean Role 4 bed-days per campaign, split into those
+#'   occupied by day 360 and those occupied after it while the casualties still
+#'   awaiting airlift are flown out at the arm's own interval and split. The
+#'   whisker is the 95% Student t interval of the total, taken within
+#'   replication, so the figure shows how much of the load the airlift moves past
+#'   the campaign's end and whether the load itself changes. Each intensity has
+#'   its own horizontal scale. Stops where a replication lacks either response.
+plot_role4_load <- function(moderate_df, high_df, shipped) {
+  needed <- c("role4_bed_days", "role4_bed_days_after")
+  panel_names <- c(moderate = "Moderate intensity", high = "High intensity")
+  frames <- list(moderate = moderate_df, high = high_df)
+  missing <- unique(unlist(lapply(frames, function(df) setdiff(needed, names(df)))))
+  if (length(missing) > 0) {
+    stop("replications lack response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  arms <- unique(high_df$arm)
+  labels <- airlift_places_label(arms, shipped)
+  summary_df <- bind_rows(lapply(names(frames), function(key) {
+    frames[[key]] %>%
+      mutate(total = role4_bed_days + role4_bed_days_after) %>%
+      group_by(arm) %>%
+      summarise(during = mean(role4_bed_days), after = mean(role4_bed_days_after),
+                mean_total = mean(total),
+                half = qt(0.975, n() - 1) * sd(total) / sqrt(n()), n_reps = n(),
+                .groups = "drop") %>%
+      mutate(intensity = panel_names[[key]])
+  })) %>%
+    mutate(arm = factor(airlift_places_label(arm, shipped), levels = rev(labels)),
+           intensity = factor(intensity, levels = panel_names))
+  bars <- bind_rows(
+    summary_df %>% transmute(arm, intensity, part = "Occupied by day 360", bed_days = during),
+    summary_df %>% transmute(arm, intensity, part = "Occupied after day 360", bed_days = after)
+  ) %>%
+    mutate(part = factor(part, levels = c("Occupied after day 360", "Occupied by day 360")))
+  ggplot(bars, aes(x = bed_days / 1000, y = arm)) +
+    geom_col(aes(fill = part), width = 0.7) +
+    geom_errorbar(data = summary_df, inherit.aes = FALSE, orientation = "y",
+                  aes(y = arm, xmin = (mean_total - half) / 1000,
+                      xmax = (mean_total + half) / 1000),
+                  width = 0.3, colour = "grey25") +
+    facet_wrap(~ intensity, nrow = 1, scales = "free_x") +
+    scale_fill_manual(values = c("Occupied by day 360" = FIGURE_MEAN_COLOUR,
+                                 "Occupied after day 360" = "#d9a441"),
+                      breaks = c("Occupied by day 360", "Occupied after day 360")) +
+    labs(title = "Role 4 Load by Critical-Care Airlift Option",
+         subtitle = sprintf(paste("Bed-days per 360-day campaign, the casualties awaiting airlift",
+                                  "on day 360 flown out after it;\n%d campaigns per option,",
+                                  "whisker the 95%% interval of the total"),
+                            max(summary_df$n_reps)),
+         x = "Role 4 bed-days (thousands)", y = NULL, fill = NULL) +
     theme_minimal(base_size = 12) +
     theme(legend.position = "bottom", plot.title.position = "plot",
           strip.text = element_text(face = "bold", hjust = 0),

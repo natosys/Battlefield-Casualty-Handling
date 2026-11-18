@@ -44,6 +44,10 @@
 #   6. The places setter changes only the configured airframe's split, refuses
 #      a split it cannot apply, and the split it sets is the one the airframe
 #      resolver reads.
+#   7. Every arm carries the Role 4 census measures, the ward means sum to the
+#      total, and the shipped weekly split reproduces at both intensities the
+#      tracked replications of the Role 4 demand experiment, which runs that
+#      configuration under the same seed.
 #
 # Assertions 3 and 5 are what keep assertion 2 from being circular: the summary
 # and collapse files would match any responses the code happened to produce.
@@ -61,6 +65,7 @@ source("R/analysis.R")
 source("R/policy_sweep.R")
 source("R/long_horizon.R")
 source("R/airlift.R")
+source("R/role4_demand.R")
 source("R/airlift_places_sweep.R")
 
 state <- new.env(parent = emptyenv())
@@ -99,6 +104,23 @@ EVIDENCE_DIR <- file.path("data", "airlift_places")
 
 #' Directory of the strategic airlift sweep's tracked evidence set
 AIRLIFT_DIR <- file.path("data", "airlift")
+
+#' Directory of the Role 4 demand experiment's tracked evidence set
+ROLE4_DIR <- file.path("data", "role4_demand")
+
+#' Scenario of the Role 4 demand evidence each places sweep set corresponds to
+ROLE4_SCENARIOS <- c(moderate = "moderate_intensity", high = "high_intensity")
+
+#' Role 4 demand experiment's series, subject and column behind each measure
+ROLE4_SOURCES <- data.frame(
+  measure = AIRLIFT_PLACES_ROLE4_MEASURES,
+  series = c("census", "census", "census", "census", "census_tail", "census_tail",
+             "census_tail"),
+  subject = c("icu", "hold", "Total", "Total", "backlog_end", "days_to_empty_all",
+              "bed_days_after_all"),
+  column = c("closing_mean", "closing_mean", "closing_mean", "total", "mean", "mean", "mean"),
+  stringsAsFactors = FALSE
+)
 
 #' Scenario suffixes of the two tracked evidence sets
 SUFFIXES <- c(moderate = "", high = "_high_intensity")
@@ -289,6 +311,32 @@ for (label in names(SUFFIXES)) {
   }))
   report(numerics_agree(coll_summ[, names(summ_again)], summ_again),
          "%s: the collapse summary is the reduction of the per-campaign classification", label)
+
+  # ── 7. The Role 4 census measures ─────────────────────────────────────────
+
+  report(all(AIRLIFT_PLACES_ROLE4_MEASURES %in% names(rows)),
+         "%s: the Role 4 census measures are present (missing: %s)", label,
+         paste(setdiff(AIRLIFT_PLACES_ROLE4_MEASURES, names(rows)), collapse = ", "))
+  if (all(AIRLIFT_PLACES_ROLE4_MEASURES %in% names(rows))) {
+    report(isTRUE(all.equal(rows$role4_icu_closing + rows$role4_hold_closing,
+                            rows$role4_total_closing, tolerance = TOL)),
+           "%s: the intensive care and holding means sum to the total in every row", label)
+    r4 <- read.csv(file.path(ROLE4_DIR, "role4_demand_replications.csv"),
+                   stringsAsFactors = FALSE)
+    r4 <- r4[r4$scenario == ROLE4_SCENARIOS[[label]], ]
+    mine <- rows[rows$arm == AIRLIFT_PLACES_BASELINE_ARM, ]
+    mine <- mine[order(mine$replication), ]
+    agree <- vapply(seq_len(nrow(ROLE4_SOURCES)), function(k) {
+      src <- ROLE4_SOURCES[k, ]
+      d <- r4[r4$series == src$series & r4$subject == src$subject, ]
+      d <- d[order(d$replication), ]
+      nrow(d) == nrow(mine) &&
+        isTRUE(all.equal(d[[src$column]], mine[[src$measure]], tolerance = TOL))
+    }, logical(1))
+    report(all(agree), "%s: '%s' reproduces the Role 4 demand experiment (differs: %s)",
+           label, AIRLIFT_PLACES_BASELINE_ARM,
+           paste(ROLE4_SOURCES$measure[!agree], collapse = ", "))
+  }
 
   # ── 3. The shipped split reproduces the strategic airlift sweep ───────────
 

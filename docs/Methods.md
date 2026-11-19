@@ -54,6 +54,7 @@ This document is the design record for the replicated experiments reported in th
   - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)
   - [R2E Intensive Care Bed Establishment Sweep](#r2e-intensive-care-bed-establishment-sweep)
   - [R2E Operating Theatre Establishment Sweep](#r2e-operating-theatre-establishment-sweep)
+  - [Surgery and Post-Operative Bed Sweep](#surgery-and-post-operative-bed-sweep)
   - [Critical-Care Places per Sortie Sweep](#critical-care-places-per-sortie-sweep)
   - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
   - [Post-Definitive Intensive Care Share Sweep](#post-definitive-intensive-care-share-sweep)

@@ -439,6 +439,7 @@ Every figure in this recommendation was measured at the upper bound that every o
 | Intensive care gate, intensive care utilisation (percentage points) | +0.93 [−0.12, +1.98] | 0.649 | 2.0 | 8 |
 | Intensive care gate, died of wounds, high intensity | −29.33 [−138.46, +79.79] | 1.000 | 0.5 | 1,312,369 |
 | Second R2B section, died of wounds | −1.40 [−5.46, +2.66] | 1.000 | 1.0 | 455 |
+| Second R2B theatre at two sections, died of wounds | −2.80 [−5.63, +0.03] | 1.000 | 1.0 | 221 |
 | Fourth R2E section, died of wounds | +4.63 [−6.22, +15.48] | 1.000 | 1.0 | 3,245 |
 | Third theatre at three sections, R2E theatre queue | −0.43 [−0.79, −0.06] | 1.000 | 1.0 | 4 |
 | Third theatre at three sections, died of wounds | +1.07 [−5.00, +7.13] | 1.000 | 1.0 | 1,015 |

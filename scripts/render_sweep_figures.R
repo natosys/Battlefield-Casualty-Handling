@@ -264,6 +264,12 @@ places_summary_high <- read_tracked("airlift_places", "airlift_places_summary_hi
 save_figure(plot_airlift_places(places_collapse_high, places_summary_high, "36/54, 7 days"),
             "airlift_places.png", 13, 5.5)
 
+# RENDERS: post_op_capacity.png
+save_figure(plot_post_op_capacity(
+  read_tracked("post_op_capacity", "post_op_capacity_summary_high_intensity.csv"),
+  "3 sections, 2 theatres, 4 ICU, 30 hold"
+), "post_op_capacity.png", 11, 8)
+
 # RENDERS: role4_load.png
 save_figure(plot_role4_load(read_tracked("airlift_places", "airlift_places_replications.csv"),
                             read_tracked("airlift_places",

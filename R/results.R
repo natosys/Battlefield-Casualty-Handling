@@ -784,6 +784,106 @@ build_ot_bed_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference", heads), rows)
 }
 
+#' Evidence file stem of the surgery and post-operative bed sweep, with its scenario suffix
+POST_OP_STEM <- "post_op_capacity/post_op_capacity_%s_high_intensity.csv"
+
+#' Arm of the shipped establishment in the surgery and post-operative bed sweep
+POST_OP_BASELINE <- "3 sections, 2 theatres, 4 ICU, 30 hold"
+
+#' Arm of the added surgery alone, at the shipped beds
+POST_OP_SURGERY <- "6 sections, 3 theatres, 4 ICU, 30 hold"
+
+#' Columns of the post-operative care table, as `list(label, response, dp, scale)`,
+#' or `list(label, pool)` for a pool's classification
+POST_OP_CARE_COLUMNS <- list(
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("Post-operative overflow, late-half classification", "R2E post-operative overflow"),
+  list("R2E holding occupancy (%)", "hold_occupancy", 1L, 100),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("Holding queue, late-half classification", "R2E holding beds")
+)
+
+#' Columns of the outcome table, in the post-operative care table's form
+POST_OP_OUTCOME_COLUMNS <- list(
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("Released with definitive repair outstanding", "released_unrepaired", 1L, 1),
+  list("Staging overflow, late-half classification", "R2E staging overflow"),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1)
+)
+
+#' Columns of the paired tables, as `list(label, response, dp, scale)`
+POST_OP_PAIRED_COLUMNS <- list(
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1)
+)
+
+#' Surgery and post-operative bed sweep table: one row per arm, one column per measure
+#'
+#' @param data_dir The data directory.
+#' @param columns POST_OP_CARE_COLUMNS or POST_OP_OUTCOME_COLUMNS.
+#' @return The table lines.
+#'
+#' @details A column of four entries is a response's mean and 95% interval; a
+#'   column of two is a pool's late-half classification, read from the stability
+#'   file the sweep wrote from its own daily series. Arms are read in the order
+#'   the summary lists them, the shipped establishment first.
+build_post_op <- function(data_dir, columns) {
+  d <- res_read(sprintf(POST_OP_STEM, "summary"), data_dir)
+  st <- res_read(sprintf(POST_OP_STEM, "stability"), data_dir)
+  arms <- unique(d$arm)
+  rows <- lapply(arms, function(a) {
+    cells <- vapply(columns, function(cl) {
+      if (length(cl) == 2L) {
+        r <- st[st$arm == a & st$pool == cl[[2]], ]
+        if (nrow(r) != 1L) stop(sprintf("expected one stability row for '%s', pool '%s'", a,
+                                        cl[[2]]), call. = FALSE)
+        return(res_stability_cell(r))
+      }
+      x <- d[d$arm == a & d$response == cl[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", cl[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = cl[[3]], scale = cl[[4]], floor0 = TRUE)
+    }, character(1))
+    c(if (a == POST_OP_BASELINE) paste(a, "(shipped)") else a, cells)
+  })
+  res_table(c("Establishment", vapply(columns, `[[`, "", 1L)), rows)
+}
+
+#' Surgery and post-operative bed sweep paired differences against one arm
+#'
+#' @param data_dir The data directory.
+#' @param from The arm the differences are taken against: POST_OP_BASELINE or
+#'   POST_OP_SURGERY.
+#' @return The table lines, one row per arm compared.
+#'
+#' @details Each cell is the paired difference with its 95% interval, a dagger
+#'   marking one whose interval excludes zero but which fails Holm's adjustment
+#'   over every row of the experiment's paired file.
+build_post_op_paired <- function(data_dir, from) {
+  d <- res_read(sprintf(POST_OP_STEM, "paired"), data_dir)
+  d <- d[d$from == from, ]
+  arms <- unique(d$to)
+  rows <- lapply(arms, function(a) {
+    c(a, vapply(POST_OP_PAIRED_COLUMNS, function(cl) {
+      x <- d[d$to == a & d$response == cl[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for '%s', found %d",
+                                      cl[[2]], a, nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * cl[[4]], cl[[3]], plus = TRUE),
+                     res_num(x$ci_lower * cl[[4]], cl[[3]], plus = TRUE),
+                     res_num(x$ci_upper * cl[[4]], cl[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c(sprintf("Paired difference against %s", from),
+              vapply(POST_OP_PAIRED_COLUMNS, `[[`, "", 1L)), rows)
+}
+
 #' Arm the critical-care places sweep's differences are measured against
 AIRLIFT_PLACES_BASELINE <- "36/54, 7 days"
 
@@ -3831,6 +3931,10 @@ RESULTS_TABLES <- list(
   ot_bed_high = function(dd) build_ot_bed(dd, "_high_intensity"),
   ot_bed_paired = build_ot_bed_paired,
   ot_bed_paired_high = function(dd) build_ot_bed_paired(dd, "_high_intensity"),
+  post_op_capacity = function(dd) build_post_op(dd, POST_OP_CARE_COLUMNS),
+  post_op_capacity_outcomes = function(dd) build_post_op(dd, POST_OP_OUTCOME_COLUMNS),
+  post_op_capacity_paired = function(dd) build_post_op_paired(dd, POST_OP_BASELINE),
+  post_op_capacity_paired_surgery = function(dd) build_post_op_paired(dd, POST_OP_SURGERY),
   airlift_places = build_airlift_places,
   airlift_places_high = function(dd) build_airlift_places(dd, "_high_intensity"),
   airlift_places_paired = build_airlift_places_paired,

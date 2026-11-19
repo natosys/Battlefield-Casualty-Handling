@@ -235,5 +235,6 @@ if (!is.null(stability)) {
             scenario_output_path(OUTPUT_DIR, "post_op_capacity_stability", opt$scenario),
             row.names = FALSE)
 }
-message(sprintf(paste("Surgery and post-operative bed sweep responses, summary, paired differences and",
+message(sprintf(paste("Surgery and post-operative bed sweep responses, summary, paired",
+                      "differences and",
                       "stability written to %s"), OUTPUT_DIR))

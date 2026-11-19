@@ -303,6 +303,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Surgical team establishment sweep | `data/surgical_teams/` | `check_surgical_sweep_protocol.R`, `check_surgical_roster.R` (mechanism) |
 | R2E intensive care bed establishment sweep | `data/icu_beds/` | `check_icu_bed_sweep_protocol.R` |
 | R2E operating theatre establishment sweep | `data/ot_beds/` | `check_ot_bed_sweep_protocol.R` |
+| Surgery and post-operative bed sweep | `data/post_op_capacity/` | `check_post_op_capacity_protocol.R` |
 | Critical-care places per sortie sweep | `data/airlift_places/` | `check_airlift_places_protocol.R` |
 | Post-definitive intensive care share sweep | `data/post_definitive/` | `check_post_definitive_sweep.R` |
 | Forward evacuation delay sweep | `data/evac_delay/` | `check_evac_delay_sweep.R` |
@@ -760,6 +761,23 @@ Rscript scripts/run_ot_bed_sweep.R --scenario high_intensity --refresh-baseline
 ```
 
 A theatre is a room: its staff come from the surgical section, which the casualty takes before it takes a theatre, so the theatre count reaches the model through the capacity of the unit's theatre pool alone, which `tests/checks/check_ot_bed_sweep_protocol.R` asserts. Each replication is reduced inside the forked worker to the surgical team sweep's responses (`reduce_surgical_replication()`), the theatre, intensive care and holding occupancy and queue over the closing window, and a daily series of the theatres, intensive care, holding and the two R2E overflow points, faster surgery moving load onto the beds behind the theatre. Each pool's daily series is classified by the late-half fit of [Classifying Stability](#classifying-stability). Every arm is compared with the shipped establishment, and the third theatre at six sections with two theatres at six sections, the comparison that isolates a theatre where the theatres limit; Holm's adjustment is taken over every row of the experiment's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped arm and the six-section arm at two theatres are the surgical team sweep's configurations under the same seed, and the protocol check asserts that they reproduce its tracked replications in every response the two share. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight. The tracked evidence set is `data/ot_beds/`.
+
+### Surgery and Post-Operative Bed Sweep
+
+<!-- POST_OP replications=30 -->
+<!-- POST_OP days=360 -->
+<!-- POST_OP seed=42 -->
+<!-- POST_OP window_days=90 -->
+<!-- POST_OP scenario=high_intensity -->
+<!-- POST_OP baseline=3 sections, 2 theatres, 4 ICU, 30 hold -->
+<!-- POST_OP arms=3/2/4/30;6/3/4/30;6/3/4/60;6/3/4/90;6/3/8/30;6/3/8/60;6/3/8/90;6/3/12/30;6/3/12/60;6/3/12/90 -->
+Thirty replications of 360 simulated days at each of ten R2E establishments, at control seed 42, under the `high_intensity` profile alone, where the [operating theatre sweep](#r2e-operating-theatre-establishment-sweep) shows added surgery moving load onto the beds behind the theatre. Surgery is held at six surgical sections and three theatres, the arm of that sweep that relieves the theatre queue without the idle rooms of four, and crossed with four, eight and twelve R2E intensive care beds and 30, 60 and 90 holding beds; the shipped establishment of three sections, two theatres, four intensive care beds and 30 holding beds is the tenth arm. The four counts enter through `elms.r2eheavy.beds.ot.qty`, `elms.r2eheavy.sub_elms.surg.qty`, `elms.r2eheavy.beds.icu.qty` and `elms.r2eheavy.beds.hold.qty`, each set on the resolved configuration before `build_environment()` by the setter of the sweep that owns it, every one failing rather than returning the configuration unchanged. Invoked as:
+
+```
+Rscript scripts/run_post_op_capacity_sweep.R --refresh-baseline
+```
+
+Each replication is reduced inside the forked worker by the operating theatre sweep's reduction (`reduce_ot_bed_replication()`), so its responses and daily pool series are that sweep's, and each pool is classified by the late-half fit of [Classifying Stability](#classifying-stability). Every arm is compared with the shipped establishment, and every arm with added beds with the added surgery at the shipped beds, the comparison that isolates what the beds buy once the surgery is in place; Holm's adjustment is taken over every row of the experiment's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped arm and the added surgery at the shipped beds are the operating theatre sweep's shipped and three-theatre, six-section configurations under the same seed, and `tests/checks/check_post_op_capacity_protocol.R` asserts that they reproduce its tracked high-intensity replications in every response the two share, and that each count set is the capacity of the pool the model builds. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked). The tracked evidence set is `data/post_op_capacity/`.
 
 ### Critical-Care Places per Sortie Sweep
 

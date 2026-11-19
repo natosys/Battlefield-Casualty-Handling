@@ -155,6 +155,15 @@ report(length(spans) >= 30L, "the document quotes its figures as generated spans
        length(spans))
 report(!any(grepl("<!-- GEN cell:[^>]*-->(x|\\?)?<!-- /GEN", spans)),
        "no quoted figure is left holding its placeholder")
+report(identical(res_plain_figure("2,858.6", "sig3"), "2,860") &&
+         identical(res_plain_figure("−175.77", "abs_dp0"), "176") &&
+         identical(res_plain_figure("−175.77", "dp0"), "−176") &&
+         identical(res_plain_figure("86.8%", "dp0"), "87%") &&
+         identical(res_plain_figure("0.514%", "sig2"), "0.51%") &&
+         identical(res_plain_figure("506", "sig1"), "500"),
+       "a plain-figure part rounds the quoted mean and keeps its unit, its sign unless abs_")
+report(inherits(try(res_plain_figure("converged at 0.90", "dp0"), silent = TRUE), "try-error"),
+       "a plain-figure part refuses a cell that does not open with a number")
 
 # ── 2. No figure outside a span, and every span's section is linked ─────────
 

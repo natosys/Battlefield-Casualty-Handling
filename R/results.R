@@ -178,7 +178,8 @@ build_scenario_totals <- function(data_dir) {
     list("Total casualties/run", "total_casualties", 1L, 1, FALSE, 2L),
     list("Wounded in action/run", "wia_count", 1L, 1, FALSE, 2L),
     list("Died of wounds/run", "dow_count", 2L, 1, FALSE, 1L),
-    list("Died of wounds, as share of wounded", "dow_rate", 2L, 100, TRUE, 2L)
+    list("Died of wounds, as share of wounded", "dow_rate", 2L, 100, TRUE, 2L),
+    list("Time to first incision (hours)", "first_incision_hours", 2L, 1, FALSE, 2L)
   )
   #' One totals cell: the mean with its interval, and the p10 to p90 band for a count
   #'
@@ -876,6 +877,52 @@ build_airlift_places_paired <- function(data_dir, suffix = "") {
     }, character(1)))
   })
   res_table(c("Paired difference against the shipped split", arms), rows)
+}
+
+#' Rows of the places sweep's Role 4 table: label, response key, decimal places
+#'
+#' @details `role4_bed_days_all` is not a column of the evidence: it is each
+#'   replication's bed-days during the campaign and after it, summed before the
+#'   interval is taken.
+AIRLIFT_PLACES_ROLE4_ROWS <- list(
+  list("Intensive care, closing 90-day mean beds", "role4_icu_closing", 1L),
+  list("Holding, closing 90-day mean beds", "role4_hold_closing", 1L),
+  list("Total, closing 90-day mean beds", "role4_total_closing", 1L),
+  list("Peak beds", "role4_peak", 1L),
+  list("Bed-days to day 360", "role4_bed_days", 0L),
+  list("Casualties awaiting airlift on day 360", "role4_backlog_end", 1L),
+  list("Days after day 360 until the last bed empties", "role4_days_to_empty", 1L),
+  list("Bed-days after day 360", "role4_bed_days_after", 0L),
+  list("Bed-days in all", "role4_bed_days_all", 0L)
+)
+
+#' Critical-care places sweep table of the Role 4 load, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per arm.
+#'
+#' @details Each cell is the mean and Student t interval of the per-replication
+#'   values, read from the replications file so that the bed-days during and
+#'   after the campaign can be summed within replication. The backlog is flown
+#'   out after day 360 at the arm's own interval and split.
+build_airlift_places_role4 <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("airlift_places/airlift_places_replications", suffix), data_dir)
+  d$role4_bed_days_all <- d$role4_bed_days + d$role4_bed_days_after
+  arms <- unique(d$arm)
+  rows <- lapply(AIRLIFT_PLACES_ROLE4_ROWS, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[[r[[2]]]][d$arm == a]
+      if (length(x) == 0L || anyNA(x)) {
+        stop(sprintf("arm '%s' carries no complete '%s'", a, r[[2]]), call. = FALSE)
+      }
+      ci <- res_t_interval(x)
+      res_ci(ci[["mean"]], ci[["lower"]], ci[["upper"]], dp = r[[3]], big = TRUE,
+             floor0 = TRUE)
+    }, character(1)))
+  })
+  header <- c("Role 4", ifelse(arms == AIRLIFT_PLACES_BASELINE, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
 }
 
 #' Rows of the triage share sweep tables: label, response key, decimal places, scale
@@ -2739,8 +2786,8 @@ ROLE4_CENSUS_MEASURES <- list(c("mean beds", "mean"), c("peak beds", "peak"),
 #'   the closing 90-day mean of the daily census at each casualty intensity.
 build_role4_census <- function(data_dir, which) {
   d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
-  ward_subjects <- list(c("Total", "Total"), c("Intensive care phase", "icu"),
-                        c("Step-down ward phase", "hold"))
+  ward_subjects <- list(c("Total", "Total"), c("Intensive care", "icu"),
+                        c("Holding", "hold"))
   origin_subjects <- list(c("Total", "Total"), c("Battle injury", "Battle injury"),
                           c("Disease and non-battle injury", "Disease and non-battle injury"),
                           c("Reconstruction cohort", "Reconstruction cohort"))
@@ -2795,6 +2842,64 @@ build_role4_operations <- function(data_dir) {
   res_table(c("Demand owed alongside the census", unname(ROLE4_INTENSITY_HEADINGS)), rows)
 }
 
+#' One row per census_tail measure of the Role 4 summary, at each intensity
+#'
+#' @param data_dir The data directory.
+#' @param spec List of row specifications: label, measure and decimal places.
+#' @param heading The table's first column heading.
+#' @return The table lines.
+role4_tail_table <- function(data_dir, spec, heading) {
+  d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
+  rows <- lapply(spec, function(r) {
+    c(r[[1]], vapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
+      x <- d[d$scenario == sc & d$series == "census_tail" & d$subject == r[[2]] &
+               d$response == "total", ]
+      stopifnot(nrow(x) == 1L)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], big = TRUE, floor0 = TRUE)
+    }, character(1)))
+  })
+  res_table(c(heading, unname(ROLE4_INTENSITY_HEADINGS)), rows)
+}
+
+#' Role 4 load left when the campaign ends
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the census on the campaign's last day, the days
+#'   after it until the census of the casualties already admitted falls to half,
+#'   to a tenth and to none of it, and the bed-days they occupy after the last
+#'   day, at each casualty intensity.
+build_role4_tail <- function(data_dir) {
+  role4_tail_table(data_dir, list(
+    list("Census on day 360", "census_end", 1L),
+    list("Days after day 360 until the census halves", "days_to_half", 1L),
+    list("Days after day 360 until it falls to a tenth", "days_to_tenth", 1L),
+    list("Days after day 360 until the last bed empties", "days_to_empty", 1L),
+    list("Bed-days occupied after day 360", "bed_days_after", 0L)
+  ), "Load left when the campaign ends")
+}
+
+#' Airlift backlog left when the campaign ends and the Role 4 load it adds
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the casualties awaiting airlift on the last day,
+#'   those of them flown out and those who died first, the days until the last
+#'   was flown out, and the Role 4 census once they are admitted, its highest
+#'   day after the last, the days until it halves, falls to a tenth and empties,
+#'   and its bed-days after the last day, at each casualty intensity.
+build_role4_backlog <- function(data_dir) {
+  role4_tail_table(data_dir, list(
+    list("Casualties awaiting airlift on day 360", "backlog_end", 1L),
+    list("Of them, flown out after day 360", "backlog_boarded", 1L),
+    list("Of them, died awaiting airlift", "backlog_died", 1L),
+    list("Days after day 360 until the last is flown out", "days_to_clear", 1L),
+    list("Highest census after day 360", "census_peak_after_all", 1L),
+    list("Days after day 360 until the census halves", "days_to_half_all", 1L),
+    list("Days after day 360 until it falls to a tenth", "days_to_tenth_all", 1L),
+    list("Days after day 360 until the last bed empties", "days_to_empty_all", 1L),
+    list("Bed-days occupied after day 360", "bed_days_after_all", 0L)
+  ), "Load once the airlift backlog is flown out")
+}
+
 #' Role 4 census stationarity table
 #'
 #' @param data_dir The data directory.
@@ -2804,8 +2909,8 @@ build_role4_operations <- function(data_dir) {
 #'   casualty intensity.
 build_role4_stability <- function(data_dir) {
   d <- res_read("role4_demand/role4_demand_stability.csv", data_dir)
-  subjects <- list(c("Total", "Total"), c("Intensive care phase", "icu"),
-                   c("Step-down ward phase", "hold"), c("Battle injury", "Battle injury"),
+  subjects <- list(c("Total", "Total"), c("Intensive care", "icu"),
+                   c("Holding", "hold"), c("Battle injury", "Battle injury"),
                    c("Disease and non-battle injury", "Disease and non-battle injury"),
                    c("Reconstruction cohort", "Reconstruction cohort"))
   rows <- lapply(subjects, function(sub) {
@@ -3438,24 +3543,6 @@ adequacy_grid_text <- function(data_dir, stem, label) {
           length(holds))
 }
 
-#' Evacuation policy trade: the outcome, stability and cost rows of the policy sweep
-#'
-#' @param data_dir The data directory.
-#' @return The table lines: the policy sweep restricted to returns to duty, deaths
-#'   of wounds, the in-theatre share, R2E occupancy and post-definitive intensive
-#'   care access, the casualties never evacuated and the Role 4 peak beds, one
-#'   column per policy.
-build_policy_trade <- function(data_dir) {
-  lines <- build_policy(data_dir)
-  keep <- c("Returns to duty", "Died of wounds", "In-theatre share (%)",
-            "R2E hold occupancy (%)", "R2E ICU occupancy (%)", "Post-definitive ICU access (%)",
-            "Never evacuated by horizon", "Role 4 peak beds")
-  labels <- vapply(lines[-(1:2)], function(l) res_cells(l)[1], character(1))
-  rows <- lines[-(1:2)][match(keep, labels)]
-  if (anyNA(rows)) stop("the policy sweep lacks a row the trade table prints", call. = FALSE)
-  c(lines[1:2], rows)
-}
-
 #' The grid at high intensity, as `build_policy_grid()` reads it
 #'
 #' @param data_dir The data directory.
@@ -3699,7 +3786,7 @@ POLICY_GRID_BASELINE_BEDS <- 30L
 #'
 #' @details The adequacy matrix and its sizing table interpret the results paper's
 #'   measurements, so the results paper does not print them; the planning paper does.
-PLANNING_ONLY_TABLES <- c("adequacy_matrix", "adequacy_sizing", "policy_trade")
+PLANNING_ONLY_TABLES <- c("adequacy_matrix", "adequacy_sizing")
 
 #' Registry of generated tables
 #'
@@ -3748,6 +3835,8 @@ RESULTS_TABLES <- list(
   airlift_places_high = function(dd) build_airlift_places(dd, "_high_intensity"),
   airlift_places_paired = build_airlift_places_paired,
   airlift_places_paired_high = function(dd) build_airlift_places_paired(dd, "_high_intensity"),
+  airlift_places_role4 = build_airlift_places_role4,
+  airlift_places_role4_high = function(dd) build_airlift_places_role4(dd, "_high_intensity"),
   triage_split = build_triage_split,
   triage_split_high = function(dd) build_triage_split(dd, "_high_intensity"),
   triage_split_paired = build_triage_split_paired,
@@ -3801,6 +3890,8 @@ RESULTS_TABLES <- list(
   role4_census_ward = function(dd) build_role4_census(dd, "ward"),
   role4_census_origin = function(dd) build_role4_census(dd, "origin"),
   role4_operations = build_role4_operations,
+  role4_tail = build_role4_tail,
+  role4_backlog = build_role4_backlog,
   role4_stability = build_role4_stability,
   role4_cma = build_role4_cma,
   role4_levers_policy = function(dd) build_role4_levers(dd, "policy"),
@@ -3809,7 +3900,6 @@ RESULTS_TABLES <- list(
   role4_levers_cancellation = function(dd) build_role4_levers(dd, "cancellation"),
   adequacy_matrix = build_adequacy_matrix,
   adequacy_sizing = build_adequacy_sizing,
-  policy_trade = build_policy_trade,
   resolution = build_resolution,
   resolved = build_resolved,
   dow_calibration = build_dow_calibration,
@@ -3860,11 +3950,57 @@ res_cell_value <- function(ref, data_dir, tables = RESULTS_TABLES) {
   if (length(hit) != 1L) stop(sprintf("table '%s' has %d rows labelled '%s'", p[1], length(hit),
                                       p[2]), call. = FALSE)
   cell <- hit[[1]][col]
+  if (p[4] %in% names(RES_PLAIN_ROUNDING)) {
+    return(res_plain_figure(sub(" .*$", "", cell), p[4]))
+  }
   switch(p[4],
          full = cell,
          mean = sub(" .*$", "", cell),
          ci = regmatches(cell, regexpr("\\[[^]]*\\]", cell)),
-         stop(sprintf("cell part '%s' is not full, mean or ci", p[4]), call. = FALSE))
+         stop(sprintf("cell part '%s' is not full, mean, ci or one of %s", p[4],
+                      paste(names(RES_PLAIN_ROUNDING), collapse = ", ")), call. = FALSE))
+}
+
+#' Rounding each plain-figure cell part applies to a quoted mean
+#'
+#' @details The planning paper states a figure as a reader would say it, "about
+#'   73" rather than "72.62", while still quoting the results paper's cell rather
+#'   than typing the rounded value. `dp0` and `dp1` round to a number of decimal
+#'   places; `sig1` to `sig3` to a number of significant figures. The `abs_`
+#'   form of each drops the sign, so a paired difference of "−176" reads as the
+#'   "176 deaths prevented" the sentence states in words.
+RES_PLAIN_ROUNDING <- local({
+  rules <- list(dp0 = c("dp", 0), dp1 = c("dp", 1), sig1 = c("sig", 1), sig2 = c("sig", 2),
+                sig3 = c("sig", 3))
+  c(rules, stats::setNames(rules, paste0("abs_", names(rules))))
+})
+
+#' A quoted mean rounded for plain prose
+#'
+#' @param token The leading figure of a cell, with any sign, thousands separators
+#'   and unit, such as `"2,858.6"`, `"−40.43"` or `"86.8%"`.
+#' @param part A name of `RES_PLAIN_ROUNDING`.
+#' @return The figure rounded, its sign and unit kept and thousands separated.
+#'
+#' @details Stops on a token that does not open with a number, so a cell holding
+#'   text cannot be quoted as a rounded figure.
+res_plain_figure <- function(token, part) {
+  m <- regmatches(token, regexec("^([+−-]?)([0-9][0-9,]*(\\.[0-9]+)?)(.*)$", token))[[1]]
+  if (length(m) == 0L) {
+    stop(sprintf("cell '%s' does not open with a number to round", token), call. = FALSE)
+  }
+  value <- as.numeric(gsub(",", "", m[3], fixed = TRUE))
+  rule <- RES_PLAIN_ROUNDING[[part]]
+  digits <- as.integer(rule[2])
+  if (rule[1] == "dp") {
+    value <- round(value, digits)
+    dp <- digits
+  } else {
+    value <- signif(value, digits)
+    dp <- if (value == 0) 0L else max(0L, digits - 1L - floor(log10(abs(value))))
+  }
+  sign <- if (startsWith(part, "abs_")) "" else m[2]
+  paste0(sign, formatC(value, format = "f", digits = dp, big.mark = ","), m[5])
 }
 
 #' Content a generated span should hold

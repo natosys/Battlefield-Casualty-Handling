@@ -166,8 +166,13 @@ if (!is.null(series)) {
          "the series spans days 1 to %d", ROLE4_DEMAND_DAYS)
   report(setequal(unique(series$series),
                   c("census", "operations", "theatre_minutes", "operations_after_horizon",
-                    "operations_admitted")),
-         "the series carries the census and the demand owed within, after and in all")
+                    "operations_admitted", "census_tail")),
+         paste("the series carries the census, the demand owed within, after and in all,",
+               "and the load left when the campaign ends"))
+  tail_subjects <- unique(series$subject[series$series == "census_tail"])
+  report(setequal(tail_subjects, c(ROLE4_TAIL_MEASURES, ROLE4_BACKLOG_MEASURES)),
+         "the load left at the end carries every measure (%s)",
+         paste(sort(tail_subjects), collapse = ", "))
   ops_subjects <- unique(series$subject[series$series == "operations"])
   report(setequal(ops_subjects, c(ROLE4_TOTAL, unname(ROLE4_OPERATION_SOURCES))),
          "the operations owed are divided by the three sources and the total (%s)",
@@ -443,8 +448,8 @@ check_census_table <- function(marker, subjects) {
 }
 
 check_census_table("<!-- GEN role4_census_ward -->",
-                   c("Total" = ROLE4_TOTAL, "Intensive care phase" = "icu",
-                     "Step-down ward phase" = "hold"))
+                   c("Total" = ROLE4_TOTAL, "Intensive care" = "icu",
+                     "Holding" = "hold"))
 check_census_table("<!-- GEN role4_census_origin -->",
                    c("Total" = ROLE4_TOTAL, "Battle injury" = ROLE4_ORIGINS[["battle_injury"]],
                      "Disease and non-battle injury" = ROLE4_ORIGINS[["dnbi"]],
@@ -525,7 +530,7 @@ report(identical(role4_origin(origin_in),
 report(identical(role4_origin(data.frame(injury_type = c(1, 2))), c("battle_injury", "dnbi")),
        "a configuration drawing no reconstruction classes everyone by injury type")
 
-# Census: three phases over eight days, [1,2] intensive care, [3,6] step-down,
+# Census: three phases over eight days, [1,2] intensive care, [3,6] holding,
 # and [5,12] intensive care, which runs past the horizon and is counted to it.
 phases <- data.frame(phase_ward = c("icu", "hold", "icu"),
                      origin = unname(ROLE4_ORIGINS[c("battle_injury", "battle_injury",
@@ -606,6 +611,39 @@ report(abs(m$mean - 3.5) < TOL && abs(m$ci_lower - (3.5 - half)) < TOL &&
 d <- role4_census_daily(transform(hand, scenario = "default"))
 report(all(d$mean == c(1.5, 2.5, 4.5, 5.5)) && all(d$n_reps == 2L),
        "the daily mean is the mean across replications of each day")
+
+# The load left at a ten-day horizon: three stays running on day 10 and a phase
+# beginning after it. After the horizon the census is 3, 3, 2 and then 1 to day
+# 20, so it falls to half on the fourth day, never to a tenth before emptying on
+# the eleventh, and the stays occupy 2 + 10 + 3 bed-days after the horizon.
+tail_phases <- data.frame(phase_start = c(5, 8, 9, 11), phase_end = c(12, 10, 20, 13))
+tl <- role4_census_tail(tail_phases, n_days = 10L)
+report(identical(unname(tl), c(3, 4, 11, 11, 15)) &&
+         identical(names(tl), ROLE4_TAIL_MEASURES),
+       "the load left at the horizon is the one computed by hand (%s)",
+       paste(tl, collapse = ", "))
+report(all(role4_census_tail(tail_phases[0, ], n_days = 10L) == 0),
+       "a campaign that sent nobody home leaves no load")
+
+# The airlift backlog at a ten-day horizon on a weekly schedule with one place
+# per route: the next sorties fly on days 14 and 21. Casualty 2 heads the
+# critical queue but dies on day 12, so 1 boards on day 14 and 3 on day 21;
+# on the standard route 4 boards on day 14, before its day-30 death, and 5 on
+# day 21, when the theatre clears.
+dr <- drain_airlift_backlog(route = c(1, 1, 1, 2, 2), queued_at = c(100, 50, 200, 10, 20),
+                            death_time = c(NA, 12, NA, 30, NA) * DAY_MIN, n_days = 10,
+                            interval_days = 7, places = c(1, 1), failure_probability = 0)
+report(identical(dr$board_time, c(14, NA, 21, 14, 21) * DAY_MIN) &&
+         identical(dr$died, c(FALSE, TRUE, FALSE, FALSE, FALSE)) &&
+         identical(dr$clear_time, 21 * DAY_MIN),
+       "the backlog flies out in queue order, a death freeing its place (%s)",
+       paste(dr$board_time / DAY_MIN, collapse = ", "))
+shut <- drain_airlift_backlog(route = c(1, 1), queued_at = c(1, 2),
+                              death_time = c(40, NA) * DAY_MIN, n_days = 10,
+                              interval_days = 7, places = c(0, 1), failure_probability = 0)
+report(all(is.na(shut$board_time)) && identical(shut$died, c(TRUE, FALSE)) &&
+         is.na(shut$clear_time),
+       "a route with no places never clears, its casualties at risk dying waiting")
 
 # ── 7. Demand only ──────────────────────────────────────────────────────────
 

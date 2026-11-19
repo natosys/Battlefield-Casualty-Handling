@@ -36,7 +36,8 @@ POLICY_PANELS <- data.frame(
                "overflow_r2e_post_op", "role4_peak", "hold_occupancy", "icu_occupancy",
                "post_definitive_icu_share", "mean_evac_wait_days"),
   label    = c("Returns to duty", "Died of wounds", "In-theatre share (%)",
-               "R2E hold mean queue", "R2E post-operative overflow", "Role 4 peak beds",
+               "Waiting for an R2E holding bed", "Operated casualties in overflow",
+               "Role 4 peak beds",
                "R2E hold occupancy (%)", "R2E ICU occupancy (%)",
                "Post-definitive ICU access (%)", "Mean evacuation wait (d)"),
   scale    = c(1, 1, 100, 1, 1, 1, 100, 100, 100, 1),
@@ -126,7 +127,7 @@ plot_policy_sweep <- function(summary_df, shipped_days) {
   n_reps <- unique(plot_df$n_reps)
   sweep_panels(plot_df, shipped_days, "Evacuation policy (days recoverable in theatre)",
                "Evacuation Policy Sweep at the Sustained Horizon",
-               sprintf("%d replications per policy over 360 days", n_reps))
+               sprintf("Moderate intensity; %d replications per policy over 360 days", n_reps))
 }
 
 #' R2E holding establishment figure
@@ -140,7 +141,8 @@ plot_establishment_sweep <- function(summary_df, shipped_beds) {
     mutate(x = hold_beds)
   sweep_panels(plot_df, shipped_beds, "R2E holding beds per unit",
                "R2E Holding Establishment Sweep at the Shipped Evacuation Policy",
-               sprintf("%d replications per establishment over 360 days", unique(plot_df$n_reps)))
+               sprintf("Moderate intensity; %d replications per establishment over 360 days",
+                       unique(plot_df$n_reps)))
 }
 
 #' Forward surgical saturation release figure
@@ -154,7 +156,8 @@ plot_saturation_sweep <- function(summary_df, shipped_threshold) {
     mutate(x = saturation_threshold)
   sweep_panels(plot_df, shipped_threshold, "R2E theatre queue at which a casualty is released",
                "Forward Surgical Saturation Release Threshold Sweep",
-               sprintf("%d replications per threshold over 360 days", unique(plot_df$n_reps)))
+               sprintf("Moderate intensity; %d replications per threshold over 360 days",
+                       unique(plot_df$n_reps)))
 }
 
 #' Responses of the surgical team establishment figure
@@ -212,6 +215,440 @@ plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
     theme_minimal(base_size = 12) +
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold", size = 9),
           axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "bottom")
+}
+
+#' Surgical capacity options the capacity figure compares, with their plain labels
+#'
+#' @details Each option is an arm of the surgical team sweep, or the theatre
+#'   sweep's third theatre at six sections, keyed by `source` and `arm`, and is
+#'   labelled in words a planner reads without the sweep's notation.
+SURGICAL_CAPACITY_OPTIONS <- data.frame(
+  source = c("teams", "teams", "teams", "teams", "teams", "theatres"),
+  arm    = c("R2E 3, R2B 1", "R2E 4, R2B 1", "R2E 6, R2B 1", "R2E 3, R2B 2", "R2E 4, R2B 2",
+             "3 theatres, 6 sections"),
+  label  = c("Shipped: 3 R2E teams, 1 team per R2B, 2 R2E theatres", "4 R2E teams",
+             "6 R2E teams", "2 teams per R2B", "4 R2E teams and 2 teams per R2B",
+             "6 R2E teams and a third R2E theatre"),
+  stringsAsFactors = FALSE
+)
+
+#' Colours of the two casualty intensities in the planning figures
+FIGURE_INTENSITY_COLOURS <- c("Moderate intensity" = "#1f5468", "High intensity" = "#a0442f")
+
+#' Surgical capacity figure: the R2E theatre queue and deaths of wounds by option
+#'
+#' @param teams List of the tracked surgical team sweep summaries, named
+#'   `moderate` and `high`.
+#' @param theatres List of the tracked theatre sweep summaries, named the same.
+#' @return ggplot object of two panels, the options down the side and both
+#'   intensities in each.
+#'
+#' @details Reduces the twelve panels of the team sweep figure to the two
+#'   measures the planning paper's surgical finding rests on, adding the third
+#'   theatre at six sections so the theatre limit beyond a fourth R2E team shows
+#'   beside the team options. Stops naming an option the summaries lack.
+plot_surgical_capacity <- function(teams, theatres) {
+  #' Both intensities of one sweep, tagged with their source
+  #'
+  #' @param pair The sweep's summaries, named `moderate` and `high`.
+  #' @param source The option source the rows belong to.
+  #' @return The rows of both intensities.
+  tag <- function(pair, source) {
+    rbind(cbind(pair$moderate, intensity = "Moderate intensity", source = source),
+          cbind(pair$high, intensity = "High intensity", source = source))
+  }
+  both <- rbind(tag(teams, "teams"), tag(theatres, "theatres"))
+  plot_df <- both %>%
+    filter(response %in% c("theatre_mean_queue", "total_dow")) %>%
+    inner_join(SURGICAL_CAPACITY_OPTIONS, by = c("source", "arm"))
+  found <- unique(plot_df$label)
+  if (!all(SURGICAL_CAPACITY_OPTIONS$label %in% found)) {
+    stop("summaries lack option(s): ",
+         paste(setdiff(SURGICAL_CAPACITY_OPTIONS$label, found), collapse = ", "))
+  }
+  panels <- c(theatre_mean_queue = "Casualties waiting for R2E surgery",
+              total_dow = "Died of wounds per campaign")
+  plot_df <- plot_df %>%
+    mutate(label = factor(label, levels = rev(SURGICAL_CAPACITY_OPTIONS$label)),
+           panel = factor(panels[response], levels = panels),
+           intensity = factor(intensity, levels = names(FIGURE_INTENSITY_COLOURS)))
+  subtitle <- paste("Changes from the shipped establishment; closing 90-day mean queue and",
+                    "deaths per 360-day campaign.\n%d replications per arm, mean and 95%% interval")
+  ggplot(plot_df, aes(x = mean, y = label, colour = intensity)) +
+    geom_pointrange(aes(xmin = ci_lower, xmax = ci_upper),
+                    position = position_dodge(0.5), size = 0.5) +
+    facet_wrap(~ panel, nrow = 1, scales = "free_x") +
+    scale_colour_manual(values = FIGURE_INTENSITY_COLOURS) +
+    labs(title = "Adding Surgical Teams: Queue and Deaths of Wounds",
+         subtitle = sprintf(subtitle, unique(plot_df$n_reps)),
+         x = NULL, y = NULL, colour = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+#' Panels of the critical-care places figure, in display order
+AIRLIFT_PLACES_PANELS <- c(collapse = "Campaigns in which the route falls behind (%)",
+                           mean_wait_critical = "Mean wait for a critical place (days)",
+                           total_dow = "Died of wounds per campaign")
+
+#' Plain label of one critical-care places arm
+#'
+#' @param arm Arm label of the critical-care places sweep, `"<critical>/<standard>,
+#'   <n> days"`.
+#' @param shipped Arm label of the shipped split and interval.
+#' @return The label a planner reads, naming the critical places of the 90 and how
+#'   often the sorties fly.
+airlift_places_label <- function(arm, shipped) {
+  critical <- as.integer(sub("/.*", "", arm))
+  total <- critical + as.integer(sub(",.*", "", sub("^[0-9]+/", "", arm)))
+  days <- as.integer(sub(" days$", "", sub(".*, ", "", arm)))
+  often <- ifelse(days == 7L, "weekly", sprintf("every %d days", days))
+  sprintf("%d of %d places critical, %s%s", critical, total, often,
+          ifelse(arm == shipped, " (shipped)", ""))
+}
+
+#' Critical-care places figure: route collapse, critical wait and deaths of wounds
+#'
+#' @param collapse_df Tracked `data/airlift_places/airlift_places_collapse_high_intensity.csv`.
+#' @param summary_df Tracked `..._summary_high_intensity.csv`.
+#' @param shipped Arm label of the shipped split and interval.
+#' @return ggplot object of three panels, the arms down the side.
+#'
+#' @details Draws the high-intensity arms, where the critical route falls behind,
+#'   in the order the summary lists them. The collapse panel carries both routes
+#'   with their exact binomial intervals, so an arm that settles the critical
+#'   route by starving the standard one shows it; the wait and the deaths carry
+#'   their Student t intervals. Stops where a panel's response is absent.
+plot_airlift_places <- function(collapse_df, summary_df, shipped) {
+  arms <- unique(summary_df$arm)
+  missing <- setdiff(c("mean_wait_critical", "total_dow"), summary_df$response)
+  if (length(missing) > 0) {
+    stop("summary lacks response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  routes <- collapse_df %>%
+    transmute(arm, series = route, mean = 100 * rate, lower = 100 * ci_lower,
+              upper = 100 * ci_upper, panel = AIRLIFT_PLACES_PANELS[["collapse"]])
+  others <- summary_df %>%
+    filter(response %in% c("mean_wait_critical", "total_dow")) %>%
+    transmute(arm, series = "Critical airlift", mean, lower = ci_lower, upper = ci_upper,
+              panel = AIRLIFT_PLACES_PANELS[response])
+  labels <- airlift_places_label(arms, shipped)
+  plot_df <- rbind(routes, others) %>%
+    mutate(arm = factor(airlift_places_label(arm, shipped), levels = rev(labels)),
+           panel = factor(panel, levels = AIRLIFT_PLACES_PANELS),
+           series = factor(series, levels = c("Critical airlift", "Standard airlift")))
+  subtitle <- paste("C-17A sorties of 90 places split between critical and standard care,",
+                    "at high intensity; %d campaigns of 360 days per option,\nmean or share",
+                    "with 95%% interval")
+  ggplot(plot_df, aes(x = mean, y = arm, colour = series)) +
+    geom_pointrange(aes(xmin = lower, xmax = upper), position = position_dodge(0.5),
+                    size = 0.4) +
+    facet_wrap(~ panel, nrow = 1, scales = "free_x") +
+    scale_colour_manual(values = c("Critical airlift" = "#a0442f",
+                                   "Standard airlift" = "#7f8c8d")) +
+    labs(title = "Critical-Care Airlift at High Intensity: Places and Sortie Frequency",
+         subtitle = sprintf(subtitle, unique(collapse_df$n_reps)),
+         x = NULL, y = NULL, colour = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+#' Role 4 load figure: bed-days during and after the campaign per airlift option
+#'
+#' @param moderate_df Tracked `data/airlift_places/airlift_places_replications.csv`.
+#' @param high_df Tracked `..._replications_high_intensity.csv`.
+#' @param shipped Arm label of the shipped split and interval.
+#' @return ggplot object of one panel per intensity, a stacked bar per arm.
+#'
+#' @details Each bar is the mean Role 4 bed-days per campaign, split into those
+#'   occupied by day 360 and those occupied after it while the casualties still
+#'   awaiting airlift are flown out at the arm's own interval and split. The
+#'   whisker is the 95% Student t interval of the total, taken within
+#'   replication, so the figure shows how much of the load the airlift moves past
+#'   the campaign's end and whether the load itself changes. The intensities
+#'   share one horizontal scale, so the panels compare in size as well as in
+#'   split. Stops where a replication lacks either response.
+plot_role4_load <- function(moderate_df, high_df, shipped) {
+  needed <- c("role4_bed_days", "role4_bed_days_after")
+  panel_names <- c(moderate = "Moderate intensity", high = "High intensity")
+  frames <- list(moderate = moderate_df, high = high_df)
+  missing <- unique(unlist(lapply(frames, function(df) setdiff(needed, names(df)))))
+  if (length(missing) > 0) {
+    stop("replications lack response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  arms <- unique(high_df$arm)
+  labels <- airlift_places_label(arms, shipped)
+  summary_df <- bind_rows(lapply(names(frames), function(key) {
+    frames[[key]] %>%
+      mutate(total = role4_bed_days + role4_bed_days_after) %>%
+      group_by(arm) %>%
+      summarise(during = mean(role4_bed_days), after = mean(role4_bed_days_after),
+                mean_total = mean(total),
+                half = qt(0.975, n() - 1) * sd(total) / sqrt(n()), n_reps = n(),
+                .groups = "drop") %>%
+      mutate(intensity = panel_names[[key]])
+  })) %>%
+    mutate(arm = factor(airlift_places_label(arm, shipped), levels = rev(labels)),
+           intensity = factor(intensity, levels = panel_names))
+  bars <- bind_rows(
+    summary_df %>% transmute(arm, intensity, part = "Occupied by day 360", bed_days = during),
+    summary_df %>% transmute(arm, intensity, part = "Occupied after day 360", bed_days = after)
+  ) %>%
+    mutate(part = factor(part, levels = c("Occupied after day 360", "Occupied by day 360")))
+  ggplot(bars, aes(x = bed_days / 1000, y = arm)) +
+    geom_col(aes(fill = part), width = 0.7) +
+    geom_errorbar(data = summary_df, inherit.aes = FALSE, orientation = "y",
+                  aes(y = arm, xmin = (mean_total - half) / 1000,
+                      xmax = (mean_total + half) / 1000),
+                  width = 0.3, colour = "grey25") +
+    facet_wrap(~ intensity, nrow = 1) +
+    scale_fill_manual(values = c("Occupied by day 360" = FIGURE_MEAN_COLOUR,
+                                 "Occupied after day 360" = "#d9a441"),
+                      breaks = c("Occupied by day 360", "Occupied after day 360")) +
+    labs(title = "Role 4 Load by Critical-Care Airlift Option",
+         subtitle = sprintf(paste("Bed-days per 360-day campaign, the casualties awaiting airlift",
+                                  "on day 360 flown out after it;\n%d campaigns per option,",
+                                  "whisker the 95%% interval of the total"),
+                            max(summary_df$n_reps)),
+         x = "Role 4 bed-days (thousands)", y = NULL, fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+#' Evacuation delay figure: deaths of wounds as a share of wounded, by where they occur
+#'
+#' @param moderate_df Tracked `data/evac_delay/evac_delay_sweep_summary.csv`.
+#' @param high_df Tracked `..._summary_high_intensity.csv`.
+#' @return ggplot object of one panel per intensity, a stacked bar per delay.
+#'
+#' @details Each bar is the mean deaths of wounds per campaign over the mean
+#'   wounded in action, split into the deaths while held forward and every other
+#'   death of wounds, so the two intensities share one scale although their
+#'   wounded differ several fold. The delays keep the order the summary lists
+#'   them. Stops where a response the bars need is absent.
+plot_evac_delay <- function(moderate_df, high_df) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  needed <- c("total_dow", "died_held_forward", "wounded")
+  missing <- setdiff(needed, both$response)
+  if (length(missing) > 0) {
+    stop("summary lacks response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  arms <- unique(moderate_df$arm)
+  wide <- both %>%
+    filter(response %in% needed) %>%
+    select(arm, intensity, response, mean) %>%
+    tidyr::pivot_wider(names_from = response, values_from = mean)
+  segments <- c("Died while held forward", "Died at any other point")
+  plot_df <- rbind(
+    data.frame(arm = wide$arm, intensity = wide$intensity, where = segments[1],
+               share = 100 * wide$died_held_forward / wide$wounded),
+    data.frame(arm = wide$arm, intensity = wide$intensity, where = segments[2],
+               share = 100 * (wide$total_dow - wide$died_held_forward) / wide$wounded)
+  ) %>%
+    mutate(arm = factor(arm, levels = arms),
+           intensity = factor(intensity, levels = names(FIGURE_INTENSITY_COLOURS)),
+           where = factor(where, levels = segments))
+  ggplot(plot_df, aes(x = arm, y = share, fill = where)) +
+    geom_col(width = 0.7) +
+    facet_wrap(~ intensity, nrow = 1) +
+    scale_fill_manual(values = stats::setNames(rev(unname(FIGURE_INTENSITY_COLOURS)), segments)) +
+    labs(title = "Forward Evacuation Delay: Deaths of Wounds and Where They Occur",
+         subtitle = paste("Every casualty held at R1 for the nominal delay before the move to",
+                          "Role 2; mean of 30 campaigns of 360 days"),
+         x = "Forward evacuation delay", y = "Died of wounds, % of wounded in action",
+         fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+#' Theatre and team options the post-operative pressure figure compares, with their labels
+#'
+#' @details The arms of the operating theatre sweep in its order. Three theatres at
+#'   three sections is the sweep's null control: two sections on the larger shift
+#'   never outnumber three theatres, so the added theatre cannot be used, and the
+#'   label says so.
+POST_OP_PRESSURE_OPTIONS <- c(
+  "2 theatres, 3 sections" = "Shipped: 3 R2E teams, 2 theatres",
+  "3 theatres, 3 sections" = "3 R2E teams, 3 theatres (third theatre unusable)",
+  "2 theatres, 6 sections" = "6 R2E teams, 2 theatres",
+  "3 theatres, 6 sections" = "6 R2E teams, 3 theatres",
+  "4 theatres, 8 sections" = "8 R2E teams, 4 theatres"
+)
+
+#' Post-operative pressure figure: the surgery queue against the beds behind it
+#'
+#' @param summary_df Tracked `data/ot_beds/ot_bed_sweep_summary_high_intensity.csv`.
+#' @return ggplot object of three panels, the theatre and team options down the
+#'   side.
+#'
+#' @details Shows the R2E theatre queue, the operated casualties in post-operative
+#'   overflow and the R2E holding queue at high intensity, where relieving surgery
+#'   moves the pressure onto the post-operative beds. Every axis starts at zero, so
+#'   a rise of a fraction of a level is not drawn as a large one. Stops naming an
+#'   option or response the summary lacks.
+plot_post_op_pressure <- function(summary_df) {
+  panels <- c(theatre_mean_queue = "Casualties waiting for R2E surgery",
+              overflow_r2e_post_op = "Operated casualties in overflow",
+              hold_mean_queue = "Casualties waiting for an R2E holding bed")
+  plot_df <- summary_df %>%
+    filter(response %in% names(panels), arm %in% names(POST_OP_PRESSURE_OPTIONS))
+  found <- unique(paste(plot_df$arm, plot_df$response))
+  wanted <- as.vector(outer(names(POST_OP_PRESSURE_OPTIONS), names(panels), paste))
+  if (!all(wanted %in% found)) {
+    stop("summary lacks: ", paste(setdiff(wanted, found), collapse = ", "))
+  }
+  plot_df <- plot_df %>%
+    mutate(arm = factor(POST_OP_PRESSURE_OPTIONS[arm], levels = rev(POST_OP_PRESSURE_OPTIONS)),
+           panel = factor(panels[response], levels = panels))
+  subtitle <- sprintf(paste("High intensity; closing 90-day means of %d campaigns of 360 days",
+                            "per option, with 95%% interval"), unique(plot_df$n_reps))
+  ggplot(plot_df, aes(x = mean, y = arm)) +
+    geom_pointrange(aes(xmin = ci_lower, xmax = ci_upper),
+                    colour = FIGURE_INTENSITY_COLOURS[["High intensity"]], size = 0.4) +
+    facet_wrap(~ panel, nrow = 1, scales = "free_x") +
+    expand_limits(x = 0) +
+    labs(title = "Relieving Surgery Moves the Pressure onto Post-Operative Beds",
+         subtitle = subtitle, x = NULL, y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title.position = "plot", strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+#' Outcomes at R2B the routing figure stacks, from the surgical team sweep's responses
+R2B_ROUTING_OUTCOMES <- c(r2b_surgeries = "Operated at R2B",
+                          diverted_offshift = "Sent to R2E: R2B team off shift",
+                          diverted_busy = "Sent to R2E: R2B theatre busy")
+
+#' R2B routing figure: what happens to casualties requiring surgery at R2B
+#'
+#' @param moderate_df Tracked `data/surgical_teams/surgical_team_sweep_summary.csv`.
+#' @param high_df Tracked `..._summary_high_intensity.csv`.
+#' @param shipped Arm label of the shipped establishment.
+#' @param second Arm label of the establishment with a second team per R2B unit.
+#' @return ggplot object of one panel per intensity, a stacked bar per
+#'   establishment.
+#'
+#' @details Each bar stacks the mean per campaign of the operations performed at
+#'   R2B and of the casualties sent on to R2E because the R2B team was off shift
+#'   or its theatre busy. The panels share one scale, so the intensities compare
+#'   directly. Stops where an outcome or arm is absent.
+plot_r2b_routing <- function(moderate_df, high_df, shipped, second) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  plot_df <- both %>%
+    filter(response %in% names(R2B_ROUTING_OUTCOMES), arm %in% c(shipped, second))
+  if (nrow(plot_df) != 2L * 2L * length(R2B_ROUTING_OUTCOMES)) {
+    stop("summaries lack an R2B outcome or arm the figure draws")
+  }
+  arms <- c("Shipped: 1 team per R2B", "2 teams per R2B")
+  colours <- c("#1f5468", "#a0442f", "#d9a27a")
+  plot_df <- plot_df %>%
+    mutate(arm = factor(ifelse(arm == shipped, arms[1], arms[2]), levels = arms),
+           outcome = factor(R2B_ROUTING_OUTCOMES[response], levels = rev(R2B_ROUTING_OUTCOMES)),
+           intensity = factor(intensity, levels = names(FIGURE_INTENSITY_COLOURS)))
+  ggplot(plot_df, aes(x = arm, y = mean, fill = outcome)) +
+    geom_col(width = 0.6) +
+    facet_wrap(~ intensity, nrow = 1) +
+    scale_fill_manual(values = stats::setNames(colours, R2B_ROUTING_OUTCOMES),
+                      breaks = unname(R2B_ROUTING_OUTCOMES)) +
+    scale_y_continuous(labels = scales::comma) +
+    labs(title = "Where R2B's Surgical Casualties Go, with One or Two Teams per Unit",
+         subtitle = paste("Casualties requiring surgery at R2B per 360-day campaign, by outcome;",
+                          "mean of 30 campaigns"),
+         x = NULL, y = "Casualties per campaign", fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+#' Ambulance fleet figure: casualties waiting for an ambulance by fleet size
+#'
+#' @param moderate_df Tracked `data/sweeps/transport_capacity_by_fleet_size.csv`.
+#' @param high_df Tracked `..._high_intensity.csv`.
+#' @param shipped Shipped number of ambulances.
+#' @param min_vehicles Smallest fleet drawn; the single-vehicle fleet is left out,
+#'   its high-intensity queue being orders of magnitude above the rest.
+#' @return ggplot object of one panel, both intensities against the fleet size.
+#'
+#' @details Draws the PMV ambulance fleet's closing 90-day mean queue with its
+#'   95% interval at each intensity on one shared scale, the shipped fleet marked.
+#'   Stops where the ambulance rows are absent.
+plot_ambulance_fleet <- function(moderate_df, high_df, shipped, min_vehicles = 2L) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  plot_df <- both %>% filter(vehicle == "PMVAmb", qty >= min_vehicles)
+  if (nrow(plot_df) == 0L) stop("transport sweep carries no PMV ambulance rows")
+  plot_df$intensity <- factor(plot_df$intensity, levels = names(FIGURE_INTENSITY_COLOURS))
+  ggplot(plot_df, aes(x = qty, y = mean_q, colour = intensity)) +
+    geom_vline(xintercept = shipped, linetype = "dashed", colour = "grey50") +
+    geom_line(linewidth = 0.8) +
+    geom_pointrange(aes(ymin = ci_lower_q, ymax = ci_upper_q), size = 0.4) +
+    scale_colour_manual(values = FIGURE_INTENSITY_COLOURS) +
+    scale_x_continuous(breaks = sort(unique(plot_df$qty))) +
+    expand_limits(y = 0) +
+    labs(title = "Casualties Waiting for an Ambulance, by Fleet Size",
+         subtitle = sprintf(paste("Shared PMV ambulance fleet; closing 90-day mean queue with",
+                                  "95%% interval; dashed line marks the shipped %d vehicles"),
+                            as.integer(shipped)),
+         x = "Ambulances in the shared fleet", y = "Casualties waiting", colour = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          panel.grid.minor = element_blank())
+}
+
+#' Plain labels of the transport holders the asset use figure draws, in display order
+EVACUATION_ASSET_LABELS <- c(
+  "PMV Ambulance fleet" = "Shared PMV ambulance fleet (R1 to R2B)",
+  "HX2 40M fleet" = "Shared HX2 40M truck fleet (the dead)",
+  "R2B evacuation crews" = "Integral R2B evacuation crews (R2B to R2E)",
+  "R2E evacuation sections" = "Integral R2E evacuation sections"
+)
+
+#' Evacuation asset use figure: time in use of each transport holder
+#'
+#' @param holders_df Tracked `data/scenarios/scenario_transport_holders.csv`.
+#' @return ggplot object of one bar per holder and intensity.
+#'
+#' @details Draws the closing 90-day utilisation with its 95% interval, labelled
+#'   past the interval's upper bound so a label never sits on its bar. Stops
+#'   naming a holder the evidence lacks.
+plot_evacuation_asset_use <- function(holders_df) {
+  missing <- setdiff(names(EVACUATION_ASSET_LABELS), holders_df$holder)
+  if (length(missing) > 0) {
+    stop("transport holder evidence lacks: ", paste(missing, collapse = ", "))
+  }
+  intensities <- c(moderate_intensity = "Moderate intensity", high_intensity = "High intensity")
+  plot_df <- holders_df %>%
+    filter(holder %in% names(EVACUATION_ASSET_LABELS), scenario %in% names(intensities)) %>%
+    mutate(holder = factor(EVACUATION_ASSET_LABELS[holder], levels = rev(EVACUATION_ASSET_LABELS)),
+           intensity = factor(intensities[scenario], levels = names(FIGURE_INTENSITY_COLOURS)))
+  dodge <- position_dodge(0.7)
+  ggplot(plot_df, aes(x = 100 * util_mean, y = holder, fill = intensity)) +
+    geom_col(position = dodge, width = 0.65) +
+    geom_errorbar(aes(xmin = 100 * util_ci_lower, xmax = 100 * util_ci_upper),
+                  position = dodge, width = 0.2, colour = "grey30", orientation = "y") +
+    geom_text(aes(x = 100 * util_ci_upper, label = sprintf("%.0f%%", 100 * util_mean)),
+              position = dodge, hjust = -0.25, size = 3.3) +
+    scale_fill_manual(values = FIGURE_INTENSITY_COLOURS) +
+    scale_x_continuous(limits = c(0, 100)) +
+    labs(title = "How Much of the Time Each Evacuation Asset Is in Use",
+         subtitle = sprintf(paste("Closing 90-day utilisation, mean of %d campaigns of 360 days",
+                                  "with 95%% interval; shipped establishment"),
+                            unique(plot_df$n_reps)),
+         x = "Time in use (%)", y = NULL, fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          panel.grid.minor = element_blank())
 }
 
 #' Responses of the R2E intensive care bed sweep figure
@@ -486,7 +923,7 @@ plot_casualty_surge_timeline <- function(events, n_sim_days) {
 #'
 #' @details Keyed by the ward level `env_data.json` names, so a ward the figure
 #'   has no name for is drawn under its own level rather than dropped.
-ROLE4_FIGURE_WARDS <- c(icu = "Intensive care phase", hold = "Step-down ward phase")
+ROLE4_FIGURE_WARDS <- c(icu = "Intensive care", hold = "Holding")
 
 #' Role 4 census over time figure
 #'

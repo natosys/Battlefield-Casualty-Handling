@@ -90,6 +90,7 @@ Every table and every quoted figure is regenerated from the tracked evidence und
 | Wounded in action/run | 2,304.0 [2,246.6, 2,361.4] (p10–p90: 2,058.8–2,473.9) | 8,315.5 [8,175.6, 8,455.5] (p10–p90: 7,883.3–8,771.4) | 3.61× |
 | Died of wounds/run | 21.17 [17.55, 24.79] (p10–p90: 12.9–30.3) | 568.60 [500.55, 636.65] (p10–p90: 349.6–772.7) | 26.9× |
 | Died of wounds, as share of wounded | 0.91% [0.77%, 1.05%] | 6.77% [6.06%, 7.48%] | 7.45× |
+| Time to first incision (hours) | 7.39 [6.03, 8.76] (p10–p90: 5.0–8.9) | 71.06 [57.93, 84.19] (p10–p90: 33.9–105.1) | 9.61× |
 <!-- /GEN -->
 
 ![Four panels of total casualties, wounded in action, deaths of wounds and deaths as a share of wounded at the two casualty intensities](../images/paper_casualty_totals.png)
@@ -375,6 +376,10 @@ The same measures under the `high_intensity` profile, each with a 95% confidence
 
 Under the shipped configuration a single ambulance queued <!-- GEN cell:transport|1|Ambulance mean queue|mean -->7.6600<!-- /GEN --> casualties (interval <!-- GEN cell:transport|1|Ambulance mean queue|ci -->[4.1208, 11.1993]<!-- /GEN -->), two queued <!-- GEN cell:transport|2|Ambulance mean queue|mean -->1.5242<!-- /GEN --> and the shipped three <!-- GEN cell:transport|3 (current ambulance)|Ambulance mean queue|mean -->0.4613<!-- /GEN -->. Under the high-intensity profile the corresponding ambulance queues were <!-- GEN cell:transport_high|1|Ambulance mean queue|mean -->2080.6801<!-- /GEN -->, <!-- GEN cell:transport_high|2|Ambulance mean queue|mean -->11.8888<!-- /GEN --> and <!-- GEN cell:transport_high|3 (current ambulance)|Ambulance mean queue|mean -->1.7600<!-- /GEN -->, and the shipped four trucks queued <!-- GEN cell:transport_high|4 (current truck)|Truck mean queue|mean -->0.0002<!-- /GEN -->.
 
+![Casualties waiting for an ambulance against the number of ambulances in the shared fleet at moderate and high intensity](../images/ambulance_fleet.png)
+
+The closing 90-day mean queue for the shared PMV ambulance fleet at two to five vehicles, with its 95% interval, at both intensities on one scale, the shipped fleet marked; the single-vehicle fleet, whose high-intensity queue is in the table above, is left out.
+
 #### Utilisation of Shared Fleets and Integral Evacuation Elements
 
 **Question.** How heavily is each transport holder used, the shared brigade fleets and the evacuation elements integral to R2B and R2E? `[default and high_intensity · 360 d · 30 replications · pool totals, closing 90 d, shipped establishment, not swept]`
@@ -391,6 +396,10 @@ Utilisation is the time-weighted share of the established units in use over the 
 <!-- /GEN -->
 
 At moderate intensity the R2B evacuation crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|Moderate intensity utilisation|mean -->13.9%<!-- /GEN --> of the window and the ambulance fleet for <!-- GEN cell:transport_holders|PMV Ambulance fleet|Moderate intensity utilisation|mean -->24.6%<!-- /GEN -->. At high intensity the crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|mean -->41.6%<!-- /GEN --> (interval <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|ci -->[40.4%, 42.8%]<!-- /GEN -->) and queued <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity mean queue|mean -->0.622<!-- /GEN --> casualties, the ambulance fleet was in use for <!-- GEN cell:transport_holders|PMV Ambulance fleet|High intensity utilisation|mean -->51.1%<!-- /GEN --> and the truck fleet for <!-- GEN cell:transport_holders|HX2 40M fleet|High intensity utilisation|mean -->5.7%<!-- /GEN -->. The R2E evacuation sections were in use for <!-- GEN cell:transport_holders|R2E evacuation sections|High intensity utilisation|mean -->1.1%<!-- /GEN --> at high intensity.
+
+![Time in use of the two shared transport fleets and the two integral evacuation elements at moderate and high intensity](../images/evacuation_asset_use.png)
+
+The closing 90-day utilisation of each transport holder, with its 95% interval, at both intensities under the shipped establishment: the shared ambulance and truck fleets and the evacuation elements integral to R2B and R2E.
 
 ### Forward Holding of Post-Operative Intensive Care
 
@@ -898,6 +907,14 @@ At the shipped establishment the high-intensity R2E theatre queue averaged <!-- 
 
 The R2E theatre queue and the diversions, deaths of wounds and returns to duty of each establishment, at moderate intensity (left) and high intensity (right), with the shipped establishment marked.
 
+![Two panels of the R2E theatre queue and deaths of wounds for six surgical capacity options at moderate and high intensity](../images/surgical_capacity.png)
+
+The closing 90-day mean R2E theatre queue (left) and deaths of wounds per campaign (right) for the shipped establishment, four and six R2E teams, two teams per R2B unit, four R2E teams with two per R2B unit, and six R2E teams with a third R2E theatre, the last from the operating theatre sweep, at both intensities, each with its 95% interval.
+
+![Two panels of stacked bars of R2B operations and casualties sent on to R2E, with one or two surgical teams per R2B unit, at moderate and high intensity](../images/r2b_routing.png)
+
+The operations performed at R2B and the casualties sent on to R2E because the R2B team was off shift or its theatre busy, per campaign, with the shipped one surgical team per R2B unit and with two, at moderate intensity (left) and high intensity (right) on a shared scale.
+
 
 ### R2E Operating Theatre Establishment
 
@@ -992,6 +1009,10 @@ At high intensity the same five arms were run under the `high_intensity` profile
 <!-- /GEN -->
 
 At the shipped establishment at high intensity the R2E theatre queue averaged <!-- GEN cell:ot_bed_high|R2E theatre mean queue|2 theatres, 3 sections (shipped)|full -->72.62 [51.40, 93.83]<!-- /GEN --> over the closing 90 days and was classified <!-- GEN cell:ot_bed_high|R2E theatre queue, late-half classification|2 theatres, 3 sections (shipped)|full -->converged at 71.0<!-- /GEN -->, with a theatre occupancy of <!-- GEN cell:ot_bed_high|R2E theatre occupancy (%)|2 theatres, 3 sections (shipped)|full -->75.9 [74.7, 77.1]<!-- /GEN --> per cent. A third theatre at three sections changed the queue by <!-- GEN cell:ot_bed_paired_high|R2E theatre mean queue|3 theatres, 3 sections|full -->−23.72 [−48.04, +0.60]<!-- /GEN --> and deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|3 theatres, 3 sections|full -->−79.07 [−135.37, −22.76]†<!-- /GEN -->. Six sections at two theatres changed the queue by <!-- GEN cell:ot_bed_paired_high|R2E theatre mean queue|2 theatres, 6 sections|full -->−63.94 [−84.95, −42.93]<!-- /GEN --> and deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|2 theatres, 6 sections|full -->−261.00 [−330.32, −191.68]<!-- /GEN -->, with a theatre occupancy of <!-- GEN cell:ot_bed_high|R2E theatre occupancy (%)|2 theatres, 6 sections|full -->83.3 [81.8, 84.7]<!-- /GEN --> per cent. Against that arm, a third theatre at six sections changed the queue by <!-- GEN cell:ot_bed_paired_high|R2E theatre mean queue|3 theatres, 6 sections against 2 theatres, 6 sections|full -->−7.46 [−9.23, −5.68]<!-- /GEN -->, deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|3 theatres, 6 sections against 2 theatres, 6 sections|full -->−37.60 [−52.42, −22.78]<!-- /GEN -->, returns to duty by <!-- GEN cell:ot_bed_paired_high|Returns to duty|3 theatres, 6 sections against 2 theatres, 6 sections|full -->+52.9 [−4.8, +110.6]<!-- /GEN --> and the post-operative overflow census by <!-- GEN cell:ot_bed_paired_high|R2E post-operative overflow census|3 theatres, 6 sections against 2 theatres, 6 sections|full -->+2.20 [+1.63, +2.76]<!-- /GEN -->. Four theatres and eight sections changed deaths of wounds by <!-- GEN cell:ot_bed_paired_high|Died of wounds|4 theatres, 8 sections|full -->−303.63 [−374.40, −232.87]<!-- /GEN --> and returns to duty by <!-- GEN cell:ot_bed_paired_high|Returns to duty|4 theatres, 8 sections|full -->+104.2 [+51.1, +157.3]<!-- /GEN --> against the shipped establishment, and the queue was classified <!-- GEN cell:ot_bed_high|R2E theatre queue, late-half classification|4 theatres, 8 sections|full -->converged at 0.44<!-- /GEN -->.
+
+![Three panels of the R2E theatre queue, operated casualties in post-operative overflow and the R2E holding queue for five theatre and surgical team options at high intensity](../images/post_op_pressure.png)
+
+The closing 90-day mean R2E theatre queue (left), operated casualties in post-operative overflow (centre) and R2E holding queue (right) for each theatre and section establishment at high intensity, each with its 95% interval and every axis starting at zero. Three theatres at three sections is the null control, its added theatre being unusable.
 
 ### R2E Intensive Care Bed Establishment
 
@@ -1365,6 +1386,10 @@ Each arm is the nominal delay for which every casualty is held after R1 treatmen
 
 Deaths of wounds rose from <!-- GEN cell:evac_delay|Died of wounds|No delay (shipped)|mean -->21.17<!-- /GEN --> with no delay to <!-- GEN cell:evac_delay|Died of wounds|6 hours|mean -->34.33<!-- /GEN --> at six hours and <!-- GEN cell:evac_delay|Died of wounds|30 days|mean -->1073.17<!-- /GEN --> at thirty days, the paired difference at thirty days being <!-- GEN cell:evac_delay_paired|Died of wounds|30 days|full -->+1052.00 [+1014.43, +1089.57]<!-- /GEN --> against <!-- GEN cell:evac_delay_paired|Died of wounds while held forward|30 days|full -->+1065.13 [+1029.27, +1100.99]<!-- /GEN --> for the deaths while held forward. The treated-cohort rate rose from <!-- GEN cell:evac_delay|Treated-cohort died-of-wounds rate (%)|No delay (shipped)|mean -->0.514<!-- /GEN -->% to <!-- GEN cell:evac_delay|Treated-cohort died-of-wounds rate (%)|1 day|mean -->1.820<!-- /GEN -->% at one day and <!-- GEN cell:evac_delay|Treated-cohort died-of-wounds rate (%)|30 days|mean -->29.289<!-- /GEN -->% at thirty, and the time to first incision from <!-- GEN cell:evac_delay|Time to first incision (hours)|No delay (shipped)|mean -->7.39<!-- /GEN --> hours to <!-- GEN cell:evac_delay|Time to first incision (hours)|1 day|mean -->30.58<!-- /GEN --> at one day. Every R2B and R2E pool was classified converged at every delay. The R2E theatre queue changed by <!-- GEN cell:evac_delay_paired|R2E theatre mean queue|30 days|full -->−0.78 [−1.14, −0.43]<!-- /GEN --> at thirty days, R2E intensive care occupancy by <!-- GEN cell:evac_delay_paired|R2E ICU occupancy (%)|30 days|full -->+3.9 [+3.0, +4.8]<!-- /GEN --> percentage points and the holding queue by <!-- GEN cell:evac_delay_paired|R2E holding mean queue|30 days|full -->−0.38 [−2.98, +2.22]<!-- /GEN -->. Returns to duty changed by <!-- GEN cell:evac_delay_paired|Returns to duty|30 days|full -->−178.2 [−221.1, −135.4]<!-- /GEN --> and PMV ambulance utilisation by <!-- GEN cell:evac_delay_paired|PMV ambulance utilisation (%)|30 days|full -->−1.9 [−2.6, −1.3]<!-- /GEN --> percentage points at thirty days.
 
+![Two panels of stacked bars of deaths of wounds as a share of wounded in action by forward evacuation delay, split into deaths while held forward and all other deaths, at moderate and high intensity](../images/evac_delay.png)
+
+Deaths of wounds per campaign as a share of wounded in action at each delay, at moderate intensity (left) and high intensity (right), split into deaths while held forward and every other death of wounds; each bar is a ratio of the two arms' campaign means.
+
 At high intensity the same seven arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
 
 <!-- GEN evac_delay_high -->
@@ -1622,15 +1647,55 @@ At high intensity the same eight arms were run under the `high_intensity` profil
 
 At the shipped split and interval at high intensity the critical airlift's closing backlog was <!-- GEN cell:airlift_places_high|Critical airlift closing backlog|36/54, 7 days (shipped)|full -->2506.7 [2465.2, 2548.2]<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Critical airlift campaigns collapsed|36/54, 7 days (shipped)|full -->30 of 30 [88%, 100%]<!-- /GEN --> campaigns collapsed on the critical route. At the weekly interval, 72 critical places of 90 changed the critical backlog by <!-- GEN cell:airlift_places_paired_high|Critical airlift closing backlog|72/18, 7 days|full -->−1501.9 [−1555.4, −1448.4]<!-- /GEN --> and the standard backlog by <!-- GEN cell:airlift_places_paired_high|Standard airlift closing backlog|72/18, 7 days|full -->+980.0 [+962.9, +997.1]<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Standard airlift campaigns collapsed|72/18, 7 days|full -->30 of 30 [88%, 100%]<!-- /GEN --> campaigns collapsed on the standard route. Flying every three days at the shipped split changed the critical backlog by <!-- GEN cell:airlift_places_paired_high|Critical airlift closing backlog|36/54, 3 days|full -->−2013.2 [−2074.1, −1952.2]<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Critical airlift campaigns collapsed|36/54, 3 days|full -->29 of 30 [83%, 100%]<!-- /GEN --> campaigns collapsed on the critical route, and at 45 critical places by <!-- GEN cell:airlift_places_paired_high|Critical airlift closing backlog|45/45, 3 days|full -->−2483.7 [−2525.0, −2442.5]<!-- /GEN -->, with <!-- GEN cell:airlift_places_high|Critical airlift campaigns collapsed|45/45, 3 days|full -->0 of 30 [0%, 12%]<!-- /GEN -->. Deaths of wounds among casualties awaiting airlift changed by <!-- GEN cell:airlift_places_paired_high|Died of wounds awaiting airlift|45/45, 3 days|full -->−178.63 [−184.41, −172.86]<!-- /GEN --> at 45 places every three days, deaths of wounds in total by <!-- GEN cell:airlift_places_paired_high|Died of wounds|45/45, 3 days|full -->−175.77 [−275.12, −76.41]<!-- /GEN -->, and the Role 4 peak census by <!-- GEN cell:airlift_places_paired_high|Role 4 peak census|45/45, 3 days|full -->+252.6 [+248.7, +256.5]<!-- /GEN -->.
 
+![Three panels of route collapse, critical wait and deaths of wounds for eight critical-care place and sortie interval options at high intensity](../images/airlift_places.png)
+
+The share of campaigns in which each airlift route collapsed (left), the mean wait for a critical place (centre) and deaths of wounds per campaign (right) for the eight arms at high intensity, each with its 95% interval: exact binomial for the collapse shares, Student $t$ for the means.
+
+The Role 4 load each arm delivers is set out below at both intensities, with the casualties still awaiting airlift on day 360 flown out after it at the arm's own interval and split ([Methods](Methods.md#critical-care-places-per-sortie-sweep)).
+
+<!-- GEN airlift_places_role4 -->
+| Role 4 | 36/54, 7 days (shipped) | 45/45, 7 days | 54/36, 7 days | 72/18, 7 days | 36/54, 3 days | 45/45, 3 days | 54/36, 3 days | 72/18, 3 days |
+|---|---|---|---|---|---|---|---|---|
+| Intensive care, closing 90-day mean beds | 35.7 [34.4, 37.1] | 34.7 [32.6, 36.8] | 35.0 [33.0, 37.1] | 35.7 [33.8, 37.5] | 33.6 [32.3, 34.9] | 35.0 [32.9, 37.1] | 34.5 [32.7, 36.3] | 35.5 [33.6, 37.5] |
+| Holding, closing 90-day mean beds | 114.6 [110.9, 118.4] | 113.2 [107.9, 118.4] | 113.8 [108.0, 119.5] | 114.8 [110.2, 119.3] | 110.3 [106.6, 114.0] | 114.7 [108.4, 120.9] | 113.5 [108.1, 118.9] | 115.3 [110.5, 120.2] |
+| Total, closing 90-day mean beds | 150.4 [145.5, 155.3] | 147.8 [140.6, 155.1] | 148.8 [141.1, 156.4] | 150.4 [144.2, 156.7] | 143.9 [139.1, 148.7] | 149.7 [141.3, 158.0] | 148.0 [141.1, 155.0] | 150.9 [144.2, 157.5] |
+| Peak beds | 209.2 [205.2, 213.2] | 226.8 [220.0, 233.6] | 236.4 [224.4, 248.4] | 236.5 [225.9, 247.2] | 236.8 [222.8, 250.8] | 239.7 [225.9, 253.4] | 236.3 [222.6, 249.9] | 231.1 [221.1, 241.1] |
+| Bed-days to day 360 | 50,046 [49,025, 51,067] | 49,494 [48,414, 50,574] | 50,247 [48,799, 51,695] | 50,877 [49,400, 52,354] | 49,837 [48,364, 51,311] | 50,455 [49,142, 51,768] | 49,955 [48,548, 51,363] | 50,025 [48,565, 51,484] |
+| Casualties awaiting airlift on day 360 | 32.5 [23.2, 41.7] | 20.6 [16.4, 24.9] | 23.0 [19.5, 26.4] | 35.6 [28.1, 43.0] | 25.2 [18.7, 31.7] | 23.1 [19.4, 26.8] | 22.8 [18.7, 26.8] | 17.4 [14.6, 20.1] |
+| Days after day 360 until the last bed empties | 47.1 [45.2, 49.0] | 44.9 [43.7, 46.1] | 45.1 [44.1, 46.0] | 45.7 [44.7, 46.8] | 43.9 [42.7, 45.2] | 43.3 [42.1, 44.5] | 43.8 [42.6, 45.0] | 42.7 [41.3, 44.1] |
+| Bed-days after day 360 | 2,900 [2,553, 3,247] | 2,512 [2,236, 2,787] | 2,410 [2,186, 2,633] | 2,624 [2,354, 2,893] | 2,295 [2,073, 2,518] | 2,286 [2,139, 2,433] | 2,198 [2,057, 2,339] | 2,159 [2,004, 2,315] |
+| Bed-days in all | 52,946 [51,836, 54,056] | 52,006 [50,838, 53,173] | 52,657 [51,117, 54,196] | 53,500 [51,979, 55,022] | 52,133 [50,606, 53,659] | 52,741 [51,393, 54,089] | 52,154 [50,733, 53,574] | 52,184 [50,683, 53,686] |
+<!-- /GEN -->
+
+<!-- GEN airlift_places_role4_high -->
+| Role 4 | 36/54, 7 days (shipped) | 45/45, 7 days | 54/36, 7 days | 72/18, 7 days | 36/54, 3 days | 45/45, 3 days | 54/36, 3 days | 72/18, 3 days |
+|---|---|---|---|---|---|---|---|---|
+| Intensive care, closing 90-day mean beds | 43.7 [43.3, 44.1] | 54.8 [54.3, 55.2] | 66.2 [65.7, 66.7] | 87.6 [87.0, 88.2] | 102.9 [102.4, 103.4] | 115.9 [112.9, 118.8] | 113.5 [111.0, 116.1] | 114.1 [111.9, 116.2] |
+| Holding, closing 90-day mean beds | 176.1 [173.7, 178.6] | 202.9 [201.5, 204.2] | 218.4 [217.5, 219.4] | 235.7 [234.5, 237.0] | 310.9 [308.9, 312.9] | 342.8 [336.4, 349.3] | 336.5 [330.9, 342.1] | 338.8 [332.9, 344.6] |
+| Total, closing 90-day mean beds | 219.9 [217.4, 222.3] | 257.6 [256.3, 258.9] | 284.6 [283.7, 285.5] | 323.4 [322.4, 324.4] | 413.8 [411.9, 415.7] | 458.7 [449.5, 467.9] | 450.1 [442.3, 457.8] | 452.8 [445.0, 460.6] |
+| Peak beds | 281.3 [279.0, 283.6] | 315.0 [313.2, 316.7] | 336.6 [335.4, 337.8] | 376.4 [375.3, 377.5] | 465.6 [463.4, 467.7] | 533.9 [530.5, 537.4] | 536.1 [531.2, 541.0] | 528.5 [523.7, 533.3] |
+| Bed-days to day 360 | 75,682 [75,323, 76,042] | 88,327 [88,008, 88,645] | 97,407 [97,231, 97,584] | 110,291 [110,094, 110,488] | 141,737 [141,234, 142,241] | 156,634 [155,084, 158,185] | 155,812 [154,212, 157,413] | 155,893 [154,470, 157,317] |
+| Casualties awaiting airlift on day 360 | 2,858.6 [2,813.4, 2,903.9] | 2,445.0 [2,404.1, 2,485.9] | 2,251.8 [2,196.5, 2,307.1] | 2,261.4 [2,210.1, 2,312.8] | 583.9 [538.1, 629.7] | 62.3 [56.7, 67.9] | 65.9 [61.9, 70.0] | 84.0 [76.4, 91.6] |
+| Days after day 360 until the last bed empties | 545.3 [537.8, 552.8] | 395.1 [389.4, 400.8] | 289.3 [283.8, 294.8] | 451.6 [444.7, 458.4] | 90.3 [86.5, 94.0] | 46.0 [45.1, 46.9] | 46.7 [46.0, 47.4] | 46.5 [45.9, 47.1] |
+| Bed-days after day 360 | 76,037 [74,924, 77,150] | 67,640 [66,596, 68,684] | 60,812 [59,519, 62,105] | 50,267 [48,966, 51,569] | 21,008 [19,737, 22,280] | 7,035 [6,795, 7,275] | 7,169 [6,930, 7,407] | 7,342 [7,131, 7,553] |
+| Bed-days in all | 151,720 [150,312, 153,127] | 155,966 [154,709, 157,224] | 158,219 [156,885, 159,554] | 160,559 [159,251, 161,866] | 162,746 [161,348, 164,144] | 163,669 [162,010, 165,328] | 162,981 [161,303, 164,659] | 163,236 [161,708, 164,763] |
+<!-- /GEN -->
+
+At high intensity the shipped split and interval held <!-- GEN cell:airlift_places_role4_high|Total, closing 90-day mean beds|36/54, 7 days (shipped)|mean -->219.9<!-- /GEN --> Role 4 beds over the closing 90 days, <!-- GEN cell:airlift_places_role4_high|Intensive care, closing 90-day mean beds|36/54, 7 days (shipped)|mean -->43.7<!-- /GEN --> of them intensive care, and left <!-- GEN cell:airlift_places_role4_high|Casualties awaiting airlift on day 360|36/54, 7 days (shipped)|mean -->2,858.6<!-- /GEN --> casualties awaiting airlift on day 360; Role 4 emptied <!-- GEN cell:airlift_places_role4_high|Days after day 360 until the last bed empties|36/54, 7 days (shipped)|mean -->545.3<!-- /GEN --> days after it. At 45/45 every three days the closing mean was <!-- GEN cell:airlift_places_role4_high|Total, closing 90-day mean beds|45/45, 3 days|mean -->458.7<!-- /GEN --> beds, <!-- GEN cell:airlift_places_role4_high|Intensive care, closing 90-day mean beds|45/45, 3 days|mean -->115.9<!-- /GEN --> of them intensive care, <!-- GEN cell:airlift_places_role4_high|Casualties awaiting airlift on day 360|45/45, 3 days|mean -->62.3<!-- /GEN --> casualties were awaiting airlift on day 360, and Role 4 emptied <!-- GEN cell:airlift_places_role4_high|Days after day 360 until the last bed empties|45/45, 3 days|mean -->46.0<!-- /GEN --> days after it. The bed-days occupied during and after the campaign together were <!-- GEN cell:airlift_places_role4_high|Bed-days in all|36/54, 7 days (shipped)|mean -->151,720<!-- /GEN --> at the shipped split and interval and <!-- GEN cell:airlift_places_role4_high|Bed-days in all|45/45, 3 days|mean -->163,669<!-- /GEN --> at 45/45 every three days.
+
+![Role 4 bed-days per campaign for eight critical-care place and sortie interval options at each intensity, divided into those occupied by day 360 and after it](../images/role4_load.png)
+
+Mean Role 4 bed-days per 360-day campaign for each critical-care place and sortie interval option, at moderate intensity (left) and high intensity (right), divided into the bed-days occupied by day 360 and those occupied after it while the casualties still awaiting airlift are flown out at the option's own interval and split. The whisker is the 95% Student t interval of the total, taken within replication; the two intensities share one scale.
+
 ---
 
 ## Role 4 Bed Demand
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** How many national support base beds does a campaign commit, what is the demand made of, has it settled by the closing window, and how do the forward evacuation levers move it? `[default, both intensities, the evacuation policy, R2E holding establishment, saturation release and sortie cancellation sweeps · 360 d · 30 replications · daily census, mean, peak and closing 90 d]`
+**Question.** How many national support base beds does a campaign commit, what is the demand made of, has it settled by the closing window, how long does it outlast the campaign, and how do the forward evacuation levers move it? `[default, both intensities, the evacuation policy, R2E holding establishment, saturation release and sortie cancellation sweeps · 360 d · 30 replications · daily census, mean, peak and closing 90 d]`
 
-The model gives the national support base no capacity, queue or shortfall, so every figure here is demand: the casualties in a Role 4 bed on a day, counted as the other sections count the Role 4 peak. The mean is taken over the whole campaign, the peak is the busiest day of one campaign, and the closing mean is the mean over the last 90 days. A casualty is counted by the ward phase it is in, intensive care or step-down, and by its origin, battle injury, disease and non-battle injury or the reconstruction cohort.
+The model gives the national support base no capacity, queue or shortfall, so every figure here is demand: the casualties in a Role 4 bed on a day, counted as the other sections count the Role 4 peak. The mean is taken over the whole campaign, the peak is the busiest day of one campaign, and the closing mean is the mean over the last 90 days. A casualty is counted by the ward phase it is in, intensive care or holding, and by its origin, battle injury, disease and non-battle injury or the reconstruction cohort.
 
 <!-- GEN role4_census_ward -->
 | Census by ward phase | Moderate intensity | High intensity |
@@ -1638,15 +1703,15 @@ The model gives the national support base no capacity, queue or shortfall, so ev
 | Total, mean beds | 139.02 [136.18, 141.85] | 210.23 [209.23, 211.23] |
 | Total, peak beds | 209.23 [205.24, 213.23] | 281.30 [278.98, 283.62] |
 | Total, closing 90-day mean beds | 150.38 [145.47, 155.29] | 219.86 [217.41, 222.31] |
-| Intensive care phase, mean beds | 33.59 [32.85, 34.33] | 42.77 [42.57, 42.97] |
-| Intensive care phase, peak beds | 63.80 [62.77, 64.83] | 67.57 [66.87, 68.26] |
-| Intensive care phase, closing 90-day mean beds | 35.74 [34.43, 37.06] | 43.72 [43.32, 44.13] |
-| Step-down ward phase, mean beds | 105.43 [103.26, 107.59] | 167.46 [166.45, 168.47] |
-| Step-down ward phase, peak beds | 154.17 [150.14, 158.19] | 223.53 [220.98, 226.08] |
-| Step-down ward phase, closing 90-day mean beds | 114.64 [110.88, 118.40] | 176.14 [173.72, 178.55] |
+| Intensive care, mean beds | 33.59 [32.85, 34.33] | 42.77 [42.57, 42.97] |
+| Intensive care, peak beds | 63.80 [62.77, 64.83] | 67.57 [66.87, 68.26] |
+| Intensive care, closing 90-day mean beds | 35.74 [34.43, 37.06] | 43.72 [43.32, 44.13] |
+| Holding, mean beds | 105.43 [103.26, 107.59] | 167.46 [166.45, 168.47] |
+| Holding, peak beds | 154.17 [150.14, 158.19] | 223.53 [220.98, 226.08] |
+| Holding, closing 90-day mean beds | 114.64 [110.88, 118.40] | 176.14 [173.72, 178.55] |
 <!-- /GEN -->
 
-At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->139.02 [136.18, 141.85]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->209.23 [205.24, 213.23]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->150.38 [145.47, 155.29]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->210.23 [209.23, 211.23]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->281.30 [278.98, 283.62]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->219.86 [217.41, 222.31]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The step-down ward phase carried <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|Moderate intensity|mean -->105.43<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->139.02<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|High intensity|mean -->167.46<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->210.23<!-- /GEN --> at high, and the intensive care phase the remainder.
+At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->139.02 [136.18, 141.85]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->209.23 [205.24, 213.23]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->150.38 [145.47, 155.29]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->210.23 [209.23, 211.23]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->281.30 [278.98, 283.62]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->219.86 [217.41, 222.31]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The holding phase carried <!-- GEN cell:role4_census_ward|Holding, mean beds|Moderate intensity|mean -->105.43<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->139.02<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Holding, mean beds|High intensity|mean -->167.46<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->210.23<!-- /GEN --> at high, and the intensive care phase the remainder.
 
 ![Daily Role 4 census over a 360-day campaign at each casualty intensity, divided by ward phase and by origin](../images/role4_demand_census.png)
 
@@ -1691,12 +1756,44 @@ The operations owed alongside the census were counted three ways. <!-- GEN cell:
 
 The mean operations owed per day over each week of the campaign, with the 95% interval across replications, at each casualty intensity, for the definitive repairs, the debridements and the reconstructions and for their total.
 
+Admissions end with the campaign, so the census on its last day is a load the national support base carries afterwards without new arrivals. Each casualty in a Role 4 bed on day 360 was followed to the end of the length of stay already drawn for it, and the census after day 360 was counted from those stays alone.
+
+<!-- GEN role4_tail -->
+| Load left when the campaign ends | Moderate intensity | High intensity |
+|---|---|---|
+| Census on day 360 | 155.8 [147.6, 163.9] | 230.1 [225.8, 234.4] |
+| Days after day 360 until the census halves | 12.9 [12.4, 13.4] | 11.4 [11.1, 11.7] |
+| Days after day 360 until it falls to a tenth | 28.3 [27.6, 28.9] | 26.9 [26.5, 27.3] |
+| Days after day 360 until the last bed empties | 39.3 [38.4, 40.1] | 40.4 [39.8, 41.0] |
+| Bed-days occupied after day 360 | 2,088 [1,960, 2,216] | 2,827 [2,777, 2,876] |
+<!-- /GEN -->
+
+The census on day 360 halved in <!-- GEN cell:role4_tail|Days after day 360 until the census halves|Moderate intensity|mean -->12.9<!-- /GEN --> days at moderate intensity and <!-- GEN cell:role4_tail|Days after day 360 until the census halves|High intensity|mean -->11.4<!-- /GEN --> at high, fell to a tenth in <!-- GEN cell:role4_tail|Days after day 360 until it falls to a tenth|Moderate intensity|mean -->28.3<!-- /GEN --> and <!-- GEN cell:role4_tail|Days after day 360 until it falls to a tenth|High intensity|mean -->26.9<!-- /GEN -->, and emptied in <!-- GEN cell:role4_tail|Days after day 360 until the last bed empties|Moderate intensity|mean -->39.3<!-- /GEN --> and <!-- GEN cell:role4_tail|Days after day 360 until the last bed empties|High intensity|mean -->40.4<!-- /GEN -->. The beds occupied after day 360 came to <!-- GEN cell:role4_tail|Bed-days occupied after day 360|Moderate intensity|mean -->2,088<!-- /GEN --> bed-days at moderate intensity and <!-- GEN cell:role4_tail|Bed-days occupied after day 360|High intensity|mean -->2,827<!-- /GEN --> at high. The figures exclude the casualties still in theatre on day 360, who have not reached Role 4.
+
+The casualties awaiting a strategic airlift place on day 360 were then flown out on the sorties that would have followed, at the configured interval and places, each route boarding in queue order. A casualty whose drawn death time came before the sortie that would have carried them died waiting, as during the campaign. Each casualty flown out was admitted to Role 4 on the sortie's day with a length of stay drawn as for any other. Casualties still in surgery or in a Role 2 bed on day 360, their evacuation not yet decided, are not included.
+
+<!-- GEN role4_backlog -->
+| Load once the airlift backlog is flown out | Moderate intensity | High intensity |
+|---|---|---|
+| Casualties awaiting airlift on day 360 | 32.5 [23.2, 41.7] | 2,858.6 [2,813.4, 2,903.9] |
+| Of them, flown out after day 360 | 32.3 [23.1, 41.5] | 2,607.4 [2,568.7, 2,646.2] |
+| Of them, died awaiting airlift | 0.2 [0.0, 0.3] | 251.2 [242.8, 259.6] |
+| Days after day 360 until the last is flown out | 6.1 [4.5, 7.7] | 503.8 [496.1, 511.5] |
+| Highest census after day 360 | 154.5 [145.4, 163.6] | 232.1 [227.3, 237.0] |
+| Days after day 360 until the census halves | 18.3 [16.5, 20.1] | 339.4 [259.5, 419.2] |
+| Days after day 360 until it falls to a tenth | 34.1 [32.3, 35.9] | 530.2 [522.8, 537.7] |
+| Days after day 360 until the last bed empties | 47.1 [45.2, 49.0] | 545.3 [537.8, 552.8] |
+| Bed-days occupied after day 360 | 2,900 [2,553, 3,247] | 76,037 [74,924, 77,150] |
+<!-- /GEN -->
+
+On day 360, <!-- GEN cell:role4_backlog|Casualties awaiting airlift on day 360|Moderate intensity|mean -->32.5<!-- /GEN --> casualties were awaiting airlift at moderate intensity and <!-- GEN cell:role4_backlog|Casualties awaiting airlift on day 360|High intensity|mean -->2,858.6<!-- /GEN --> at high. The last was flown out <!-- GEN cell:role4_backlog|Days after day 360 until the last is flown out|Moderate intensity|mean -->6.1<!-- /GEN --> days after the campaign ended at moderate intensity and <!-- GEN cell:role4_backlog|Days after day 360 until the last is flown out|High intensity|mean -->503.8<!-- /GEN --> days after at high, and <!-- GEN cell:role4_backlog|Of them, died awaiting airlift|Moderate intensity|mean -->0.2<!-- /GEN --> and <!-- GEN cell:role4_backlog|Of them, died awaiting airlift|High intensity|mean -->251.2<!-- /GEN --> died waiting. With those casualties admitted, the Role 4 census emptied <!-- GEN cell:role4_backlog|Days after day 360 until the last bed empties|Moderate intensity|mean -->47.1<!-- /GEN --> days after the campaign at moderate intensity and <!-- GEN cell:role4_backlog|Days after day 360 until the last bed empties|High intensity|mean -->545.3<!-- /GEN --> days after at high, occupying <!-- GEN cell:role4_backlog|Bed-days occupied after day 360|Moderate intensity|mean -->2,900<!-- /GEN --> and <!-- GEN cell:role4_backlog|Bed-days occupied after day 360|High intensity|mean -->76,037<!-- /GEN --> bed-days after day 360.
+
 <!-- GEN role4_stability -->
 | Census | Moderate intensity classification | Moderate intensity settles by block | Moderate intensity late mean beds | High intensity classification | High intensity settles by block | High intensity late mean beds |
 |---|---|---|---|---|---|---|
 | Total | converged | 2 | 146.96 | converged | 2 | 219.81 |
-| Intensive care phase | converged | 2 | 34.77 | converged | 2 | 43.79 |
-| Step-down ward phase | converged | 2 | 112.19 | converged | 2 | 176.02 |
+| Intensive care | converged | 2 | 34.77 | converged | 2 | 43.79 |
+| Holding | converged | 2 | 112.19 | converged | 2 | 176.02 |
 | Battle injury | converged | 2 | 103.59 | converged | 2 | 180.92 |
 | Disease and non-battle injury | converged | 2 | 19.46 | converged | 2 | 10.92 |
 | Reconstruction cohort | converged | 2 | 23.91 | converged | 2 | 27.97 |

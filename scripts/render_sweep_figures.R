@@ -162,6 +162,15 @@ p_transport_high <- render_transport_sweep_plot(transport_high, current_qty,
                                                 scenario = "high_intensity")
 save_figure(p_transport_high, "transport_capacity_margin_by_fleet_size_high_intensity.png", 12, 8)
 
+# RENDERS: ambulance_fleet.png
+save_figure(plot_ambulance_fleet(transport, transport_high, current_qty[["PMVAmb"]]),
+            "ambulance_fleet.png", 9, 5)
+
+holders <- read_tracked("scenarios", "scenario_transport_holders.csv")
+
+# RENDERS: evacuation_asset_use.png
+save_figure(plot_evacuation_asset_use(holders), "evacuation_asset_use.png", 10, 4.8)
+
 post_op_rule <- env_json$vars$r2b$post_op_icu
 forward_shipped <- FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_dcs &
   FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_single_stage &
@@ -231,6 +240,42 @@ surgical_high <- read_tracked("surgical_teams", "surgical_team_sweep_summary_hig
 # RENDERS: surgical_team_sweep.png
 save_figure(plot_surgical_team_sweep(surgical_moderate, surgical_high, "R2E 3, R2B 1"),
             "surgical_team_sweep.png", 10, 13)
+
+ot_moderate <- read_tracked("ot_beds", "ot_bed_sweep_summary.csv")
+ot_high <- read_tracked("ot_beds", "ot_bed_sweep_summary_high_intensity.csv")
+
+# RENDERS: surgical_capacity.png
+save_figure(plot_surgical_capacity(list(moderate = surgical_moderate, high = surgical_high),
+                                   list(moderate = ot_moderate, high = ot_high)),
+            "surgical_capacity.png", 11, 5)
+
+# RENDERS: r2b_routing.png
+save_figure(plot_r2b_routing(surgical_moderate, surgical_high, "R2E 3, R2B 1", "R2E 3, R2B 2"),
+            "r2b_routing.png", 10, 5)
+
+# RENDERS: post_op_pressure.png
+save_figure(plot_post_op_pressure(ot_high), "post_op_pressure.png", 12.5, 4.4)
+
+places_collapse_high <- read_tracked("airlift_places",
+                                     "airlift_places_collapse_high_intensity.csv")
+places_summary_high <- read_tracked("airlift_places", "airlift_places_summary_high_intensity.csv")
+
+# RENDERS: airlift_places.png
+save_figure(plot_airlift_places(places_collapse_high, places_summary_high, "36/54, 7 days"),
+            "airlift_places.png", 13, 5.5)
+
+# RENDERS: role4_load.png
+save_figure(plot_role4_load(read_tracked("airlift_places", "airlift_places_replications.csv"),
+                            read_tracked("airlift_places",
+                                         "airlift_places_replications_high_intensity.csv"),
+                            "36/54, 7 days"),
+            "role4_load.png", 12, 5)
+
+delay_moderate <- read_tracked("evac_delay", "evac_delay_sweep_summary.csv")
+delay_high <- read_tracked("evac_delay", "evac_delay_sweep_summary_high_intensity.csv")
+
+# RENDERS: evac_delay.png
+save_figure(plot_evac_delay(delay_moderate, delay_high), "evac_delay.png", 11, 5)
 
 icu_bed_moderate <- read_tracked("icu_beds", "icu_bed_sweep_summary.csv")
 icu_bed_high <- read_tracked("icu_beds", "icu_bed_sweep_summary_high_intensity.csv")

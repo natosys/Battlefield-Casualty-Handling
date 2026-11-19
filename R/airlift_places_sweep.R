@@ -20,16 +20,18 @@
 # replication is reduced inside the forked worker that produced it to the
 # strategic airlift sweep's responses (reduce_airlift_replication()), the deaths
 # of wounds of casualties awaiting airlift and in total, R2E intensive care and
-# holding occupancy over the closing window, and each route's daily backlog
-# series (reduce_route_backlog()), from which every campaign is classified
-# collapsed or not by the rule the airlift collapse experiment applies.
+# holding occupancy over the closing window, the Role 4 census by ward over the
+# campaign and the load left after it (airlift_places_role4_measures()), and
+# each route's daily backlog series (reduce_route_backlog()), from which every
+# campaign is classified collapsed or not by the rule the airlift collapse
+# experiment applies.
 #
 # Arms are paired on one control seed each. The shipped split at the weekly and
 # at the three-day interval are configurations the strategic airlift sweep also
 # ran under the same seed, so their replications reproduce that sweep's rows.
 #
-# Depends on R/airlift.R, R/policy_sweep.R and R/replication.R; source those
-# first.
+# Depends on R/airlift.R, R/policy_sweep.R, R/role4_demand.R and
+# R/replication.R; source those first.
 
 #' Replications per arm
 AIRLIFT_PLACES_REPLICATIONS <- 30L
@@ -167,6 +169,64 @@ apply_airlift_places_setting <- function(json_data, scenario, critical, standard
   invisible(described)
 }
 
+#' Role 4 census measures the places sweep reports, in display order
+#'
+#' @details `role4_<ward>_closing` is the ward's mean census over the closing
+#'   window, `role4_total_closing` the total's; `role4_bed_days` is the beds
+#'   occupied during the campaign, summed over days. `role4_backlog_end`,
+#'   `role4_days_to_empty` and `role4_bed_days_after` are the Role 4 demand
+#'   experiment's `backlog_end`, `days_to_empty_all` and `bed_days_after_all`:
+#'   the casualties awaiting airlift on the last day, and the days and bed-days
+#'   after it until Role 4 empties once they are flown out at the arm's own
+#'   interval and split.
+AIRLIFT_PLACES_ROLE4_MEASURES <- c(
+  "role4_icu_closing", "role4_hold_closing", "role4_total_closing", "role4_bed_days",
+  "role4_backlog_end", "role4_days_to_empty", "role4_bed_days_after"
+)
+
+#' Reduce one replication to the Role 4 census measures of the places sweep
+#'
+#' @param env Wrapped simmer environment for one replication.
+#' @param n_days Campaign length in days.
+#' @param seed The replication's own seed, under which the census is drawn.
+#' @param window_days Closing window the ward means are taken over.
+#' @return A one-row data frame of AIRLIFT_PLACES_ROLE4_MEASURES.
+#'
+#' @details The census is reduce_role4_demand_replication()'s, drawn under the
+#'   replication's own seed as reduce_airlift_replication() draws its peak, so
+#'   the total here peaks at that row's `role4_peak`, which
+#'   tests/checks/check_airlift_places_protocol.R asserts. The backlog is flown
+#'   out under the configuration in force, which is the arm's.
+airlift_places_role4_measures <- function(env, n_days, seed, window_days) {
+  series <- reduce_role4_demand_replication(env, n_days, seed)
+  census <- series[series$series == "census", ]
+  tail <- series[series$series == "census_tail", ]
+
+  #' Mean census of one subject over the closing window
+  #'
+  #' @param subject Census subject: a ward level or ROLE4_TOTAL.
+  #' @return The mean.
+  closing <- function(subject) {
+    mean(census$value[census$subject == subject & census$day > n_days - window_days])
+  }
+  #' One measure of the load left after the campaign
+  #'
+  #' @param subject Subject of the census_tail series.
+  #' @return The value.
+  after <- function(subject) tail$value[tail$subject == subject]
+
+  out <- data.frame(
+    role4_icu_closing = closing("icu"),
+    role4_hold_closing = closing("hold"),
+    role4_total_closing = closing(ROLE4_TOTAL),
+    role4_bed_days = sum(census$value[census$subject == ROLE4_TOTAL]),
+    role4_backlog_end = after("backlog_end"),
+    role4_days_to_empty = after("days_to_empty_all"),
+    role4_bed_days_after = after("bed_days_after_all")
+  )
+  out[, AIRLIFT_PLACES_ROLE4_MEASURES]
+}
+
 #' Reduce one replication to the places sweep's responses and route series
 #'
 #' @param env Wrapped simmer environment for one replication.
@@ -228,7 +288,7 @@ reduce_airlift_places_replication <- function(env, n_days, seed,
     total_dow = length(died),
     icu_occupancy = occupancy(POLICY_POOLS[["R2E intensive care"]]),
     hold_occupancy = occupancy(POLICY_POOLS[["R2E holding beds"]])
-  ))
+  ), airlift_places_role4_measures(env, n_days, seed, window_days))
   list(row = row, series = series)
 }
 

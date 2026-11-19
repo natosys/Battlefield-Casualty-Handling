@@ -230,7 +230,7 @@ plot_queue_series <- function(queue_ci, clearance, n_reps) {
   subtitle <- sprintf(paste(
     "%d replications per intensity; line is the median across replications, band the",
     "interquartile range.\nEach point is the time-weighted mean queue, or for an overflow",
-    "point the mean census of casualties without a bed, over a %d-hour bin."
+    "point the mean census of casualties\nwithout a bed, over a %d-hour bin."
   ), n_reps, TIME_SERIES_BIN_MIN %/% 60L)
 
   labels <- clearance %>%
@@ -247,6 +247,9 @@ plot_queue_series <- function(queue_ci, clearance, n_reps) {
     facet_wrap(~ pool, ncol = 1, scales = "free_y") +
     scale_colour_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
     scale_fill_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
+    # Headroom above the data, so the clearance labels at the top of each
+    # panel do not overprint the series beneath them.
+    scale_y_continuous(expand = expansion(mult = c(0.03, 0.45))) +
     expand_limits(y = 0) +
     labs(
       title = "Queue and Overflow Over the Campaign, by Pool and Casualty Intensity",

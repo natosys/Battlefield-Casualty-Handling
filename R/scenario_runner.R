@@ -56,7 +56,8 @@ SCENARIO_SEED <- 42L
 SCENARIO_PROTOCOL_PROFILES <- c("moderate_intensity", "high_intensity")
 
 #' Casualty-total metrics the published totals table prints, in its row order
-SCENARIO_TOTAL_METRICS <- c("total_casualties", "wia_count", "dow_count", "dow_rate")
+SCENARIO_TOTAL_METRICS <- c("total_casualties", "wia_count", "dow_count", "dow_rate",
+                            "first_incision_hours")
 
 #' Resource groups the published queue table prints, in its row order
 #'
@@ -96,7 +97,7 @@ SCENARIO_TRANSPORT_HOLDERS <- data.frame(
 #' @param warm_up_days Days to exclude from the start of each replication
 #'   (default 0 = no exclusion)
 #' @return Data frame with one row per metric (total_casualties, wia_count,
-#'   dow_count, dow_rate): n_reps, mean, p10, p90, and 95% CI bounds across
+#'   dow_count, dow_rate, first_incision_hours): n_reps, mean, p10, p90, and 95% CI bounds across
 #'   replications
 #'
 #' @details `dow_rate` is DOW count as a proportion of WIA count (combat +
@@ -118,7 +119,7 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #'   run_replications()
 #' @param warm_up_days Days to exclude from the start of each replication
 #' @return Data frame of `replication`, `total_casualties`, `wia_count`,
-#'   `dow_count` and `dow_rate`
+#'   `dow_count`, `dow_rate` and `first_incision_hours`
 #'
 #' @details The first half of summarise_scenario_totals(), separated so a
 #'   caller reducing one replication at a time can keep this frame and discard
@@ -147,11 +148,43 @@ scenario_totals_by_replication <- function(mon, warm_up_days = 0) {
   totals_by_rep %>%
     left_join(wia_by_rep, by = "replication") %>%
     left_join(dow_by_rep, by = "replication") %>%
+    left_join(scenario_first_incision_by_replication(mon, arrivals), by = "replication") %>%
     mutate(
       wia_count = ifelse(is.na(wia_count), 0, wia_count),
       dow_count = ifelse(is.na(dow_count), 0, dow_count),
       dow_rate  = dow_count / wia_count
     )
+}
+
+#' Mean time from arrival to first operation in each replication
+#'
+#' @param mon Named list with attributes as returned by run_replications()
+#' @param arrivals The replication's arrivals, already restricted to the
+#'   measurement window, carrying `name`, `replication` and `start_time`
+#' @return Data frame of `replication` and `first_incision_hours`
+#'
+#' @details The completed-case mean, in hours, of the time from a casualty's
+#'   arrival to its first operation at R2B or R2E, killed in action excluded, as
+#'   reduce_triage_replication() measures it: a casualty's first recorded value
+#'   of each surgery-start attribute is taken, as build_attributes_wide() takes
+#'   it, and the earlier of the two is the first incision. A casualty not
+#'   operated on by the close of the run carries no time and is left out.
+scenario_first_incision_by_replication <- function(mon, arrivals) {
+  first_op <- mon$attributes %>%
+    filter(key %in% c("r2b_surgery_start", "r2e_surgery_1_start")) %>%
+    group_by(replication, name, key) %>%
+    summarise(value = dplyr::first(value), .groups = "drop") %>%
+    group_by(replication, name) %>%
+    summarise(first_op = min(value), .groups = "drop")
+  arrivals %>%
+    filter(!startsWith(name, "kia_")) %>%
+    distinct(replication, name, .keep_all = TRUE) %>%
+    select(replication, name, start_time) %>%
+    inner_join(first_op, by = c("replication", "name")) %>%
+    mutate(incision = first_op - start_time) %>%
+    filter(is.finite(incision), incision >= 0) %>%
+    group_by(replication) %>%
+    summarise(first_incision_hours = mean(incision) / 60, .groups = "drop")
 }
 
 #' Summarise per-replication totals across replications
@@ -183,7 +216,8 @@ summarise_scenario_rep_totals <- function(rep_totals) {
     cbind(metric = "total_casualties", summarise_metric(rep_totals$total_casualties)),
     cbind(metric = "wia_count",        summarise_metric(rep_totals$wia_count)),
     cbind(metric = "dow_count",        summarise_metric(rep_totals$dow_count)),
-    cbind(metric = "dow_rate",         summarise_metric(rep_totals$dow_rate))
+    cbind(metric = "dow_rate",         summarise_metric(rep_totals$dow_rate)),
+    cbind(metric = "first_incision_hours", summarise_metric(rep_totals$first_incision_hours))
   )
 }
 

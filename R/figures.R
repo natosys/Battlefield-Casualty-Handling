@@ -441,7 +441,8 @@ POST_OP_FIGURE_PANELS <- c(
 #'   theatres, so the lines read what the beds buy once that surgery is in
 #'   place; the shipped establishment is the dashed reference on every panel.
 #'   The counts are read from the arm label, which states them. Each point
-#'   carries its 95% interval. Stops where a panel's response is absent.
+#'   carries its 95% interval, and every axis starts at zero. Stops where a
+#'   panel's response is absent.
 plot_post_op_capacity <- function(summary_df, shipped) {
   missing <- setdiff(names(POST_OP_FIGURE_PANELS), summary_df$response)
   if (length(missing) > 0) {
@@ -464,6 +465,7 @@ plot_post_op_capacity <- function(summary_df, shipped) {
     geom_line(linewidth = 0.8) +
     geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), size = 0.3) +
     facet_wrap(~ panel, scales = "free_y", ncol = 2) +
+    expand_limits(y = 0) +
     scale_x_continuous(breaks = sort(unique(added$hold))) +
     scale_colour_brewer(palette = "Dark2", guide = guide_legend(order = 1)) +
     scale_linetype_manual(values = c("Shipped establishment" = "dashed"),

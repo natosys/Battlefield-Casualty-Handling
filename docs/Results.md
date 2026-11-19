@@ -1022,24 +1022,69 @@ The closing 90-day mean R2E theatre queue (left), operated casualties in post-op
 The added surgery is six R2E surgical sections in three theatres, the [operating theatre arm](#r2e-operating-theatre-establishment) that clears the theatre queue without an idle room, crossed with four, eight and twelve intensive care beds and 30, 60 and 90 holding beds; the shipped establishment is carried as a tenth arm ([Methods](Methods.md#surgery-and-post-operative-bed-sweep)). Every arm is compared with the shipped establishment, which prices the whole change, and every bed arm with the added surgery at the shipped beds, which isolates what the beds buy. The post-operative care each arm gives is in the first table and its outcomes in the second.
 
 <!-- GEN post_op_capacity -->
+| Establishment | R2E ICU occupancy (%) | Post-definitive ICU access (%) | R2E post-operative overflow census | Post-operative overflow, late-half classification | R2E holding occupancy (%) | R2E holding mean queue | Holding queue, late-half classification |
+|---|---|---|---|---|---|---|---|
+| 3 sections, 2 theatres, 4 ICU, 30 hold (shipped) | 97.5 [97.4, 97.7] | 11.3 [11.1, 11.5] | 19.79 [19.47, 20.12] | converged at 19.8 | 100.0 [100.0, 100.0] | 54.06 [52.01, 56.12] | converged at 54.1 |
+| 6 sections, 3 theatres, 4 ICU, 30 hold | 96.8 [96.7, 96.9] | 11.2 [11.0, 11.4] | 24.20 [23.77, 24.63] | converged at 24.6 | 100.0 [100.0, 100.0] | 56.22 [54.27, 58.18] | converged at 57.5 |
+| 6 sections, 3 theatres, 4 ICU, 60 hold | 96.8 [96.7, 96.9] | 11.1 [10.9, 11.3] | 24.34 [23.64, 25.05] | converged at 24.4 | 100.0 [100.0, 100.0] | 57.04 [55.30, 58.78] | converged at 55.7 |
+| 6 sections, 3 theatres, 4 ICU, 90 hold | 96.9 [96.7, 97.0] | 11.3 [11.1, 11.4] | 24.10 [23.55, 24.65] | converged at 24.0 | 100.0 [100.0, 100.0] | 58.36 [56.43, 60.29] | converged at 56.7 |
+| 6 sections, 3 theatres, 8 ICU, 30 hold | 96.1 [95.9, 96.3] | 23.4 [23.0, 23.7] | 21.64 [20.95, 22.33] | converged at 21.3 | 100.0 [100.0, 100.0] | 56.64 [54.64, 58.64] | converged at 55.9 |
+| 6 sections, 3 theatres, 8 ICU, 60 hold | 95.9 [95.6, 96.1] | 23.4 [23.2, 23.7] | 21.12 [20.54, 21.69] | converged at 21.1 | 100.0 [100.0, 100.0] | 56.70 [54.18, 59.23] | converged at 55.9 |
+| 6 sections, 3 theatres, 8 ICU, 90 hold | 96.1 [95.9, 96.3] | 23.2 [22.9, 23.5] | 21.39 [20.74, 22.04] | converged at 21.0 | 100.0 [100.0, 100.0] | 59.06 [57.22, 60.90] | **drifting, +2.3%/block**, 23.8 to 58.9 |
+| 6 sections, 3 theatres, 12 ICU, 30 hold | 94.5 [94.2, 94.9] | 35.2 [34.8, 35.6] | 17.98 [17.30, 18.66] | converged at 18.2 | 100.0 [100.0, 100.0] | 57.59 [55.09, 60.09] | converged at 57.3 |
+| 6 sections, 3 theatres, 12 ICU, 60 hold | 94.7 [94.4, 94.9] | 35.5 [35.0, 35.9] | 17.96 [17.36, 18.57] | converged at 17.9 | 100.0 [100.0, 100.0] | 56.73 [54.68, 58.79] | converged at 55.9 |
+| 6 sections, 3 theatres, 12 ICU, 90 hold | 94.7 [94.4, 95.0] | 35.4 [35.0, 35.9] | 17.98 [17.57, 18.40] | converged at 17.7 | 100.0 [100.0, 100.0] | 58.00 [56.22, 59.79] | **drifting, +1.3%/block**, 24.8 to 57.6 |
 <!-- /GEN -->
 
 <!-- GEN post_op_capacity_outcomes -->
+| Establishment | R2E theatre mean queue | Released with definitive repair outstanding | Staging overflow, late-half classification | Died of wounds | Returns to duty |
+|---|---|---|---|---|---|
+| 3 sections, 2 theatres, 4 ICU, 30 hold (shipped) | 72.62 [51.40, 93.83] | 1985.5 [1933.0, 2038.0] | **drifting, +11.2%/block**, 117.7 to 2,739.6 | 568.60 [500.55, 636.65] | 2861.9 [2824.1, 2899.7] |
+| 6 sections, 3 theatres, 4 ICU, 30 hold | 1.22 [1.08, 1.36] | 748.4 [712.3, 784.6] | **drifting, +11.3%/block**, 147.3 to 2,910.0 | 270.00 [261.93, 278.07] | 2952.1 [2906.6, 2997.7] |
+| 6 sections, 3 theatres, 4 ICU, 60 hold | 1.26 [1.09, 1.43] | 774.9 [731.0, 818.8] | **drifting, +11.3%/block**, 130.4 to 2,908.0 | 270.20 [260.43, 279.97] | 2938.1 [2910.5, 2965.7] |
+| 6 sections, 3 theatres, 4 ICU, 90 hold | 1.22 [1.05, 1.40] | 764.5 [726.1, 802.9] | **drifting, +11.0%/block**, 115.0 to 2,832.5 | 265.90 [257.03, 274.77] | 2937.7 [2905.4, 2969.9] |
+| 6 sections, 3 theatres, 8 ICU, 30 hold | 1.17 [1.03, 1.31] | 742.8 [692.1, 793.5] | **drifting, +11.2%/block**, 146.6 to 2,892.4 | 264.93 [255.10, 274.77] | 2914.1 [2888.3, 2940.0] |
+| 6 sections, 3 theatres, 8 ICU, 60 hold | 1.17 [1.03, 1.31] | 714.9 [684.9, 744.9] | **drifting, +11.3%/block**, 123.2 to 2,845.7 | 264.93 [256.44, 273.43] | 2934.9 [2897.7, 2972.1] |
+| 6 sections, 3 theatres, 8 ICU, 90 hold | 1.20 [1.05, 1.34] | 747.9 [713.0, 782.9] | **drifting, +11.3%/block**, 104.3 to 2,864.1 | 266.00 [256.04, 275.96] | 2918.1 [2886.4, 2949.8] |
+| 6 sections, 3 theatres, 12 ICU, 30 hold | 1.12 [0.89, 1.35] | 722.7 [683.0, 762.5] | **drifting, +11.2%/block**, 145.2 to 2,893.7 | 267.60 [258.75, 276.45] | 2946.1 [2919.5, 2972.8] |
+| 6 sections, 3 theatres, 12 ICU, 60 hold | 1.09 [0.96, 1.23] | 715.2 [672.9, 757.4] | **drifting, +11.4%/block**, 127.6 to 2,848.5 | 260.00 [250.64, 269.36] | 2928.4 [2889.1, 2967.8] |
+| 6 sections, 3 theatres, 12 ICU, 90 hold | 1.02 [0.92, 1.11] | 711.6 [673.5, 749.8] | **drifting, +11.3%/block**, 112.3 to 2,797.9 | 266.30 [257.32, 275.28] | 2907.9 [2873.7, 2942.0] |
 <!-- /GEN -->
 
 The paired differences against the shipped establishment are in the next table, and against the added surgery at the shipped beds in the one after.
 
 <!-- GEN post_op_capacity_paired -->
+| Paired difference against 3 sections, 2 theatres, 4 ICU, 30 hold | R2E ICU occupancy (%) | Post-definitive ICU access (%) | R2E post-operative overflow census | R2E holding mean queue | Died of wounds | Returns to duty |
+|---|---|---|---|---|---|---|
+| 6 sections, 3 theatres, 4 ICU, 30 hold | −0.7 [−0.9, −0.5] | −0.1 [−0.3, +0.2] | +4.41 [+3.91, +4.90] | +2.16 [−0.26, +4.58] | −298.60 [−367.85, −229.35] | +90.2 [+24.3, +156.2]† |
+| 6 sections, 3 theatres, 4 ICU, 60 hold | −0.7 [−0.9, −0.5] | −0.1 [−0.5, +0.2] | +4.55 [+3.67, +5.43] | +2.98 [+0.43, +5.53]† | −298.40 [−370.81, −225.99] | +76.2 [+29.4, +123.0]† |
+| 6 sections, 3 theatres, 4 ICU, 90 hold | −0.6 [−0.8, −0.4] | +0.0 [−0.2, +0.3] | +4.31 [+3.68, +4.93] | +4.30 [+1.26, +7.34]† | −302.70 [−371.71, −233.69] | +75.8 [+35.9, +115.6]† |
+| 6 sections, 3 theatres, 8 ICU, 30 hold | −1.4 [−1.6, −1.2] | +12.1 [+11.7, +12.4] | +1.85 [+1.19, +2.51] | +2.58 [−0.41, +5.56] | −303.67 [−373.04, −234.30] | +52.2 [+7.8, +96.7]† |
+| 6 sections, 3 theatres, 8 ICU, 60 hold | −1.6 [−1.9, −1.4] | +12.2 [+11.9, +12.5] | +1.32 [+0.68, +1.97] | +2.64 [−0.40, +5.67] | −303.67 [−374.18, −233.15] | +73.0 [+27.9, +118.2]† |
+| 6 sections, 3 theatres, 8 ICU, 90 hold | −1.4 [−1.7, −1.2] | +12.0 [+11.6, +12.4] | +1.60 [+0.87, +2.33] | +4.99 [+2.25, +7.74]† | −302.60 [−373.06, −232.14] | +56.2 [+8.2, +104.2]† |
+| 6 sections, 3 theatres, 12 ICU, 30 hold | −3.0 [−3.3, −2.6] | +23.9 [+23.5, +24.4] | −1.81 [−2.51, −1.12] | +3.52 [+0.50, +6.55]† | −301.00 [−366.98, −235.02] | +84.2 [+26.9, +141.6]† |
+| 6 sections, 3 theatres, 12 ICU, 60 hold | −2.8 [−3.1, −2.6] | +24.2 [+23.7, +24.7] | −1.83 [−2.40, −1.26] | +2.67 [+0.03, +5.31]† | −308.60 [−375.45, −241.75] | +66.5 [+17.1, +116.0]† |
+| 6 sections, 3 theatres, 12 ICU, 90 hold | −2.8 [−3.1, −2.5] | +24.2 [+23.7, +24.7] | −1.81 [−2.35, −1.27] | +3.94 [+1.15, +6.73]† | −302.30 [−369.44, −235.16] | +46.0 [−5.9, +97.8] |
 <!-- /GEN -->
 
 <!-- GEN post_op_capacity_paired_surgery -->
+| Paired difference against 6 sections, 3 theatres, 4 ICU, 30 hold | R2E ICU occupancy (%) | Post-definitive ICU access (%) | R2E post-operative overflow census | R2E holding mean queue | Died of wounds | Returns to duty |
+|---|---|---|---|---|---|---|
+| 6 sections, 3 theatres, 4 ICU, 60 hold | +0.0 [−0.1, +0.2] | −0.1 [−0.4, +0.2] | +0.14 [−0.61, +0.90] | +0.82 [−1.55, +3.19] | +0.20 [−11.81, +12.21] | −14.0 [−67.2, +39.2] |
+| 6 sections, 3 theatres, 4 ICU, 90 hold | +0.1 [−0.1, +0.2] | +0.1 [−0.2, +0.3] | −0.10 [−0.70, +0.50] | +2.14 [−0.73, +5.01] | −4.10 [−15.58, +7.38] | −14.5 [−72.1, +43.2] |
+| 6 sections, 3 theatres, 8 ICU, 30 hold | −0.7 [−0.9, −0.5] | +12.2 [+11.7, +12.6] | −2.56 [−3.27, −1.84] | +0.42 [−1.85, +2.68] | −5.07 [−19.83, +9.70] | −38.0 [−88.5, +12.5] |
+| 6 sections, 3 theatres, 8 ICU, 60 hold | −0.9 [−1.2, −0.6] | +12.2 [+12.0, +12.5] | −3.08 [−3.84, −2.33] | +0.48 [−2.71, +3.66] | −5.07 [−15.25, +5.11] | −17.2 [−67.2, +32.8] |
+| 6 sections, 3 theatres, 8 ICU, 90 hold | −0.7 [−1.0, −0.5] | +12.0 [+11.7, +12.4] | −2.81 [−3.56, −2.07] | +2.83 [+0.41, +5.26]† | −4.00 [−17.92, +9.92] | −34.0 [−84.7, +16.6] |
+| 6 sections, 3 theatres, 12 ICU, 30 hold | −2.3 [−2.6, −1.9] | +24.0 [+23.5, +24.5] | −6.22 [−6.93, −5.51] | +1.36 [−1.82, +4.54] | −2.40 [−14.63, +9.83] | −6.0 [−55.0, +43.0] |
+| 6 sections, 3 theatres, 12 ICU, 60 hold | −2.1 [−2.4, −1.8] | +24.3 [+23.7, +24.8] | −6.24 [−7.00, −5.47] | +0.51 [−2.51, +3.53] | −10.00 [−25.50, +5.50] | −23.7 [−90.8, +43.4] |
+| 6 sections, 3 theatres, 12 ICU, 90 hold | −2.1 [−2.4, −1.8] | +24.2 [+23.7, +24.7] | −6.22 [−6.72, −5.72] | +1.78 [−0.57, +4.13] | −3.70 [−16.05, +8.65] | −44.3 [−90.5, +1.9] |
 <!-- /GEN -->
 
-RESULTS_PROSE
+With the added surgery at the shipped beds the post-operative overflow census averaged <!-- GEN cell:post_op_capacity|6 sections, 3 theatres, 4 ICU, 30 hold|R2E post-operative overflow census|full -->24.20 [23.77, 24.63]<!-- /GEN --> against <!-- GEN cell:post_op_capacity|3 sections, 2 theatres, 4 ICU, 30 hold (shipped)|R2E post-operative overflow census|full -->19.79 [19.47, 20.12]<!-- /GEN --> at the shipped establishment, and post-definitive intensive care access <!-- GEN cell:post_op_capacity|6 sections, 3 theatres, 4 ICU, 30 hold|Post-definitive ICU access (%)|full -->11.2 [11.0, 11.4]<!-- /GEN --> percent. Against the added surgery alone, eight intensive care beds at 30 holding beds changed the census by <!-- GEN cell:post_op_capacity_paired_surgery|6 sections, 3 theatres, 8 ICU, 30 hold|R2E post-operative overflow census|full -->−2.56 [−3.27, −1.84]<!-- /GEN --> and twelve by <!-- GEN cell:post_op_capacity_paired_surgery|6 sections, 3 theatres, 12 ICU, 30 hold|R2E post-operative overflow census|full -->−6.22 [−6.93, −5.51]<!-- /GEN -->, to <!-- GEN cell:post_op_capacity|6 sections, 3 theatres, 12 ICU, 30 hold|R2E post-operative overflow census|full -->17.98 [17.30, 18.66]<!-- /GEN -->, with access changing by <!-- GEN cell:post_op_capacity_paired_surgery|6 sections, 3 theatres, 12 ICU, 30 hold|Post-definitive ICU access (%)|full -->+24.0 [+23.5, +24.5]<!-- /GEN --> percentage points; against the shipped establishment the census at twelve beds changed by <!-- GEN cell:post_op_capacity_paired|6 sections, 3 theatres, 12 ICU, 30 hold|R2E post-operative overflow census|full -->−1.81 [−2.51, −1.12]<!-- /GEN -->. The R2E holding beds were <!-- GEN cell:post_op_capacity|6 sections, 3 theatres, 4 ICU, 90 hold|R2E holding occupancy (%)|full -->100.0 [100.0, 100.0]<!-- /GEN --> percent occupied at 90 holding beds, and against 30 holding beds at four intensive care beds the holding queue changed by <!-- GEN cell:post_op_capacity_paired_surgery|6 sections, 3 theatres, 4 ICU, 90 hold|R2E holding mean queue|full -->+2.14 [−0.73, +5.01]<!-- /GEN -->; it was classified <!-- GEN cell:post_op_capacity|6 sections, 3 theatres, 8 ICU, 90 hold|Holding queue, late-half classification|full -->**drifting, +2.3%/block**, 23.8 to 58.9<!-- /GEN --> at eight intensive care beds and 90 holding beds and <!-- GEN cell:post_op_capacity|6 sections, 3 theatres, 12 ICU, 90 hold|Holding queue, late-half classification|full -->**drifting, +1.3%/block**, 24.8 to 57.6<!-- /GEN --> at twelve, and converged in every arm at 30 or 60 holding beds. Against the added surgery alone no bed arm's paired difference in deaths of wounds excluded zero, twelve intensive care beds at 60 holding beds changing it by <!-- GEN cell:post_op_capacity_paired_surgery|6 sections, 3 theatres, 12 ICU, 60 hold|Died of wounds|full -->−10.00 [−25.50, +5.50]<!-- /GEN -->, while the added surgery alone changed it by <!-- GEN cell:post_op_capacity_paired|6 sections, 3 theatres, 4 ICU, 30 hold|Died of wounds|full -->−298.60 [−367.85, −229.35]<!-- /GEN --> against the shipped establishment. The staging overflow census drifted in every arm: <!-- GEN cell:post_op_capacity_outcomes|3 sections, 2 theatres, 4 ICU, 30 hold (shipped)|Staging overflow, late-half classification|full -->**drifting, +11.2%/block**, 117.7 to 2,739.6<!-- /GEN --> at the shipped establishment and <!-- GEN cell:post_op_capacity_outcomes|6 sections, 3 theatres, 12 ICU, 90 hold|Staging overflow, late-half classification|full -->**drifting, +11.3%/block**, 112.3 to 2,797.9<!-- /GEN --> at twelve intensive care and 90 holding beds.
 
 ![Four panels of post-operative overflow, the R2E holding queue, post-definitive intensive care access and deaths of wounds against R2E holding beds, one line per intensive care bed count, with added R2E surgery at high intensity](../images/post_op_capacity.png)
 
-The closing 90-day post-operative overflow census, R2E holding queue and post-definitive intensive care access, and deaths of wounds over the campaign, against the R2E holding bed count with one line per intensive care bed count, every arm at six surgical sections and three theatres at high intensity, each with its 95% interval. The dashed line marks the shipped establishment.
+The closing 90-day post-operative overflow census, R2E holding queue and post-definitive intensive care access, and deaths of wounds over the campaign, against the R2E holding bed count with one line per intensive care bed count, every arm at six surgical sections and three theatres at high intensity, each with its 95% interval and every axis starting at zero. The dashed line marks the shipped establishment.
 
 ### R2E Intensive Care Bed Establishment
 

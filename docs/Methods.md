@@ -55,6 +55,7 @@ This document is the design record for the replicated experiments reported in th
   - [R2E Intensive Care Bed Establishment Sweep](#r2e-intensive-care-bed-establishment-sweep)
   - [R2E Operating Theatre Establishment Sweep](#r2e-operating-theatre-establishment-sweep)
   - [Surgery and Post-Operative Bed Sweep](#surgery-and-post-operative-bed-sweep)
+  - [R2B Second Theatre Sweep](#r2b-second-theatre-sweep)
   - [Critical-Care Places per Sortie Sweep](#critical-care-places-per-sortie-sweep)
   - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
   - [Post-Definitive Intensive Care Share Sweep](#post-definitive-intensive-care-share-sweep)
@@ -305,6 +306,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | R2E intensive care bed establishment sweep | `data/icu_beds/` | `check_icu_bed_sweep_protocol.R` |
 | R2E operating theatre establishment sweep | `data/ot_beds/` | `check_ot_bed_sweep_protocol.R` |
 | Surgery and post-operative bed sweep | `data/post_op_capacity/` | `check_post_op_capacity_protocol.R` |
+| R2B second theatre sweep | `data/r2b_theatre/` | `check_r2b_theatre_protocol.R` |
 | Critical-care places per sortie sweep | `data/airlift_places/` | `check_airlift_places_protocol.R` |
 | Post-definitive intensive care share sweep | `data/post_definitive/` | `check_post_definitive_sweep.R` |
 | Forward evacuation delay sweep | `data/evac_delay/` | `check_evac_delay_sweep.R` |
@@ -363,6 +365,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Surgical team establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queue and campaign counts, daily queue classified; Student $t$, paired $t$ |
 | R2E intensive care bed establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
 | R2E operating theatre establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
+| R2B second theatre sweep | default; `high_intensity` | 360 d | 30 per arm | 4 arms | one control seed, not one casualty stream | closing-window queues and occupancy, campaign counts, daily queue classification; Student $t$, paired $t$ |
 | Critical-care places per sortie sweep | default; `high_intensity` | 360 d | 30 per arm | 8 arms | one control seed, not one casualty stream | closing-window backlog and occupancy, campaign counts, per-campaign collapse; Student $t$, paired $t$, exact binomial |
 | Priority 1 triage share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
 | Post-definitive intensive care share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and occupancy, campaign counts and holding bed-days, daily queue classification; Student $t$, paired $t$ |
@@ -780,6 +783,23 @@ Rscript scripts/run_post_op_capacity_sweep.R --refresh-baseline
 
 Each replication is reduced inside the forked worker by the operating theatre sweep's reduction (`reduce_ot_bed_replication()`), so its responses and daily pool series are that sweep's, and each pool is classified by the late-half fit of [Classifying Stability](#classifying-stability). Every arm is compared with the shipped establishment, and every arm with added beds with the added surgery at the shipped beds, the comparison that isolates what the beds buy once the surgery is in place; Holm's adjustment is taken over every row of the experiment's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped arm and the added surgery at the shipped beds are the operating theatre sweep's shipped and three-theatre, six-section configurations under the same seed, and `tests/checks/check_post_op_capacity_protocol.R` asserts that they reproduce its tracked high-intensity replications in every response the two share, and that each count set is the capacity of the pool the model builds. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked). The tracked evidence set is `data/post_op_capacity/`.
 
+### R2B Second Theatre Sweep
+
+<!-- R2B_THEATRE replications=30 -->
+<!-- R2B_THEATRE days=360 -->
+<!-- R2B_THEATRE seed=42 -->
+<!-- R2B_THEATRE window_days=90 -->
+<!-- R2B_THEATRE baseline=R2B 1 section, 1 theatre -->
+<!-- R2B_THEATRE arms=1/1;2/1;2/2;4/2 -->
+Thirty replications of 360 simulated days at each of four R2B establishments per unit, at control seed 42, under both the shipped configuration and the `high_intensity` profile, R2E held at its shipped establishment. The arms add one step at a time to the shipped single section and theatre: a second section, which covers the other shift; a second theatre at two sections, which gives a casualty a room to wait in for the section on shift rather than being sent on to R2E, `build_env()` putting a unit's sections on alternate shifts; and four sections at two theatres, two on each shift, which is a second operation at once. Four sections at one theatre is not an arm: with one room the second section on shift has nowhere to operate, and a short run reproduced two sections at one theatre exactly. The counts enter through `elms.r2b.sub_elms.surg.qty` and `elms.r2b.beds.ot.qty`, applying to every R2B unit and set on the resolved configuration before `build_environment()` by setters that fail rather than return the configuration unchanged. Invoked as:
+
+```
+Rscript scripts/run_r2b_theatre_sweep.R --refresh-baseline
+Rscript scripts/run_r2b_theatre_sweep.R --scenario high_intensity --refresh-baseline
+```
+
+Each replication is reduced inside the forked worker by the operating theatre sweep's reduction (`reduce_ot_bed_replication()`) with the R2B theatres' occupancy over the closing window added, and each R2E pool is classified by the late-half fit of [Classifying Stability](#classifying-stability). No R2B queue is reported, a single section's members and a pool of sections being different resources, so the wait for a section shows as the diversions it replaces. Every arm is compared with the shipped establishment, and each step with the arm before it; the off-shift diversions and the pre-open hold are zero by construction at two or more sections and are not among the paired responses. Holm's adjustment is taken over every row of each intensity's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped arm and the arm at two sections and one theatre are the [surgical team sweep's](#surgical-team-establishment-sweep) shipped and second R2B section configurations under the same seed, and `tests/checks/check_r2b_theatre_protocol.R` asserts that they reproduce its tracked replications at both intensities in every response the two share, and that each count set is the capacity the model builds. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked). The tracked evidence set is `data/r2b_theatre/`.
+
 ### Critical-Care Places per Sortie Sweep
 
 <!-- AIRLIFT_PLACES replications=30 -->
@@ -1023,7 +1043,7 @@ The two campaign time series figures are rendered from `data/time_series/`, the 
 
 ### The Cost of Reproducing the Evidence
 
-The table records the wall-clock time each tracked evidence set took to write in the pinned container, on a four-core machine with 16 GB of memory, the host the Dev Container states it requires. The times are those of the most recent full re-run of the evidence; the four sets whose run in that round was interrupted were timed again on the same machine, and the theatre establishment, surgery and post-operative bed, critical-care places, post-definitive share and forward evacuation delay sweeps were run on three cores. Writing every set takes about 249 core-hours, or about two and a half days of wall clock on four cores, the high-intensity policy and sortie interval grids accounting for about a sixth of it. The sensitivity screens are excluded, being kept as the provenance of [Sensitivity Screens](#sensitivity-screens) rather than as evidence: the Morris cache took about 78 hours and the Sobol cache about 70 on four cores.
+The table records the wall-clock time each tracked evidence set took to write in the pinned container, on a four-core machine with 16 GB of memory, the host the Dev Container states it requires. The times are those of the most recent full re-run of the evidence; the four sets whose run in that round was interrupted were timed again on the same machine, and the theatre establishment, surgery and post-operative bed, R2B second theatre, critical-care places, post-definitive share and forward evacuation delay sweeps were run on three cores. Writing every set takes about 256 core-hours, or about two and two-thirds days of wall clock on four cores, the high-intensity policy and sortie interval grids accounting for about a sixth of it. The sensitivity screens are excluded, being kept as the provenance of [Sensitivity Screens](#sensitivity-screens) rather than as evidence: the Morris cache took about 78 hours and the Sobol cache about 70 on four cores.
 
 | Evidence set | Invocation | Shipped default (min) | `high_intensity` (min) | Cores | Core-hours |
 |---|---|---|---|---|---|
@@ -1040,6 +1060,7 @@ The table records the wall-clock time each tracked evidence set took to write in
 | `data/icu_beds/` | `run_icu_bed_sweep.R` | 53 | 108 | 4 | 10.7 |
 | `data/ot_beds/` | `run_ot_bed_sweep.R` | 51 | 121 | 3 | 8.6 |
 | `data/post_op_capacity/` | `run_post_op_capacity_sweep.R` | not run | 224 | 3 | 11.2 |
+| `data/r2b_theatre/` | `run_r2b_theatre_sweep.R` | 44 | 90 | 3 | 6.7 |
 | `data/airlift_places/` | `run_airlift_places_sweep.R` | 82 | 182 | 3 | 13.2 |
 | `data/triage_split/` | `run_triage_sweep.R` | 50 | 107 | 4 | 10.5 |
 | `data/post_definitive/` | `run_post_definitive_sweep.R` | 58 | 122 | 3 | 9.0 |
@@ -1056,7 +1077,7 @@ The table records the wall-clock time each tracked evidence set took to write in
 | `data/casualty_surge/` (event size) | `run_casualty_surge_size_sweep.R` | 90 | 134 | 4 | 14.9 |
 | `data/calibration/` (anchor horizons) | `check_dow_calibration.R --write-csv` | 44 (both configurations in one run) |  | 4 | 2.9 |
 | `data/calibration/` (360 days) | `check_dow_calibration.R --days 360 --reps 10` | 25 (both configurations in one run) |  | 4 | 1.6 |
-| **Total** | | | | | **249** |
+| **Total** | | | | | **256** |
 
 Every experiment runner saves each finished replication under `outputs/checkpoints/`, the transport fleet sweep each finished fleet-size point, and reads it back rather than re-running it, so an interruption costs only the work in flight. A saved replication is named by its index, seed and horizon, inside a directory named by a fingerprint of the configuration file's content and the model's code, so a run against another configuration or after a change to the model starts afresh rather than resuming; a baseline refresh and an exploratory run keep separate directories. `tests/checks/check_replication_checkpoint.R` asserts that a run resumed after an interruption writes what an uninterrupted run writes, and `tests/checks/check_checkpoint_fingerprint.R` that a resume cannot cross a change to the configuration or the code.
 

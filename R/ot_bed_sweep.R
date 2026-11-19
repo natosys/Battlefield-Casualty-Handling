@@ -240,6 +240,9 @@ reduce_ot_bed_replication <- function(env, n_days, window_days = OT_SWEEP_WINDOW
 #' @param checkpoint_dir Directory each finished replication is saved to and
 #'   read back from, or NULL for none. A replication is named by its index, seed
 #'   and horizon, so a changed control seed never reads another seed's file.
+#' @param reducer Function of `(env, n_days, window_days)` returning a list of
+#'   `row` and `series` (default reduce_ot_bed_replication()), so a sweep that
+#'   needs further responses extends this one rather than copying the runner.
 #' @return A list of `rows`, one row per replication, and `series`, the daily
 #'   series of every replication bound together with a `replication` column.
 #'
@@ -250,7 +253,8 @@ reduce_ot_bed_replication <- function(env, n_days, window_days = OT_SWEEP_WINDOW
 run_ot_bed_measurement <- function(n_iterations = OT_SWEEP_REPLICATIONS,
                                    n_days = OT_SWEEP_DAYS,
                                    window_days = OT_SWEEP_WINDOW_DAYS,
-                                   max_cores = NULL, checkpoint_dir = NULL) {
+                                   max_cores = NULL, checkpoint_dir = NULL,
+                                   reducer = reduce_ot_bed_replication) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -267,7 +271,7 @@ run_ot_bed_measurement <- function(n_iterations = OT_SWEEP_REPLICATIONS,
                 sprintf("replication_%03d_%d_d%d.rds", i, rep_seeds[i], n_days))
     if (!is.null(saved) && file.exists(saved)) return(readRDS(saved))
     env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    out <- reduce_ot_bed_replication(env, n_days, window_days)
+    out <- reducer(env, n_days, window_days)
     out$row$replication <- i
     out$series$replication <- i
     if (!is.null(saved)) {

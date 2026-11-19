@@ -47,6 +47,7 @@ The measurements record where queues form at each intensity and which responses 
   - [Moderate-Intensity Evacuation Policy and Holding Establishment](#moderate-intensity-evacuation-policy-and-holding-establishment)
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
   - [Surgical Team Establishment](#surgical-team-establishment)
+  - [R2B Second Theatre](#r2b-second-theatre)
   - [R2E Operating Theatre Establishment](#r2e-operating-theatre-establishment)
   - [Surgery and Post-Operative Beds Together](#surgery-and-post-operative-beds-together)
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
@@ -916,6 +917,86 @@ The closing 90-day mean R2E theatre queue (left) and deaths of wounds per campai
 
 The operations performed at R2B and the casualties sent on to R2E because the R2B team was off shift or its theatre busy, per campaign, with the shipped one surgical team per R2B unit and with two, at moderate intensity (left) and high intensity (right) on a shared scale.
 
+
+### R2B Second Theatre
+
+**Question.** Once a second surgical section per unit covers the other shift, does a second R2B theatre keep forward the casualties now sent on because the theatre is busy, and does it need a second section on each shift to do so? `[default and high_intensity, R2B 1 to 4 sections and 1 or 2 theatres per unit · 360 d · 30 replications · paired, closing 90 d]`
+
+Each arm adds one step to the arm before it: a second section per unit, which covers the other shift; a second theatre at two sections, where one section is on shift and a casualty who finds the section operating waits in the second theatre for it rather than being sent on to R2E; and four sections at two theatres, two on each shift, a second operation at once ([Methods](Methods.md#r2b-second-theatre-sweep)). R2E keeps its shipped three sections and two theatres. R2B theatre occupancy is the share of all R2B theatre time in use, a theatre in which a casualty waits for the section counting as in use. Every arm is compared with the shipped establishment and each step with the arm before it.
+
+<!-- GEN r2b_theatre -->
+| Response | R2B 1 section, 1 theatre (shipped) | R2B 2 sections, 1 theatre | R2B 2 sections, 2 theatres | R2B 4 sections, 2 theatres |
+|---|---|---|---|---|
+| Sections on the larger shift against theatres, per unit | 1 against 1 | 1 against 1 | 1 against 2 | 2 against 2 |
+| R2B surgeries | 824.8 [813.4, 836.2] | 1574.5 [1558.6, 1590.4] | 1911.5 [1880.2, 1942.9] | 1934.1 [1904.6, 1963.6] |
+| Diverted from R2B, team off shift | 1201.5 [1178.8, 1224.3] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
+| Diverted from R2B, theatre busy | 236.8 [220.9, 252.8] | 510.3 [486.3, 534.4] | 18.6 [16.0, 21.1] | 108.8 [98.1, 119.6] |
+| Held at R2B for a team about to come on shift | 106.6 [102.4, 110.8] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
+| R2B theatre occupancy (%) | 10.1 [9.8, 10.3] | 18.7 [18.3, 19.2] | 11.3 [10.9, 11.6] | 11.7 [11.3, 12.0] |
+| R2E theatre mean queue | 0.97 [0.63, 1.31] | 0.59 [0.32, 0.86] | 0.17 [0.11, 0.23] | 0.21 [0.12, 0.31] |
+| R2E theatre queue, late-half classification | converged at 0.90 | converged at 0.56 | converged at 0.17 | converged at 0.31 |
+| R2E first surgeries | 1816.0 [1774.7, 1857.3] | 1390.5 [1346.2, 1434.8] | 1177.1 [1143.4, 1210.8] | 1191.3 [1157.2, 1225.5] |
+| Released with definitive repair outstanding | 131.0 [115.9, 146.0] | 74.1 [61.3, 86.8] | 34.9 [28.4, 41.4] | 44.6 [35.8, 53.4] |
+| R2E post-operative overflow census | 5.72 [5.36, 6.09] | 5.80 [5.42, 6.18] | 5.64 [5.22, 6.05] | 5.79 [5.39, 6.18] |
+| Died of wounds | 21.17 [17.55, 24.79] | 19.77 [16.96, 22.58] | 16.97 [14.73, 19.20] | 20.27 [14.70, 25.83] |
+| Returns to duty | 2062.4 [2031.8, 2093.0] | 2034.9 [2004.3, 2065.5] | 2049.0 [2016.3, 2081.7] | 2066.0 [2036.2, 2095.8] |
+<!-- /GEN -->
+
+<!-- GEN r2b_theatre_paired -->
+| Paired difference | R2B 2 sections, 1 theatre | R2B 2 sections, 2 theatres | R2B 4 sections, 2 theatres | R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre | R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres |
+|---|---|---|---|---|---|
+| R2B surgeries | +749.7 [+730.9, +768.4] | +1086.7 [+1055.0, +1118.4] | +1109.3 [+1074.2, +1144.3] | +337.0 [+298.9, +375.2] | +22.6 [−21.1, +66.2] |
+| Diverted from R2B, theatre busy | +273.5 [+251.5, +295.5] | −218.3 [−233.7, −202.9] | −128.0 [−148.0, −108.0] | −491.8 [−515.6, −468.0] | +90.3 [+79.4, +101.1] |
+| R2B theatre occupancy (%) | +8.7 [+8.1, +9.2] | +1.2 [+0.7, +1.6] | +1.6 [+1.1, +2.1] | −7.5 [−8.1, −6.9] | +0.4 [−0.2, +1.0] |
+| R2E theatre mean queue | −0.38 [−0.83, +0.07] | −0.80 [−1.13, −0.46] | −0.75 [−1.11, −0.40] | −0.42 [−0.69, −0.15]† | +0.04 [−0.07, +0.15] |
+| R2E first surgeries | −425.5 [−467.2, −383.7] | −638.9 [−689.7, −588.1] | −624.6 [−684.5, −564.8] | −213.4 [−271.6, −155.3] | +14.3 [−32.3, +60.9] |
+| Released with definitive repair outstanding | −56.9 [−70.8, −43.0] | −96.1 [−111.7, −80.4] | −86.4 [−104.3, −68.5] | −39.2 [−53.7, −24.6] | +9.7 [−1.4, +20.8] |
+| R2E post-operative overflow census | +0.07 [−0.43, +0.57] | −0.09 [−0.63, +0.46] | +0.06 [−0.46, +0.58] | −0.16 [−0.71, +0.39] | +0.15 [−0.51, +0.80] |
+| Died of wounds | −1.40 [−5.46, +2.66] | −4.20 [−8.73, +0.33] | −0.90 [−7.80, +6.00] | −2.80 [−5.63, +0.03] | +3.30 [−3.00, +9.60] |
+| Returns to duty | −27.5 [−72.8, +17.8] | −13.4 [−56.2, +29.4] | +3.6 [−31.2, +38.4] | +14.0 [−31.5, +59.6] | +17.0 [−18.5, +52.5] |
+<!-- /GEN -->
+
+At high intensity the same four arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
+
+<!-- GEN r2b_theatre_high -->
+| Response | R2B 1 section, 1 theatre (shipped) | R2B 2 sections, 1 theatre | R2B 2 sections, 2 theatres | R2B 4 sections, 2 theatres |
+|---|---|---|---|---|
+| Sections on the larger shift against theatres, per unit | 1 against 1 | 1 against 1 | 1 against 2 | 2 against 2 |
+| R2B surgeries | 1795.4 [1776.0, 1814.8] | 3270.7 [3243.9, 3297.5] | 4533.4 [4495.0, 4571.8] | 4667.4 [4626.6, 4708.2] |
+| Diverted from R2B, team off shift | 3825.8 [3770.0, 3881.7] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
+| Diverted from R2B, theatre busy | 1375.3 [1337.9, 1412.8] | 2551.9 [2502.0, 2601.8] | 157.1 [149.8, 164.3] | 888.3 [862.0, 914.6] |
+| Held at R2B for a team about to come on shift | 340.6 [334.7, 346.6] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
+| R2B theatre occupancy (%) | 22.6 [22.2, 23.0] | 39.0 [38.5, 39.6] | 26.9 [26.4, 27.3] | 27.8 [27.3, 28.4] |
+| R2E theatre mean queue | 72.62 [51.40, 93.83] | 21.31 [14.29, 28.33] | 7.18 [5.23, 9.13] | 8.16 [6.77, 9.55] |
+| R2E theatre queue, late-half classification | converged at 71.0 | converged at 20.6 | converged at 6.70 | converged at 7.90 |
+| R2E first surgeries | 6159.3 [6060.2, 6258.4] | 5371.8 [5289.9, 5453.6] | 4681.8 [4605.5, 4758.1] | 4658.0 [4584.0, 4732.0] |
+| Released with definitive repair outstanding | 1985.5 [1933.0, 2038.0] | 1346.7 [1302.6, 1390.7] | 805.3 [770.3, 840.3] | 806.7 [772.4, 840.9] |
+| R2E post-operative overflow census | 19.79 [19.47, 20.12] | 22.41 [21.91, 22.90] | 23.78 [23.21, 24.35] | 24.27 [23.61, 24.94] |
+| Died of wounds | 568.60 [500.55, 636.65] | 346.30 [327.68, 364.92] | 303.83 [289.79, 317.88] | 290.07 [279.73, 300.40] |
+| Returns to duty | 2861.9 [2824.1, 2899.7] | 2895.8 [2860.2, 2931.4] | 2945.1 [2913.0, 2977.1] | 2942.6 [2906.6, 2978.6] |
+<!-- /GEN -->
+
+<!-- GEN r2b_theatre_paired_high -->
+| Paired difference | R2B 2 sections, 1 theatre | R2B 2 sections, 2 theatres | R2B 4 sections, 2 theatres | R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre | R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres |
+|---|---|---|---|---|---|
+| R2B surgeries | +1475.3 [+1441.1, +1509.5] | +2738.0 [+2696.1, +2779.8] | +2872.0 [+2826.7, +2917.3] | +1262.7 [+1213.8, +1311.6] | +134.0 [+79.1, +189.0] |
+| Diverted from R2B, theatre busy | +1176.6 [+1109.4, +1243.8] | −1218.3 [−1253.9, −1182.6] | −487.0 [−535.0, −439.1] | −2394.8 [−2445.6, −2344.0] | +731.2 [+705.1, +757.3] |
+| R2B theatre occupancy (%) | +16.4 [+15.8, +17.1] | +4.3 [+3.7, +4.8] | +5.2 [+4.5, +5.9] | −12.2 [−12.8, −11.5] | +1.0 [+0.3, +1.6]† |
+| R2E theatre mean queue | −51.31 [−72.80, −29.82] | −65.44 [−85.93, −44.94] | −64.46 [−85.76, −43.15] | −14.13 [−21.62, −6.64] | +0.98 [−1.39, +3.35] |
+| R2E first surgeries | −787.5 [−915.9, −659.2] | −1477.5 [−1600.8, −1354.2] | −1501.3 [−1630.1, −1372.5] | −689.9 [−793.4, −586.5] | −23.8 [−131.8, +84.1] |
+| Released with definitive repair outstanding | −638.8 [−707.1, −570.6] | −1180.2 [−1244.1, −1116.3] | −1178.8 [−1245.6, −1112.1] | −541.4 [−592.7, −490.1] | +1.4 [−46.7, +49.5] |
+| R2E post-operative overflow census | +2.61 [+1.99, +3.23] | +3.99 [+3.36, +4.62] | +4.48 [+3.68, +5.28] | +1.38 [+0.74, +2.02] | +0.49 [−0.38, +1.36] |
+| Died of wounds | −222.30 [−290.65, −153.95] | −264.77 [−333.48, −196.05] | −278.53 [−347.23, −209.84] | −42.47 [−67.83, −17.10] | −13.77 [−30.40, +2.87] |
+| Returns to duty | +33.9 [−21.7, +89.5] | +83.2 [+41.9, +124.4] | +80.7 [+27.0, +134.4] | +49.2 [−4.0, +102.4] | −2.4 [−49.3, +44.4] |
+<!-- /GEN -->
+
+At moderate intensity a second section per unit ended the diversions because the team was off shift and raised those because the theatre was busy to <!-- GEN cell:r2b_theatre|Diverted from R2B, theatre busy|R2B 2 sections, 1 theatre|full -->510.3 [486.3, 534.4]<!-- /GEN -->. Against two sections at one theatre, a second theatre changed those diversions by <!-- GEN cell:r2b_theatre_paired|Diverted from R2B, theatre busy|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->−491.8 [−515.6, −468.0]<!-- /GEN -->, R2B surgeries by <!-- GEN cell:r2b_theatre_paired|R2B surgeries|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->+337.0 [+298.9, +375.2]<!-- /GEN -->, the R2E theatre queue by <!-- GEN cell:r2b_theatre_paired|R2E theatre mean queue|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->−0.42 [−0.69, −0.15]†<!-- /GEN --> and deaths of wounds by <!-- GEN cell:r2b_theatre_paired|Died of wounds|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->−2.80 [−5.63, +0.03]<!-- /GEN -->. Against the shipped establishment, two sections and two theatres changed R2E first surgeries by <!-- GEN cell:r2b_theatre_paired|R2E first surgeries|R2B 2 sections, 2 theatres|full -->−638.9 [−689.7, −588.1]<!-- /GEN -->, casualties released with definitive repair outstanding by <!-- GEN cell:r2b_theatre_paired|Released with definitive repair outstanding|R2B 2 sections, 2 theatres|full -->−96.1 [−111.7, −80.4]<!-- /GEN -->, the R2E post-operative overflow census by <!-- GEN cell:r2b_theatre_paired|R2E post-operative overflow census|R2B 2 sections, 2 theatres|full -->−0.09 [−0.63, +0.46]<!-- /GEN -->, deaths of wounds by <!-- GEN cell:r2b_theatre_paired|Died of wounds|R2B 2 sections, 2 theatres|full -->−4.20 [−8.73, +0.33]<!-- /GEN --> and returns to duty by <!-- GEN cell:r2b_theatre_paired|Returns to duty|R2B 2 sections, 2 theatres|full -->−13.4 [−56.2, +29.4]<!-- /GEN -->. Four sections against two at two theatres changed R2B surgeries by <!-- GEN cell:r2b_theatre_paired|R2B surgeries|R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres|full -->+22.6 [−21.1, +66.2]<!-- /GEN -->, diversions because the theatre was busy by <!-- GEN cell:r2b_theatre_paired|Diverted from R2B, theatre busy|R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres|full -->+90.3 [+79.4, +101.1]<!-- /GEN --> and deaths of wounds by <!-- GEN cell:r2b_theatre_paired|Died of wounds|R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres|full -->+3.30 [−3.00, +9.60]<!-- /GEN -->.
+
+At high intensity a second section per unit ended the diversions because the team was off shift and raised those because the theatre was busy to <!-- GEN cell:r2b_theatre_high|Diverted from R2B, theatre busy|R2B 2 sections, 1 theatre|full -->2551.9 [2502.0, 2601.8]<!-- /GEN -->. Against two sections at one theatre, a second theatre changed those diversions by <!-- GEN cell:r2b_theatre_paired_high|Diverted from R2B, theatre busy|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->−2394.8 [−2445.6, −2344.0]<!-- /GEN -->, R2B surgeries by <!-- GEN cell:r2b_theatre_paired_high|R2B surgeries|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->+1262.7 [+1213.8, +1311.6]<!-- /GEN -->, the R2E theatre queue by <!-- GEN cell:r2b_theatre_paired_high|R2E theatre mean queue|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->−14.13 [−21.62, −6.64]<!-- /GEN --> and deaths of wounds by <!-- GEN cell:r2b_theatre_paired_high|Died of wounds|R2B 2 sections, 2 theatres against R2B 2 sections, 1 theatre|full -->−42.47 [−67.83, −17.10]<!-- /GEN -->. Against the shipped establishment, two sections and two theatres changed R2E first surgeries by <!-- GEN cell:r2b_theatre_paired_high|R2E first surgeries|R2B 2 sections, 2 theatres|full -->−1477.5 [−1600.8, −1354.2]<!-- /GEN -->, casualties released with definitive repair outstanding by <!-- GEN cell:r2b_theatre_paired_high|Released with definitive repair outstanding|R2B 2 sections, 2 theatres|full -->−1180.2 [−1244.1, −1116.3]<!-- /GEN -->, the R2E post-operative overflow census by <!-- GEN cell:r2b_theatre_paired_high|R2E post-operative overflow census|R2B 2 sections, 2 theatres|full -->+3.99 [+3.36, +4.62]<!-- /GEN -->, deaths of wounds by <!-- GEN cell:r2b_theatre_paired_high|Died of wounds|R2B 2 sections, 2 theatres|full -->−264.77 [−333.48, −196.05]<!-- /GEN --> and returns to duty by <!-- GEN cell:r2b_theatre_paired_high|Returns to duty|R2B 2 sections, 2 theatres|full -->+83.2 [+41.9, +124.4]<!-- /GEN -->. Four sections against two at two theatres changed R2B surgeries by <!-- GEN cell:r2b_theatre_paired_high|R2B surgeries|R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres|full -->+134.0 [+79.1, +189.0]<!-- /GEN -->, diversions because the theatre was busy by <!-- GEN cell:r2b_theatre_paired_high|Diverted from R2B, theatre busy|R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres|full -->+731.2 [+705.1, +757.3]<!-- /GEN --> and deaths of wounds by <!-- GEN cell:r2b_theatre_paired_high|Died of wounds|R2B 4 sections, 2 theatres against R2B 2 sections, 2 theatres|full -->−13.77 [−30.40, +2.87]<!-- /GEN -->. The R2E theatre queue was classified <!-- GEN cell:r2b_theatre_high|R2E theatre queue, late-half classification|R2B 2 sections, 2 theatres|full -->converged at 6.70<!-- /GEN --> at two sections and two theatres, and converged at every arm at both intensities.
+
+![Two panels of stacked bars of the casualties requiring surgery at R2B operated forward, sent on because the team was off shift and sent on because the theatre was busy, for each R2B section and theatre establishment at moderate and high intensity](../images/r2b_theatre.png)
+
+The mean per campaign of the casualties requiring surgery at R2B who were operated on forward, sent on to R2E because the unit's section was off shift, and sent on because its theatre was busy, for each section and theatre establishment per unit, at moderate intensity (left) and high intensity (right), on one shared scale.
 
 ### R2E Operating Theatre Establishment
 
@@ -2033,6 +2114,7 @@ At 20 casualties per event the peak R2E post-operative overflow census was <!-- 
 | Intensive care gate, intensive care utilisation (percentage points) | +0.93 [−0.12, +1.98] | 0.649 | 2.0 | 8 |
 | Intensive care gate, died of wounds, high intensity | −29.33 [−138.46, +79.79] | 1.000 | 0.5 | 1,312,369 |
 | Second R2B section, died of wounds | −1.40 [−5.46, +2.66] | 1.000 | 1.0 | 455 |
+| Second R2B theatre at two sections, died of wounds | −2.80 [−5.63, +0.03] | 1.000 | 1.0 | 221 |
 | Fourth R2E section, died of wounds | +4.63 [−6.22, +15.48] | 1.000 | 1.0 | 3,245 |
 | Third theatre at three sections, R2E theatre queue | −0.43 [−0.79, −0.06] | 1.000 | 1.0 | 4 |
 | Third theatre at three sections, died of wounds | +1.07 [−5.00, +7.13] | 1.000 | 1.0 | 1,015 |

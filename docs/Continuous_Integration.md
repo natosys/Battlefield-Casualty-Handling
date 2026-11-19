@@ -413,6 +413,7 @@ seconds.
 | `check_pre_open_window.R` | fast | 39 s | the R2B pre-open hold window behaves at its bounds |
 | `check_r1_evacuation.R` | fast | 60 s | every casualty leaves R1, and Role 2 receives each by what it needs |
 | `check_r2b_evac_wait.R` | fast | 118 s | an R2B casualty waiting for the evacuation vehicle is placed rather than queued for a bed, and the R2B gate applies only when forward holding can use R2B intensive care |
+| `check_r2b_theatre_protocol.R` | fast | 11 s | the R2B second theatre sweep's parameters, its responses and its published section agree |
 | `check_r2e_placement.R` | fast | 45 s | a casualty is placed in the best bed free when its care begins, never queued for one, at R2E and at R2B reception |
 | `check_r2e_surgery_seizure.R` | fast | 16 s | R2E surgery seizes a surgical section |
 | `check_reception_order.R` | fast | 3 s | casualties waiting at R2B reception take a freed resuscitation bed by triage priority, then in order of arrival |

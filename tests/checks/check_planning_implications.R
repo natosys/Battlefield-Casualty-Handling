@@ -94,7 +94,8 @@ HALF_WIDTH_SCRIPTS <- c("hold_window/hold_window_paired" = "scripts/run_hold_win
                         "post_definitive/post_definitive_sweep_paired" =
                           "R/post_definitive_sweep.R",
                         "airlift_places/airlift_places_paired" = "R/airlift_places_sweep.R",
-                        "evac_delay/evac_delay_sweep_paired" = "R/evac_delay_sweep.R")
+                        "evac_delay/evac_delay_sweep_paired" = "R/evac_delay_sweep.R",
+                        "r2b_theatre/r2b_theatre_sweep_paired" = "R/r2b_theatre_sweep.R")
 
 failures <- character(0)
 

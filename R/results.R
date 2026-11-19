@@ -884,6 +884,105 @@ build_post_op_paired <- function(data_dir, from) {
               vapply(POST_OP_PAIRED_COLUMNS, `[[`, "", 1L)), rows)
 }
 
+#' Arm of the shipped establishment in the R2B second theatre sweep
+R2B_THEATRE_BASELINE <- "R2B 1 section, 1 theatre"
+
+#' Responses of the R2B second theatre sweep, as `list(label, response, dp, scale)`
+#'
+#' @details The forward responses first, then the R2E load behind them and the
+#'   outcomes. A response the paired file does not carry, the off-shift
+#'   diversions and the pre-open hold being zero by construction at two or more
+#'   sections, is printed in the summary table alone.
+R2B_THEATRE_ROWS <- list(
+  list("R2B surgeries", "r2b_surgeries", 1L, 1),
+  list("Diverted from R2B, team off shift", "diverted_offshift", 1L, 1),
+  list("Diverted from R2B, theatre busy", "diverted_busy", 1L, 1),
+  list("Held at R2B for a team about to come on shift", "held_r2b", 1L, 1),
+  list("R2B theatre occupancy (%)", "r2b_theatre_occupancy", 1L, 100),
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("R2E first surgeries", "r2e_first_surgeries", 1L, 1),
+  list("Released with definitive repair outstanding", "released_unrepaired", 1L, 1),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1)
+)
+
+#' R2B second theatre sweep table: each response by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per arm.
+#'
+#' @details The first row states the sections on the larger shift against the
+#'   theatres per unit, the ratio that decides whether a second theatre can
+#'   host a second operation. The R2E theatre queue's classification is read
+#'   from the stability file the sweep wrote from its own daily series.
+build_r2b_theatre <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("r2b_theatre/r2b_theatre_sweep_summary", suffix), data_dir)
+  st <- res_read(res_file("r2b_theatre/r2b_theatre_sweep_stability", suffix), data_dir)
+  arms <- unique(d$arm)
+  #' One response's row across the arms
+  #'
+  #' @param r One entry of R2B_THEATRE_ROWS.
+  #' @return The row's cells.
+  one <- function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1)))
+  }
+  on_shift <- vapply(arms, function(a) {
+    n <- ot_bed_counts(sub("^R2B ", "", a))
+    sprintf("%d against %d", as.integer(ceiling(n[1] / 2)), n[2])
+  }, character(1))
+  queue_verdict <- vapply(arms, function(a) {
+    r <- st[st$arm == a & st$pool == "R2E operating theatres", ]
+    if (nrow(r) != 1L) stop(sprintf("expected one R2E theatre stability row for arm '%s'", a),
+                            call. = FALSE)
+    res_stability_cell(r)
+  }, character(1))
+  rows <- c(
+    list(c("Sections on the larger shift against theatres, per unit", on_shift)),
+    lapply(R2B_THEATRE_ROWS[1:6], one),
+    list(c("R2E theatre queue, late-half classification", queue_verdict)),
+    lapply(R2B_THEATRE_ROWS[7:11], one)
+  )
+  header <- c("Response", ifelse(arms == R2B_THEATRE_BASELINE, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
+#' R2B second theatre sweep table of paired differences
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per comparison.
+#'
+#' @details A comparison against the shipped establishment is headed by its arm
+#'   alone; a step against the arm before it is headed by both arms. Each cell
+#'   carries a dagger where its interval excludes zero but the difference fails
+#'   Holm's adjustment over every row of the intensity's paired file.
+build_r2b_theatre_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("r2b_theatre/r2b_theatre_sweep_paired", suffix), data_dir)
+  pairs <- unique(d[, c("from", "to")])
+  heads <- ifelse(pairs$from == R2B_THEATRE_BASELINE, pairs$to,
+                  paste(pairs$to, "against", pairs$from))
+  carried <- Filter(function(r) r[[2]] %in% d$response, R2B_THEATRE_ROWS)
+  rows <- lapply(carried, function(r) {
+    c(r[[1]], vapply(seq_len(nrow(pairs)), function(k) {
+      x <- d[d$from == pairs$from[k] & d$to == pairs$to[k] & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for '%s', found %d",
+                                      r[[2]], heads[k], nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c("Paired difference", heads), rows)
+}
+
 #' Arm the critical-care places sweep's differences are measured against
 AIRLIFT_PLACES_BASELINE <- "36/54, 7 days"
 
@@ -2118,6 +2217,9 @@ RESOLUTION_ROWS <- list(
   list("surgical_teams/surgical_team_sweep_paired.csv",
        "total_dow", "arm", "R2E 3, R2B 1", "R2E 3, R2B 2", 1,
        "Second R2B section, died of wounds"),
+  list("r2b_theatre/r2b_theatre_sweep_paired.csv", "total_dow", "arm",
+       "R2B 2 sections, 1 theatre", "R2B 2 sections, 2 theatres", 1,
+       "Second R2B theatre at two sections, died of wounds"),
   list("surgical_teams/surgical_team_sweep_paired.csv",
        "total_dow", "arm", "R2E 3, R2B 1", "R2E 4, R2B 1", 1,
        "Fourth R2E section, died of wounds"),
@@ -3931,6 +4033,10 @@ RESULTS_TABLES <- list(
   ot_bed_high = function(dd) build_ot_bed(dd, "_high_intensity"),
   ot_bed_paired = build_ot_bed_paired,
   ot_bed_paired_high = function(dd) build_ot_bed_paired(dd, "_high_intensity"),
+  r2b_theatre = build_r2b_theatre,
+  r2b_theatre_high = function(dd) build_r2b_theatre(dd, "_high_intensity"),
+  r2b_theatre_paired = build_r2b_theatre_paired,
+  r2b_theatre_paired_high = function(dd) build_r2b_theatre_paired(dd, "_high_intensity"),
   post_op_capacity = function(dd) build_post_op(dd, POST_OP_CARE_COLUMNS),
   post_op_capacity_outcomes = function(dd) build_post_op(dd, POST_OP_OUTCOME_COLUMNS),
   post_op_capacity_paired = function(dd) build_post_op_paired(dd, POST_OP_BASELINE),

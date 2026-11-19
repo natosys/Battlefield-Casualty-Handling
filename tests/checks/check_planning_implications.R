@@ -414,8 +414,8 @@ report(setequal(sizing_cases, inadequate_cases),
        length(inadequate_cases), length(sizing_cases))
 report(grepl("<!-- GEN adequacy_matrix -->", text, fixed = TRUE) &&
          grepl("<!-- GEN adequacy_sizing -->", text, fixed = TRUE) &&
-         grepl("## Is the System Adequate?", text, fixed = TRUE),
-       "the planning paper prints the matrix and the sizing table under their section")
+         grepl("## Annex A. Element-by-Element Adequacy", text, fixed = TRUE),
+       "the planning paper prints the matrix and the sizing table in its annex")
 
 # ── 6. The costs the lever table states are the shipped establishment's ─────
 

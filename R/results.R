@@ -3969,11 +3969,57 @@ res_cell_value <- function(ref, data_dir, tables = RESULTS_TABLES) {
   if (length(hit) != 1L) stop(sprintf("table '%s' has %d rows labelled '%s'", p[1], length(hit),
                                       p[2]), call. = FALSE)
   cell <- hit[[1]][col]
+  if (p[4] %in% names(RES_PLAIN_ROUNDING)) {
+    return(res_plain_figure(sub(" .*$", "", cell), p[4]))
+  }
   switch(p[4],
          full = cell,
          mean = sub(" .*$", "", cell),
          ci = regmatches(cell, regexpr("\\[[^]]*\\]", cell)),
-         stop(sprintf("cell part '%s' is not full, mean or ci", p[4]), call. = FALSE))
+         stop(sprintf("cell part '%s' is not full, mean, ci or one of %s", p[4],
+                      paste(names(RES_PLAIN_ROUNDING), collapse = ", ")), call. = FALSE))
+}
+
+#' Rounding each plain-figure cell part applies to a quoted mean
+#'
+#' @details The planning paper states a figure as a reader would say it, "about
+#'   73" rather than "72.62", while still quoting the results paper's cell rather
+#'   than typing the rounded value. `dp0` and `dp1` round to a number of decimal
+#'   places; `sig1` to `sig3` to a number of significant figures. The `abs_`
+#'   form of each drops the sign, so a paired difference of "−176" reads as the
+#'   "176 deaths prevented" the sentence states in words.
+RES_PLAIN_ROUNDING <- local({
+  rules <- list(dp0 = c("dp", 0), dp1 = c("dp", 1), sig1 = c("sig", 1), sig2 = c("sig", 2),
+                sig3 = c("sig", 3))
+  c(rules, stats::setNames(rules, paste0("abs_", names(rules))))
+})
+
+#' A quoted mean rounded for plain prose
+#'
+#' @param token The leading figure of a cell, with any sign, thousands separators
+#'   and unit, such as `"2,858.6"`, `"−40.43"` or `"86.8%"`.
+#' @param part A name of `RES_PLAIN_ROUNDING`.
+#' @return The figure rounded, its sign and unit kept and thousands separated.
+#'
+#' @details Stops on a token that does not open with a number, so a cell holding
+#'   text cannot be quoted as a rounded figure.
+res_plain_figure <- function(token, part) {
+  m <- regmatches(token, regexec("^([+−-]?)([0-9][0-9,]*(\\.[0-9]+)?)(.*)$", token))[[1]]
+  if (length(m) == 0L) {
+    stop(sprintf("cell '%s' does not open with a number to round", token), call. = FALSE)
+  }
+  value <- as.numeric(gsub(",", "", m[3], fixed = TRUE))
+  rule <- RES_PLAIN_ROUNDING[[part]]
+  digits <- as.integer(rule[2])
+  if (rule[1] == "dp") {
+    value <- round(value, digits)
+    dp <- digits
+  } else {
+    value <- signif(value, digits)
+    dp <- if (value == 0) 0L else max(0L, digits - 1L - floor(log10(abs(value))))
+  }
+  sign <- if (startsWith(part, "abs_")) "" else m[2]
+  paste0(sign, formatC(value, format = "f", digits = dp, big.mark = ","), m[5])
 }
 
 #' Content a generated span should hold

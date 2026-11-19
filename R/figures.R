@@ -632,6 +632,46 @@ plot_r2b_routing <- function(moderate_df, high_df, shipped, second) {
           panel.grid.minor = element_blank())
 }
 
+#' R2B second theatre figure: where R2B's surgical casualties go at each establishment
+#'
+#' @param moderate_df Tracked `data/r2b_theatre/r2b_theatre_sweep_summary.csv`.
+#' @param high_df Tracked `..._summary_high_intensity.csv`.
+#' @return ggplot object of one panel per intensity, a stacked bar per arm.
+#'
+#' @details plot_r2b_routing()'s bars at every arm of the sweep, in the order
+#'   the summary lists them, the shipped establishment first. The arm labels
+#'   drop their leading "R2B", the panels being about R2B alone. Stops where an
+#'   outcome is absent.
+plot_r2b_theatre <- function(moderate_df, high_df) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  plot_df <- both %>% filter(response %in% names(R2B_ROUTING_OUTCOMES))
+  arms <- unique(moderate_df$arm)
+  if (nrow(plot_df) != 2L * length(arms) * length(R2B_ROUTING_OUTCOMES)) {
+    stop("summaries lack an R2B outcome or arm the figure draws")
+  }
+  labels <- sub(", ", ",\n", sub("^R2B ", "", arms))
+  colours <- c("#1f5468", "#a0442f", "#d9a27a")
+  plot_df <- plot_df %>%
+    mutate(arm = factor(labels[match(arm, arms)], levels = labels),
+           outcome = factor(R2B_ROUTING_OUTCOMES[response], levels = rev(R2B_ROUTING_OUTCOMES)),
+           intensity = factor(intensity, levels = names(FIGURE_INTENSITY_COLOURS)))
+  ggplot(plot_df, aes(x = arm, y = mean, fill = outcome)) +
+    geom_col(width = 0.6) +
+    facet_wrap(~ intensity, nrow = 1) +
+    scale_fill_manual(values = stats::setNames(colours, R2B_ROUTING_OUTCOMES),
+                      breaks = unname(R2B_ROUTING_OUTCOMES)) +
+    scale_y_continuous(labels = scales::comma) +
+    labs(title = "Where R2B's Surgical Casualties Go, by Sections and Theatres per Unit",
+         subtitle = paste("Casualties requiring surgery at R2B per 360-day campaign, by outcome;",
+                          "mean of 30 campaigns; R2E at its shipped establishment"),
+         x = NULL, y = "Casualties per campaign", fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Ambulance fleet figure: casualties waiting for an ambulance by fleet size
 #'
 #' @param moderate_df Tracked `data/sweeps/transport_capacity_by_fleet_size.csv`.

@@ -47,6 +47,7 @@ The measurements record where queues form at each intensity and which responses 
   - [Moderate-Intensity Evacuation Policy and Holding Establishment](#moderate-intensity-evacuation-policy-and-holding-establishment)
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
   - [Surgical Team Establishment](#surgical-team-establishment)
+  - [R2B Second Theatre](#r2b-second-theatre)
   - [R2E Operating Theatre Establishment](#r2e-operating-theatre-establishment)
   - [Surgery and Post-Operative Beds Together](#surgery-and-post-operative-beds-together)
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
@@ -916,6 +917,32 @@ The closing 90-day mean R2E theatre queue (left) and deaths of wounds per campai
 
 The operations performed at R2B and the casualties sent on to R2E because the R2B team was off shift or its theatre busy, per campaign, with the shipped one surgical team per R2B unit and with two, at moderate intensity (left) and high intensity (right) on a shared scale.
 
+
+### R2B Second Theatre
+
+**Question.** Once a second surgical section per unit covers the other shift, does a second R2B theatre keep forward the casualties now sent on because the theatre is busy, and does it need a second section on each shift to do so? `[default and high_intensity, R2B 1 to 4 sections and 1 or 2 theatres per unit · 360 d · 30 replications · paired, closing 90 d]`
+
+Each arm adds one step to the arm before it: a second section per unit, which covers the other shift; a second theatre at two sections, where one section is on shift and a casualty who finds the section operating waits in the second theatre for it rather than being sent on to R2E; and four sections at two theatres, two on each shift, a second operation at once ([Methods](Methods.md#r2b-second-theatre-sweep)). R2E keeps its shipped three sections and two theatres. R2B theatre occupancy is the share of all R2B theatre time in use, a theatre in which a casualty waits for the section counting as in use. Every arm is compared with the shipped establishment and each step with the arm before it.
+
+<!-- GEN r2b_theatre -->
+<!-- /GEN -->
+
+<!-- GEN r2b_theatre_paired -->
+<!-- /GEN -->
+
+At high intensity the same four arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
+
+<!-- GEN r2b_theatre_high -->
+<!-- /GEN -->
+
+<!-- GEN r2b_theatre_paired_high -->
+<!-- /GEN -->
+
+RESULTS_PROSE
+
+![Two panels of stacked bars of the casualties requiring surgery at R2B operated forward, sent on because the team was off shift and sent on because the theatre was busy, for each R2B section and theatre establishment at moderate and high intensity](../images/r2b_theatre.png)
+
+The mean per campaign of the casualties requiring surgery at R2B who were operated on forward, sent on to R2E because the unit's section was off shift, and sent on because its theatre was busy, for each section and theatre establishment per unit, at moderate intensity (left) and high intensity (right), on one shared scale.
 
 ### R2E Operating Theatre Establishment
 

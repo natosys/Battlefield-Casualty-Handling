@@ -270,6 +270,12 @@ save_figure(plot_post_op_capacity(
   "3 sections, 2 theatres, 4 ICU, 30 hold"
 ), "post_op_capacity.png", 11, 8)
 
+# RENDERS: r2b_theatre.png
+save_figure(plot_r2b_theatre(read_tracked("r2b_theatre", "r2b_theatre_sweep_summary.csv"),
+                             read_tracked("r2b_theatre",
+                                          "r2b_theatre_sweep_summary_high_intensity.csv")),
+            "r2b_theatre.png", 12, 5.5)
+
 # RENDERS: role4_load.png
 save_figure(plot_role4_load(read_tracked("airlift_places", "airlift_places_replications.csv"),
                             read_tracked("airlift_places",

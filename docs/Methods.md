@@ -305,6 +305,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | R2E intensive care bed establishment sweep | `data/icu_beds/` | `check_icu_bed_sweep_protocol.R` |
 | R2E operating theatre establishment sweep | `data/ot_beds/` | `check_ot_bed_sweep_protocol.R` |
 | Surgery and post-operative bed sweep | `data/post_op_capacity/` | `check_post_op_capacity_protocol.R` |
+| R2B second theatre sweep | `data/r2b_theatre/` | `check_r2b_theatre_protocol.R` |
 | Critical-care places per sortie sweep | `data/airlift_places/` | `check_airlift_places_protocol.R` |
 | Post-definitive intensive care share sweep | `data/post_definitive/` | `check_post_definitive_sweep.R` |
 | Forward evacuation delay sweep | `data/evac_delay/` | `check_evac_delay_sweep.R` |
@@ -779,6 +780,23 @@ Rscript scripts/run_post_op_capacity_sweep.R --refresh-baseline
 ```
 
 Each replication is reduced inside the forked worker by the operating theatre sweep's reduction (`reduce_ot_bed_replication()`), so its responses and daily pool series are that sweep's, and each pool is classified by the late-half fit of [Classifying Stability](#classifying-stability). Every arm is compared with the shipped establishment, and every arm with added beds with the added surgery at the shipped beds, the comparison that isolates what the beds buy once the surgery is in place; Holm's adjustment is taken over every row of the experiment's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped arm and the added surgery at the shipped beds are the operating theatre sweep's shipped and three-theatre, six-section configurations under the same seed, and `tests/checks/check_post_op_capacity_protocol.R` asserts that they reproduce its tracked high-intensity replications in every response the two share, and that each count set is the capacity of the pool the model builds. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked). The tracked evidence set is `data/post_op_capacity/`.
+
+### R2B Second Theatre Sweep
+
+<!-- R2B_THEATRE replications=30 -->
+<!-- R2B_THEATRE days=360 -->
+<!-- R2B_THEATRE seed=42 -->
+<!-- R2B_THEATRE window_days=90 -->
+<!-- R2B_THEATRE baseline=R2B 1 section, 1 theatre -->
+<!-- R2B_THEATRE arms=1/1;2/1;2/2;4/2 -->
+Thirty replications of 360 simulated days at each of four R2B establishments per unit, at control seed 42, under both the shipped configuration and the `high_intensity` profile, R2E held at its shipped establishment. The arms add one step at a time to the shipped single section and theatre: a second section, which covers the other shift; a second theatre at two sections, which gives a casualty a room to wait in for the section on shift rather than being sent on to R2E, `build_env()` putting a unit's sections on alternate shifts; and four sections at two theatres, two on each shift, which is a second operation at once. Four sections at one theatre is not an arm: with one room the second section on shift has nowhere to operate, and a short run reproduced two sections at one theatre exactly. The counts enter through `elms.r2b.sub_elms.surg.qty` and `elms.r2b.beds.ot.qty`, applying to every R2B unit and set on the resolved configuration before `build_environment()` by setters that fail rather than return the configuration unchanged. Invoked as:
+
+```
+Rscript scripts/run_r2b_theatre_sweep.R --refresh-baseline
+Rscript scripts/run_r2b_theatre_sweep.R --scenario high_intensity --refresh-baseline
+```
+
+Each replication is reduced inside the forked worker by the operating theatre sweep's reduction (`reduce_ot_bed_replication()`) with the R2B theatres' occupancy over the closing window added, and each R2E pool is classified by the late-half fit of [Classifying Stability](#classifying-stability). No R2B queue is reported, a single section's members and a pool of sections being different resources, so the wait for a section shows as the diversions it replaces. Every arm is compared with the shipped establishment, and each step with the arm before it; the off-shift diversions and the pre-open hold are zero by construction at two or more sections and are not among the paired responses. Holm's adjustment is taken over every row of each intensity's paired file. The arms are paired on one control seed each and do not share a casualty stream. The shipped arm and the arm at two sections and one theatre are the [surgical team sweep's](#surgical-team-establishment-sweep) shipped and second R2B section configurations under the same seed, and `tests/checks/check_r2b_theatre_protocol.R` asserts that they reproduce its tracked replications at both intensities in every response the two share, and that each count set is the capacity the model builds. Each finished replication is saved as it completes under `outputs/checkpoints/` (untracked). The tracked evidence set is `data/r2b_theatre/`.
 
 ### Critical-Care Places per Sortie Sweep
 

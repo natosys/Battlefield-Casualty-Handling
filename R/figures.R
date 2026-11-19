@@ -421,6 +421,67 @@ plot_role4_load <- function(moderate_df, high_df, shipped) {
           panel.grid.minor = element_blank())
 }
 
+#' Panels of the surgery and post-operative bed figure, response to title
+POST_OP_FIGURE_PANELS <- c(
+  overflow_r2e_post_op = "Operated casualties in overflow",
+  hold_mean_queue = "Waiting for an R2E holding bed",
+  post_definitive_icu_share = "Intensive care after definitive surgery in an ICU bed (%)",
+  total_dow = "Died of wounds per campaign"
+)
+
+#' Surgery and post-operative bed figure: what the beds buy once the surgery is added
+#'
+#' @param summary_df Tracked
+#'   `data/post_op_capacity/post_op_capacity_summary_high_intensity.csv`.
+#' @param shipped Arm label of the shipped establishment.
+#' @return ggplot object of four panels, holding beds along the axis and one
+#'   line per intensive care bed count.
+#'
+#' @details Every arm but the shipped one carries six sections and three
+#'   theatres, so the lines read what the beds buy once that surgery is in
+#'   place; the shipped establishment is the dashed reference on every panel.
+#'   The counts are read from the arm label, which states them. Each point
+#'   carries its 95% interval, and every axis starts at zero. Stops where a
+#'   panel's response is absent.
+plot_post_op_capacity <- function(summary_df, shipped) {
+  missing <- setdiff(names(POST_OP_FIGURE_PANELS), summary_df$response)
+  if (length(missing) > 0) {
+    stop("summary lacks response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  scale <- ifelse(summary_df$response == "post_definitive_icu_share", 100, 1)
+  d <- summary_df %>%
+    mutate(mean = mean * scale, ci_lower = ci_lower * scale, ci_upper = ci_upper * scale) %>%
+    filter(response %in% names(POST_OP_FIGURE_PANELS)) %>%
+    mutate(panel = factor(POST_OP_FIGURE_PANELS[response], levels = POST_OP_FIGURE_PANELS),
+           icu = as.integer(sub(".* ([0-9]+) ICU.*", "\\1", arm)),
+           hold = as.integer(sub(".* ([0-9]+) hold$", "\\1", arm)))
+  base <- d %>% filter(arm == shipped)
+  added <- d %>% filter(arm != shipped) %>%
+    mutate(icu = factor(sprintf("%d ICU beds", icu),
+                        levels = sprintf("%d ICU beds", sort(unique(icu)))))
+  ggplot(added, aes(x = hold, y = mean, colour = icu)) +
+    geom_hline(data = base, aes(yintercept = mean, linetype = "Shipped establishment"),
+               colour = FIGURE_SHIPPED_COLOUR) +
+    geom_line(linewidth = 0.8) +
+    geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), size = 0.3) +
+    facet_wrap(~ panel, scales = "free_y", ncol = 2) +
+    expand_limits(y = 0) +
+    scale_x_continuous(breaks = sort(unique(added$hold))) +
+    scale_colour_brewer(palette = "Dark2", guide = guide_legend(order = 1)) +
+    scale_linetype_manual(values = c("Shipped establishment" = "dashed"),
+                          guide = guide_legend(order = 2)) +
+    labs(title = "Post-Operative Beds Behind Added R2E Surgery at High Intensity",
+         subtitle = sprintf(paste("Six surgical sections and three theatres, against R2E",
+                                  "intensive care and holding beds;\n%d campaigns of 360",
+                                  "days per establishment, mean with 95%% interval"),
+                            max(summary_df$n_reps)),
+         x = "R2E holding beds", y = NULL, colour = NULL, linetype = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom", plot.title.position = "plot",
+          strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Evacuation delay figure: deaths of wounds as a share of wounded, by where they occur
 #'
 #' @param moderate_df Tracked `data/evac_delay/evac_delay_sweep_summary.csv`.

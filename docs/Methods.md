@@ -56,6 +56,7 @@ This document is the design record for the replicated experiments reported in th
   - [R2E Operating Theatre Establishment Sweep](#r2e-operating-theatre-establishment-sweep)
   - [Surgery and Post-Operative Bed Sweep](#surgery-and-post-operative-bed-sweep)
   - [R2B Second Theatre Sweep](#r2b-second-theatre-sweep)
+  - [Surgical Package Sweep](#surgical-package-sweep)
   - [Critical-Care Places per Sortie Sweep](#critical-care-places-per-sortie-sweep)
   - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
   - [Post-Definitive Intensive Care Share Sweep](#post-definitive-intensive-care-share-sweep)
@@ -1062,7 +1063,7 @@ The two campaign time series figures are rendered from `data/time_series/`, the 
 
 ### The Cost of Reproducing the Evidence
 
-The table records the wall-clock time each tracked evidence set took to write in the pinned container, on a four-core machine with 16 GB of memory, the host the Dev Container states it requires. The times are those of the most recent full re-run of the evidence; the four sets whose run in that round was interrupted were timed again on the same machine, and the theatre establishment, surgery and post-operative bed, R2B second theatre, critical-care places, post-definitive share and forward evacuation delay sweeps were run on three cores. Writing every set takes about 256 core-hours, or about two and two-thirds days of wall clock on four cores, the high-intensity policy and sortie interval grids accounting for about a sixth of it. The sensitivity screens are excluded, being kept as the provenance of [Sensitivity Screens](#sensitivity-screens) rather than as evidence: the Morris cache took about 78 hours and the Sobol cache about 70 on four cores.
+The table records the wall-clock time each tracked evidence set took to write in the pinned container, on a four-core machine with 16 GB of memory, the host the Dev Container states it requires. The times are those of the most recent full re-run of the evidence; the four sets whose run in that round was interrupted were timed again on the same machine, and the theatre establishment, surgery and post-operative bed, R2B second theatre, surgical package, critical-care places, post-definitive share and forward evacuation delay sweeps were run on three cores. Writing every set takes about 263 core-hours, or about two and three-quarter days of wall clock on four cores, the high-intensity policy and sortie interval grids accounting for about a sixth of it. The sensitivity screens are excluded, being kept as the provenance of [Sensitivity Screens](#sensitivity-screens) rather than as evidence: the Morris cache took about 78 hours and the Sobol cache about 70 on four cores.
 
 | Evidence set | Invocation | Shipped default (min) | `high_intensity` (min) | Cores | Core-hours |
 |---|---|---|---|---|---|
@@ -1080,6 +1081,7 @@ The table records the wall-clock time each tracked evidence set took to write in
 | `data/ot_beds/` | `run_ot_bed_sweep.R` | 51 | 121 | 3 | 8.6 |
 | `data/post_op_capacity/` | `run_post_op_capacity_sweep.R` | not run | 224 | 3 | 11.2 |
 | `data/r2b_theatre/` | `run_r2b_theatre_sweep.R` | 44 | 90 | 3 | 6.7 |
+| `data/surgical_package/` | `run_surgical_package_sweep.R` | not run | 132 | 3 | 6.6 |
 | `data/airlift_places/` | `run_airlift_places_sweep.R` | 82 | 182 | 3 | 13.2 |
 | `data/triage_split/` | `run_triage_sweep.R` | 50 | 107 | 4 | 10.5 |
 | `data/post_definitive/` | `run_post_definitive_sweep.R` | 58 | 122 | 3 | 9.0 |
@@ -1096,7 +1098,7 @@ The table records the wall-clock time each tracked evidence set took to write in
 | `data/casualty_surge/` (event size) | `run_casualty_surge_size_sweep.R` | 90 | 134 | 4 | 14.9 |
 | `data/calibration/` (anchor horizons) | `check_dow_calibration.R --write-csv` | 44 (both configurations in one run) |  | 4 | 2.9 |
 | `data/calibration/` (360 days) | `check_dow_calibration.R --days 360 --reps 10` | 25 (both configurations in one run) |  | 4 | 1.6 |
-| **Total** | | | | | **256** |
+| **Total** | | | | | **263** |
 
 Every experiment runner saves each finished replication under `outputs/checkpoints/`, the transport fleet sweep each finished fleet-size point, and reads it back rather than re-running it, so an interruption costs only the work in flight. A saved replication is named by its index, seed and horizon, inside a directory named by a fingerprint of the configuration file's content and the model's code, so a run against another configuration or after a change to the model starts afresh rather than resuming; a baseline refresh and an exploratory run keep separate directories. `tests/checks/check_replication_checkpoint.R` asserts that a run resumed after an interruption writes what an uninterrupted run writes, and `tests/checks/check_checkpoint_fingerprint.R` that a resume cannot cross a change to the configuration or the code.
 

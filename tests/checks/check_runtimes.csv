@@ -80,6 +80,7 @@ check_statistical_method.R,6
 check_structure_tables.R,5
 check_surge_event_size.R,10
 check_surgery_delivery_response.R,20
+check_surgical_package_protocol.R,12
 check_surgical_roster.R,70
 check_surgical_section_choice.R,51
 check_surgical_sweep_protocol.R,10

@@ -48,6 +48,7 @@ The measurements record where queues form at each intensity and which responses 
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
   - [Surgical Team Establishment](#surgical-team-establishment)
   - [R2B Second Theatre](#r2b-second-theatre)
+  - [Surgical Capacity as a Package](#surgical-capacity-as-a-package)
   - [R2E Operating Theatre Establishment](#r2e-operating-theatre-establishment)
   - [Surgery and Post-Operative Beds Together](#surgery-and-post-operative-beds-together)
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
@@ -1005,15 +1006,58 @@ The mean per campaign of the casualties requiring surgery at R2B who were operat
 Every arm past the shipped establishment carries the R2B package of the [R2B second theatre sweep](#r2b-second-theatre), two sections and two theatres per unit, and adds R2E capacity to it one step at a time ([Methods](Methods.md#surgical-package-sweep)). R2E holding beds stay at the shipped 30. Every arm is compared with the shipped establishment in the first table of paired differences; the second compares each R2E addition with the R2B package alone, each twelve-bed arm with the same surgery at four beds, and six sections and three theatres with four sections.
 
 <!-- GEN surgical_package -->
+| Response | Shipped | R2B package | R2B package, R2E 4 sections | R2B package, R2E 4 sections, 12 ICU | R2B package, R2E 6 sections, 3 theatres | R2B package, R2E 6 sections, 3 theatres, 12 ICU |
+|---|---|---|---|---|---|---|
+| R2B surgeries | 1795.4 [1776.0, 1814.8] | 4533.4 [4495.0, 4571.8] | 4540.8 [4505.4, 4576.1] | 4543.9 [4511.0, 4576.8] | 4512.2 [4473.0, 4551.4] | 4523.0 [4493.0, 4553.0] |
+| Diverted from R2B, theatre busy | 1375.3 [1337.9, 1412.8] | 157.1 [149.8, 164.3] | 163.5 [156.1, 170.9] | 162.7 [154.7, 170.8] | 154.3 [144.7, 163.8] | 153.0 [144.7, 161.3] |
+| R2E theatre mean queue | 72.62 [51.40, 93.83] | 7.18 [5.23, 9.13] | 2.54 [2.07, 3.00] | 1.88 [1.49, 2.26] | 0.41 [0.36, 0.47] | 0.35 [0.30, 0.40] |
+| R2E operating theatres, late-half classification | converged at 71.0 | converged at 6.70 | converged at 2.59 | converged at 2.02 | converged at 0.42 | converged at 0.36 |
+| R2E first surgeries | 6159.3 [6060.2, 6258.4] | 4681.8 [4605.5, 4758.1] | 4728.1 [4653.4, 4802.8] | 4708.2 [4636.0, 4780.3] | 4666.3 [4581.3, 4751.3] | 4664.0 [4594.8, 4733.1] |
+| Released with definitive repair outstanding | 1985.5 [1933.0, 2038.0] | 805.3 [770.3, 840.3] | 555.0 [525.5, 584.4] | 538.7 [506.3, 571.1] | 182.5 [168.9, 196.2] | 167.6 [154.6, 180.7] |
+| R2E intensive care occupancy (%) | 97.5 [97.4, 97.7] | 97.2 [97.1, 97.3] | 97.1 [96.9, 97.3] | 94.7 [94.4, 95.0] | 96.9 [96.7, 97.1] | 94.5 [94.2, 94.9] |
+| Post-definitive care in an intensive care bed (%) | 11.3 [11.1, 11.5] | 10.4 [10.2, 10.7] | 10.4 [10.2, 10.6] | 34.3 [33.8, 34.7] | 10.5 [10.3, 10.7] | 34.2 [33.8, 34.6] |
+| R2E post-operative overflow census | 19.79 [19.47, 20.12] | 23.78 [23.21, 24.35] | 24.93 [24.34, 25.52] | 17.85 [17.16, 18.55] | 25.60 [24.73, 26.47] | 19.12 [18.42, 19.82] |
+| R2E post-operative overflow, late-half classification | converged at 19.8 | converged at 23.9 | converged at 24.9 | converged at 18.2 | converged at 25.8 | converged at 19.2 |
+| R2E holding mean queue | 54.06 [52.01, 56.12] | 57.05 [55.05, 59.04] | 57.77 [55.68, 59.87] | 55.99 [53.63, 58.35] | 58.40 [56.08, 60.72] | 57.28 [55.19, 59.38] |
+| Died of wounds | 568.60 [500.55, 636.65] | 303.83 [289.79, 317.88] | 284.47 [275.26, 293.67] | 282.27 [273.96, 290.58] | 264.97 [254.95, 274.98] | 261.00 [254.08, 267.92] |
+| Returns to duty | 2861.9 [2824.1, 2899.7] | 2945.1 [2913.0, 2977.1] | 2945.1 [2912.4, 2977.7] | 2936.1 [2897.5, 2974.6] | 2951.1 [2909.7, 2992.5] | 2927.1 [2895.2, 2958.9] |
 <!-- /GEN -->
 
 <!-- GEN surgical_package_paired -->
+| Paired difference | R2B package | R2B package, R2E 4 sections | R2B package, R2E 4 sections, 12 ICU | R2B package, R2E 6 sections, 3 theatres | R2B package, R2E 6 sections, 3 theatres, 12 ICU |
+|---|---|---|---|---|---|
+| R2B surgeries | +2738.0 [+2696.1, +2779.8] | +2745.4 [+2706.1, +2784.7] | +2748.5 [+2712.4, +2784.6] | +2716.8 [+2678.3, +2755.3] | +2727.6 [+2687.3, +2767.8] |
+| Diverted from R2B, theatre busy | −1218.3 [−1253.9, −1182.6] | −1211.8 [−1249.7, −1173.9] | −1212.6 [−1250.7, −1174.5] | −1221.1 [−1254.8, −1187.3] | −1222.3 [−1262.2, −1182.5] |
+| R2E theatre mean queue | −65.44 [−85.93, −44.94] | −70.08 [−91.35, −48.81] | −70.74 [−91.83, −49.65] | −72.21 [−93.41, −51.00] | −72.26 [−93.47, −51.06] |
+| R2E first surgeries | −1477.5 [−1600.8, −1354.2] | −1431.2 [−1556.8, −1305.6] | −1451.1 [−1564.6, −1337.6] | −1493.0 [−1609.3, −1376.7] | −1495.3 [−1625.9, −1364.8] |
+| Released with definitive repair outstanding | −1180.2 [−1244.1, −1116.3] | −1430.5 [−1492.6, −1368.4] | −1446.8 [−1508.2, −1385.3] | −1803.0 [−1853.9, −1752.0] | −1817.9 [−1874.1, −1761.7] |
+| R2E intensive care occupancy (%) | −0.3 [−0.5, −0.2] | −0.4 [−0.6, −0.2] | −2.8 [−3.2, −2.4] | −0.6 [−0.9, −0.4] | −3.0 [−3.4, −2.6] |
+| Post-definitive care in an intensive care bed (%) | −0.8 [−1.1, −0.5] | −0.8 [−1.2, −0.5] | +23.0 [+22.5, +23.5] | −0.8 [−1.0, −0.6] | +22.9 [+22.4, +23.4] |
+| R2E post-operative overflow census | +3.99 [+3.36, +4.62] | +5.14 [+4.54, +5.74] | −1.94 [−2.71, −1.17] | +5.80 [+4.87, +6.73] | −0.67 [−1.44, +0.10] |
+| R2E holding mean queue | +2.98 [+0.30, +5.66]† | +3.71 [+1.04, +6.38]† | +1.93 [−1.07, +4.92] | +4.34 [+0.96, +7.72]† | +3.22 [+0.20, +6.24]† |
+| Died of wounds | −264.77 [−333.48, −196.05] | −284.13 [−352.49, −215.77] | −286.33 [−354.46, −218.20] | −303.63 [−371.50, −235.76] | −307.60 [−376.38, −238.82] |
+| Returns to duty | +83.2 [+41.9, +124.4] | +83.2 [+33.3, +133.1]† | +74.2 [+30.4, +118.0]† | +89.2 [+41.3, +137.1] | +65.2 [+13.2, +117.1]† |
 <!-- /GEN -->
 
 <!-- GEN surgical_package_paired_steps -->
+| Paired difference | R2B package, R2E 4 sections against R2B package | R2B package, R2E 4 sections, 12 ICU against R2B package | R2B package, R2E 6 sections, 3 theatres against R2B package | R2B package, R2E 6 sections, 3 theatres, 12 ICU against R2B package | R2B package, R2E 4 sections, 12 ICU against R2B package, R2E 4 sections | R2B package, R2E 6 sections, 3 theatres, 12 ICU against R2B package, R2E 6 sections, 3 theatres | R2B package, R2E 6 sections, 3 theatres against R2B package, R2E 4 sections |
+|---|---|---|---|---|---|---|---|
+| R2B surgeries | +7.4 [−41.9, +56.7] | +10.5 [−45.9, +67.0] | −21.2 [−75.2, +32.9] | −10.4 [−60.2, +39.4] | +3.1 [−52.1, +58.4] | +10.8 [−41.8, +63.3] | −28.6 [−88.6, +31.5] |
+| Diverted from R2B, theatre busy | +6.4 [−2.4, +15.3] | +5.7 [−5.2, +16.5] | −2.8 [−13.9, +8.3] | −4.1 [−16.5, +8.4] | −0.8 [−13.5, +11.9] | −1.3 [−15.9, +13.3] | −9.2 [−22.4, +3.9] |
+| R2E theatre mean queue | −4.64 [−6.75, −2.54] | −5.30 [−7.22, −3.39] | −6.77 [−8.71, −4.82] | −6.83 [−8.77, −4.88] | −0.66 [−1.31, −0.00]† | −0.06 [−0.13, +0.02] | −2.12 [−2.61, −1.64] |
+| R2E first surgeries | +46.3 [−50.9, +143.4] | +26.3 [−79.9, +132.6] | −15.5 [−122.3, +91.3] | −17.9 [−120.1, +84.4] | −19.9 [−135.1, +95.2] | −2.3 [−129.0, +124.3] | −61.8 [−178.6, +55.0] |
+| Released with definitive repair outstanding | −250.3 [−292.4, −208.3] | −266.6 [−312.9, −220.2] | −622.8 [−658.3, −587.2] | −637.7 [−671.4, −604.0] | −16.2 [−63.7, +31.2] | −14.9 [−36.6, +6.8] | −372.4 [−403.6, −341.3] |
+| R2E intensive care occupancy (%) | −0.1 [−0.2, +0.1] | −2.5 [−2.8, −2.2] | −0.3 [−0.5, −0.1]† | −2.7 [−3.0, −2.3] | −2.4 [−2.7, −2.0] | −2.4 [−2.8, −2.0] | −0.2 [−0.5, +0.0] |
+| Post-definitive care in an intensive care bed (%) | +0.0 [−0.3, +0.3] | +23.8 [+23.3, +24.4] | +0.0 [−0.3, +0.3] | +23.8 [+23.3, +24.2] | +23.8 [+23.3, +24.4] | +23.7 [+23.2, +24.2] | +0.0 [−0.3, +0.3] |
+| R2E post-operative overflow census | +1.15 [+0.42, +1.88]† | −5.93 [−6.64, −5.23] | +1.81 [+0.73, +2.89]† | −4.66 [−5.51, −3.82] | −7.08 [−8.08, −6.07] | −6.47 [−7.64, −5.31] | +0.66 [−0.39, +1.72] |
+| R2E holding mean queue | +0.73 [−2.19, +3.64] | −1.05 [−3.22, +1.11] | +1.36 [−1.97, +4.69] | +0.24 [−2.73, +3.21] | −1.78 [−4.82, +1.25] | −1.12 [−4.17, +1.93] | +0.63 [−2.30, +3.55] |
+| Died of wounds | −19.37 [−37.01, −1.73]† | −21.57 [−38.00, −5.13]† | −38.87 [−55.22, −22.51] | −42.83 [−58.35, −27.31] | −2.20 [−15.84, +11.44] | −3.97 [−16.31, +8.37] | −19.50 [−35.38, −3.62]† |
+| Returns to duty | +0.0 [−46.9, +46.9] | −9.0 [−60.9, +42.9] | +6.0 [−47.9, +60.0] | −18.0 [−66.6, +30.6] | −9.0 [−55.7, +37.7] | −24.0 [−74.2, +26.1] | +6.0 [−51.1, +63.2] |
 <!-- /GEN -->
 
-RESULTS_PROSE
+Against the shipped establishment, the R2B package alone changed deaths of wounds by <!-- GEN cell:surgical_package_paired|Died of wounds|R2B package|full -->−264.77 [−333.48, −196.05]<!-- /GEN --> and the R2E theatre queue by <!-- GEN cell:surgical_package_paired|R2E theatre mean queue|R2B package|full -->−65.44 [−85.93, −44.94]<!-- /GEN -->, and the whole package, with six R2E sections, three theatres and twelve intensive care beds, changed deaths of wounds by <!-- GEN cell:surgical_package_paired|Died of wounds|R2B package, R2E 6 sections, 3 theatres, 12 ICU|full -->−307.60 [−376.38, −238.82]<!-- /GEN --> and casualties released with definitive repair outstanding by <!-- GEN cell:surgical_package_paired|Released with definitive repair outstanding|R2B package, R2E 6 sections, 3 theatres, 12 ICU|full -->−1817.9 [−1874.1, −1761.7]<!-- /GEN -->. No R2E addition changed the operations done at R2B: against the R2B package, six sections and three theatres changed R2B surgeries by <!-- GEN cell:surgical_package_paired_steps|R2B surgeries|R2B package, R2E 6 sections, 3 theatres against R2B package|full -->−21.2 [−75.2, +32.9]<!-- /GEN -->.
+
+Against the R2B package, a fourth R2E section changed the R2E theatre queue by <!-- GEN cell:surgical_package_paired_steps|R2E theatre mean queue|R2B package, R2E 4 sections against R2B package|full -->−4.64 [−6.75, −2.54]<!-- /GEN --> and deaths of wounds by <!-- GEN cell:surgical_package_paired_steps|Died of wounds|R2B package, R2E 4 sections against R2B package|full -->−19.37 [−37.01, −1.73]†<!-- /GEN -->; six sections and three theatres changed the queue by <!-- GEN cell:surgical_package_paired_steps|R2E theatre mean queue|R2B package, R2E 6 sections, 3 theatres against R2B package|full -->−6.77 [−8.71, −4.82]<!-- /GEN -->, casualties released with definitive repair outstanding by <!-- GEN cell:surgical_package_paired_steps|Released with definitive repair outstanding|R2B package, R2E 6 sections, 3 theatres against R2B package|full -->−622.8 [−658.3, −587.2]<!-- /GEN -->, the post-operative overflow census by <!-- GEN cell:surgical_package_paired_steps|R2E post-operative overflow census|R2B package, R2E 6 sections, 3 theatres against R2B package|full -->+1.81 [+0.73, +2.89]†<!-- /GEN --> and deaths of wounds by <!-- GEN cell:surgical_package_paired_steps|Died of wounds|R2B package, R2E 6 sections, 3 theatres against R2B package|full -->−38.87 [−55.22, −22.51]<!-- /GEN -->. Against four sections, six sections and three theatres changed deaths of wounds by <!-- GEN cell:surgical_package_paired_steps|Died of wounds|R2B package, R2E 6 sections, 3 theatres against R2B package, R2E 4 sections|full -->−19.50 [−35.38, −3.62]†<!-- /GEN -->. Twelve intensive care beds, against the same surgery at four, changed the post-operative overflow census by <!-- GEN cell:surgical_package_paired_steps|R2E post-operative overflow census|R2B package, R2E 4 sections, 12 ICU against R2B package, R2E 4 sections|full -->−7.08 [−8.08, −6.07]<!-- /GEN --> at four sections and <!-- GEN cell:surgical_package_paired_steps|R2E post-operative overflow census|R2B package, R2E 6 sections, 3 theatres, 12 ICU against R2B package, R2E 6 sections, 3 theatres|full -->−6.47 [−7.64, −5.31]<!-- /GEN --> at six, post-definitive care in an intensive care bed by <!-- GEN cell:surgical_package_paired_steps|Post-definitive care in an intensive care bed (%)|R2B package, R2E 4 sections, 12 ICU against R2B package, R2E 4 sections|full -->+23.8 [+23.3, +24.4]<!-- /GEN --> and <!-- GEN cell:surgical_package_paired_steps|Post-definitive care in an intensive care bed (%)|R2B package, R2E 6 sections, 3 theatres, 12 ICU against R2B package, R2E 6 sections, 3 theatres|full -->+23.7 [+23.2, +24.2]<!-- /GEN --> percentage points, and deaths of wounds by <!-- GEN cell:surgical_package_paired_steps|Died of wounds|R2B package, R2E 4 sections, 12 ICU against R2B package, R2E 4 sections|full -->−2.20 [−15.84, +11.44]<!-- /GEN --> and <!-- GEN cell:surgical_package_paired_steps|Died of wounds|R2B package, R2E 6 sections, 3 theatres, 12 ICU against R2B package, R2E 6 sections, 3 theatres|full -->−3.97 [−16.31, +8.37]<!-- /GEN -->. No addition changed the R2E holding queue: against the R2B package, the full R2E addition changed it by <!-- GEN cell:surgical_package_paired_steps|R2E holding mean queue|R2B package, R2E 6 sections, 3 theatres, 12 ICU against R2B package|full -->+0.24 [−2.73, +3.21]<!-- /GEN -->.
 
 ![Three panels of the R2E theatre queue, the post-operative overflow census and deaths of wounds for the shipped establishment, the R2B package and four R2E additions to it at high intensity](../images/surgical_package.png)
 
@@ -2137,6 +2181,8 @@ At 20 casualties per event the peak R2E post-operative overflow census was <!-- 
 | Second R2B section, died of wounds | −1.40 [−5.46, +2.66] | 1.000 | 1.0 | 455 |
 | Second R2B theatre at two sections, died of wounds | −2.80 [−5.63, +0.03] | 1.000 | 1.0 | 221 |
 | Fourth R2E section, died of wounds | +4.63 [−6.22, +15.48] | 1.000 | 1.0 | 3,245 |
+| Fourth R2E section with the R2B package, died of wounds, high intensity | −19.37 [−37.01, −1.73] | 1.000 | 1.0 | 8,572 |
+| Twelve intensive care beds in the full package, died of wounds, high intensity | −3.97 [−16.31, +8.37] | 1.000 | 1.0 | 4,195 |
 | Third theatre at three sections, R2E theatre queue | −0.43 [−0.79, −0.06] | 1.000 | 1.0 | 4 |
 | Third theatre at three sections, died of wounds | +1.07 [−5.00, +7.13] | 1.000 | 1.0 | 1,015 |
 | Third theatre at six sections, died of wounds | +0.80 [−2.15, +3.75] | 1.000 | 1.0 | 240 |

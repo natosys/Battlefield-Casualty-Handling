@@ -95,7 +95,10 @@ HALF_WIDTH_SCRIPTS <- c("hold_window/hold_window_paired" = "scripts/run_hold_win
                           "R/post_definitive_sweep.R",
                         "airlift_places/airlift_places_paired" = "R/airlift_places_sweep.R",
                         "evac_delay/evac_delay_sweep_paired" = "R/evac_delay_sweep.R",
-                        "r2b_theatre/r2b_theatre_sweep_paired" = "R/r2b_theatre_sweep.R")
+                        "r2b_theatre/r2b_theatre_sweep_paired" = "R/r2b_theatre_sweep.R",
+                        # The package sweep's half-widths are the theatre sweep's
+                        # by reference, so the literal values live there.
+                        "surgical_package/surgical_package_paired" = "R/ot_bed_sweep.R")
 
 failures <- character(0)
 

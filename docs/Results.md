@@ -1685,7 +1685,7 @@ At high intensity the shipped split and interval held <!-- GEN cell:airlift_plac
 
 ![Role 4 bed-days per campaign for eight critical-care place and sortie interval options at each intensity, divided into those occupied by day 360 and after it](../images/role4_load.png)
 
-Mean Role 4 bed-days per 360-day campaign for each critical-care place and sortie interval option, at moderate intensity (left) and high intensity (right), divided into the bed-days occupied by day 360 and those occupied after it while the casualties still awaiting airlift are flown out at the option's own interval and split. The whisker is the 95% Student t interval of the total, taken within replication; each intensity has its own scale.
+Mean Role 4 bed-days per 360-day campaign for each critical-care place and sortie interval option, at moderate intensity (left) and high intensity (right), divided into the bed-days occupied by day 360 and those occupied after it while the casualties still awaiting airlift are flown out at the option's own interval and split. The whisker is the 95% Student t interval of the total, taken within replication; the two intensities share one scale.
 
 ---
 

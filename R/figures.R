@@ -369,8 +369,9 @@ plot_airlift_places <- function(collapse_df, summary_df, shipped) {
 #'   awaiting airlift are flown out at the arm's own interval and split. The
 #'   whisker is the 95% Student t interval of the total, taken within
 #'   replication, so the figure shows how much of the load the airlift moves past
-#'   the campaign's end and whether the load itself changes. Each intensity has
-#'   its own horizontal scale. Stops where a replication lacks either response.
+#'   the campaign's end and whether the load itself changes. The intensities
+#'   share one horizontal scale, so the panels compare in size as well as in
+#'   split. Stops where a replication lacks either response.
 plot_role4_load <- function(moderate_df, high_df, shipped) {
   needed <- c("role4_bed_days", "role4_bed_days_after")
   panel_names <- c(moderate = "Moderate intensity", high = "High intensity")
@@ -404,7 +405,7 @@ plot_role4_load <- function(moderate_df, high_df, shipped) {
                   aes(y = arm, xmin = (mean_total - half) / 1000,
                       xmax = (mean_total + half) / 1000),
                   width = 0.3, colour = "grey25") +
-    facet_wrap(~ intensity, nrow = 1, scales = "free_x") +
+    facet_wrap(~ intensity, nrow = 1) +
     scale_fill_manual(values = c("Occupied by day 360" = FIGURE_MEAN_COLOUR,
                                  "Occupied after day 360" = "#d9a441"),
                       breaks = c("Occupied by day 360", "Occupied after day 360")) +

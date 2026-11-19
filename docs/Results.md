@@ -48,6 +48,7 @@ The measurements record where queues form at each intensity and which responses 
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
   - [Surgical Team Establishment](#surgical-team-establishment)
   - [R2E Operating Theatre Establishment](#r2e-operating-theatre-establishment)
+  - [Surgery and Post-Operative Beds Together](#surgery-and-post-operative-beds-together)
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
   - [Priority 1 Triage Share](#priority-1-triage-share)
   - [Post-Definitive Intensive Care Share](#post-definitive-intensive-care-share)
@@ -1013,6 +1014,32 @@ At the shipped establishment at high intensity the R2E theatre queue averaged <!
 ![Three panels of the R2E theatre queue, operated casualties in post-operative overflow and the R2E holding queue for five theatre and surgical team options at high intensity](../images/post_op_pressure.png)
 
 The closing 90-day mean R2E theatre queue (left), operated casualties in post-operative overflow (centre) and R2E holding queue (right) for each theatre and section establishment at high intensity, each with its 95% interval and every axis starting at zero. Three theatres at three sections is the null control, its added theatre being unusable.
+
+### Surgery and Post-Operative Beds Together
+
+**Question.** Once R2E surgery is raised to keep pace at high intensity, what do added R2E intensive care and holding beds buy behind it? `[high_intensity, 6 sections and 3 theatres crossed with 4 to 12 ICU and 30 to 90 holding beds · 360 d · 30 replications · paired, closing 90 d]`
+
+The added surgery is six R2E surgical sections in three theatres, the [operating theatre arm](#r2e-operating-theatre-establishment) that clears the theatre queue without an idle room, crossed with four, eight and twelve intensive care beds and 30, 60 and 90 holding beds; the shipped establishment is carried as a tenth arm ([Methods](Methods.md#surgery-and-post-operative-bed-sweep)). Every arm is compared with the shipped establishment, which prices the whole change, and every bed arm with the added surgery at the shipped beds, which isolates what the beds buy. The post-operative care each arm gives is in the first table and its outcomes in the second.
+
+<!-- GEN post_op_capacity -->
+<!-- /GEN -->
+
+<!-- GEN post_op_capacity_outcomes -->
+<!-- /GEN -->
+
+The paired differences against the shipped establishment are in the next table, and against the added surgery at the shipped beds in the one after.
+
+<!-- GEN post_op_capacity_paired -->
+<!-- /GEN -->
+
+<!-- GEN post_op_capacity_paired_surgery -->
+<!-- /GEN -->
+
+RESULTS_PROSE
+
+![Four panels of post-operative overflow, the R2E holding queue, post-definitive intensive care access and deaths of wounds against R2E holding beds, one line per intensive care bed count, with added R2E surgery at high intensity](../images/post_op_capacity.png)
+
+The closing 90-day post-operative overflow census, R2E holding queue and post-definitive intensive care access, and deaths of wounds over the campaign, against the R2E holding bed count with one line per intensive care bed count, every arm at six surgical sections and three theatres at high intensity, each with its 95% interval. The dashed line marks the shipped establishment.
 
 ### R2E Intensive Care Bed Establishment
 

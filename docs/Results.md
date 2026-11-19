@@ -998,6 +998,27 @@ At high intensity a second section per unit ended the diversions because the tea
 
 The mean per campaign of the casualties requiring surgery at R2B who were operated on forward, sent on to R2E because the unit's section was off shift, and sent on because its theatre was busy, for each section and theatre establishment per unit, at moderate intensity (left) and high intensity (right), on one shared scale.
 
+### Surgical Capacity as a Package
+
+**Question.** Once R2B keeps its surgery forward with two sections and two theatres per unit, what does each R2E addition, a fourth section, six sections with a third theatre, and twelve intensive care beds behind either, still buy? `[high_intensity, six establishments · 360 d · 30 replications · paired, closing 90 d]`
+
+Every arm past the shipped establishment carries the R2B package of the [R2B second theatre sweep](#r2b-second-theatre), two sections and two theatres per unit, and adds R2E capacity to it one step at a time ([Methods](Methods.md#surgical-package-sweep)). R2E holding beds stay at the shipped 30. Every arm is compared with the shipped establishment in the first table of paired differences; the second compares each R2E addition with the R2B package alone, each twelve-bed arm with the same surgery at four beds, and six sections and three theatres with four sections.
+
+<!-- GEN surgical_package -->
+<!-- /GEN -->
+
+<!-- GEN surgical_package_paired -->
+<!-- /GEN -->
+
+<!-- GEN surgical_package_paired_steps -->
+<!-- /GEN -->
+
+RESULTS_PROSE
+
+![Three panels of the R2E theatre queue, the post-operative overflow census and deaths of wounds for the shipped establishment, the R2B package and four R2E additions to it at high intensity](../images/surgical_package.png)
+
+The closing 90-day mean R2E theatre queue (left), post-operative overflow census (centre) and deaths of wounds per campaign (right) at high intensity for the shipped establishment, the R2B package of two sections and two theatres per unit, and the R2B package with each R2E addition, each with its 95% interval.
+
 ### R2E Operating Theatre Establishment
 
 **Question.** Does the number of R2E operating theatres or the number of surgical sections limit R2E surgery, and what does an added theatre buy when more sections share a shift than there are theatres? `[default and high_intensity, R2E 2 to 4 theatres crossed with 3 to 8 sections · 360 d · 30 replications · paired, closing 90 d]`

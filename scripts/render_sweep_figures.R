@@ -276,6 +276,11 @@ save_figure(plot_r2b_theatre(read_tracked("r2b_theatre", "r2b_theatre_sweep_summ
                                           "r2b_theatre_sweep_summary_high_intensity.csv")),
             "r2b_theatre.png", 12, 5.5)
 
+# RENDERS: surgical_package.png
+save_figure(plot_surgical_package(read_tracked("surgical_package",
+                                               "surgical_package_summary_high_intensity.csv")),
+            "surgical_package.png", 13, 4.6)
+
 # RENDERS: role4_load.png
 save_figure(plot_role4_load(read_tracked("airlift_places", "airlift_places_replications.csv"),
                             read_tracked("airlift_places",

@@ -288,6 +288,39 @@ plot_surgical_capacity <- function(teams, theatres) {
           panel.grid.minor = element_blank())
 }
 
+#' Panels of the surgical package figure, in display order
+PACKAGE_PANELS <- c(theatre_mean_queue = "Casualties waiting for R2E surgery",
+                    overflow_r2e_post_op = "Post-operative casualties in overflow",
+                    total_dow = "Died of wounds per campaign")
+
+#' Surgical package figure: R2E queue, post-operative overflow and deaths of wounds
+#'
+#' @param summary_df Tracked `data/surgical_package/surgical_package_summary_high_intensity.csv`.
+#' @return ggplot object of three panels, the arms down the side in the order the
+#'   summary lists them, the shipped establishment at the top.
+plot_surgical_package <- function(summary_df) {
+  arms <- unique(summary_df$arm)
+  plot_df <- summary_df %>%
+    filter(response %in% names(PACKAGE_PANELS)) %>%
+    mutate(arm = factor(arm, levels = rev(arms)),
+           panel = factor(PACKAGE_PANELS[response], levels = PACKAGE_PANELS))
+  if (nrow(plot_df) != length(arms) * length(PACKAGE_PANELS)) {
+    stop("the summary lacks a response or an arm the figure draws")
+  }
+  subtitle <- paste("High intensity; the R2B package is two sections and two theatres per",
+                    "R2B unit.\nClosing 90-day means and deaths per 360-day campaign;",
+                    "%d replications per arm, mean and 95%% interval")
+  ggplot(plot_df, aes(x = mean, y = arm)) +
+    geom_pointrange(aes(xmin = ci_lower, xmax = ci_upper),
+                    colour = FIGURE_INTENSITY_COLOURS[["High intensity"]], size = 0.5) +
+    facet_wrap(~ panel, nrow = 1, scales = "free_x") +
+    labs(title = "Surgical Capacity as a Package: What Each Addition Buys",
+         subtitle = sprintf(subtitle, unique(plot_df$n_reps)), x = NULL, y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title.position = "plot", strip.text = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
 #' Panels of the critical-care places figure, in display order
 AIRLIFT_PLACES_PANELS <- c(collapse = "Campaigns in which the route falls behind (%)",
                            mean_wait_critical = "Mean wait for a critical place (days)",

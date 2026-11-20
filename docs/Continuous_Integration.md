@@ -436,6 +436,7 @@ seconds.
 | `check_structure_tables.R` | fast | 5 s | the two structure tables list every module and script they claim to |
 | `check_surge_event_size.R` | fast | 10 s | a casualty surge event never exceeds the configured size, however close together events start |
 | `check_surgery_delivery_response.R` | slow | 20 s | the screens measure surgical delivery, and no duplicate theatre response remains |
+| `check_surgical_package_protocol.R` | fast | 12 s | the surgical package sweep's parameters, its responses and its published section agree |
 | `check_surgical_roster.R` | fast | 70 s | surgical sections share one shift and alternate |
 | `check_surgical_section_choice.R` | fast | 51 s | a casualty takes the first surgical section free and then a theatre, and R2E emergency and evacuation sections are chosen per casualty |
 | `check_surgical_sweep_protocol.R` | fast | 10 s | the surgical team sweep's parameters, its responses and its published section agree |

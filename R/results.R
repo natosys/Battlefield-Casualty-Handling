@@ -983,6 +983,108 @@ build_r2b_theatre_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference", heads), rows)
 }
 
+#' Arm of the shipped establishment in the surgical package sweep
+PACKAGE_BASELINE <- "Shipped"
+
+#' The surgical package sweep's file stem, high intensity being its only scenario
+PACKAGE_STEM <- "surgical_package/surgical_package_%s_high_intensity.csv"
+
+#' Responses of the surgical package sweep, as `list(label, response, dp, scale)`
+#'
+#' @details The forward surgery first, then the R2E surgery, the post-operative
+#'   care behind it and the outcomes, the order the package acts in.
+PACKAGE_ROWS <- list(
+  list("R2B surgeries", "r2b_surgeries", 1L, 1),
+  list("Diverted from R2B, theatre busy", "diverted_busy", 1L, 1),
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("R2E first surgeries", "r2e_first_surgeries", 1L, 1),
+  list("Released with definitive repair outstanding", "released_unrepaired", 1L, 1),
+  list("R2E intensive care occupancy (%)", "icu_occupancy", 1L, 100),
+  list("Post-definitive care in an intensive care bed (%)", "post_definitive_icu_share", 1L,
+       100),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1)
+)
+
+#' Surgical package sweep table: each response by arm
+#'
+#' @param data_dir The data directory.
+#' @return The table lines, one column per arm.
+#'
+#' @details The first two rows state each arm's establishment, so a column can
+#'   be read without the arm's name. The R2E theatre and post-operative overflow
+#'   classifications are read from the stability file the sweep wrote from its
+#'   own daily series.
+build_surgical_package <- function(data_dir) {
+  d <- res_read(sprintf(PACKAGE_STEM, "summary"), data_dir)
+  st <- res_read(sprintf(PACKAGE_STEM, "stability"), data_dir)
+  arms <- unique(d$arm)
+  #' One response's row across the arms
+  #'
+  #' @param r One entry of PACKAGE_ROWS.
+  #' @return The row's cells.
+  one <- function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1)))
+  }
+  #' One pool's late-half classification across the arms
+  #'
+  #' @param pool Pool label as the stability file names it.
+  #' @return The row's cells.
+  verdict <- function(pool) {
+    c(sprintf("%s, late-half classification", pool), vapply(arms, function(a) {
+      r <- st[st$arm == a & st$pool == pool, ]
+      if (nrow(r) != 1L) stop(sprintf("expected one '%s' stability row for arm '%s'", pool, a),
+                              call. = FALSE)
+      res_stability_cell(r)
+    }, character(1)))
+  }
+  rows <- c(
+    lapply(PACKAGE_ROWS[1:3], one),
+    list(verdict("R2E operating theatres")),
+    lapply(PACKAGE_ROWS[4:8], one),
+    list(verdict("R2E post-operative overflow")),
+    lapply(PACKAGE_ROWS[9:11], one)
+  )
+  res_table(c("Response", arms), rows)
+}
+
+#' Surgical package sweep table of paired differences
+#'
+#' @param data_dir The data directory.
+#' @param against_shipped TRUE for the comparisons against the shipped
+#'   establishment, FALSE for the steps within the package.
+#' @return The table lines, one column per comparison.
+#'
+#' @details A comparison against the shipped establishment is headed by its arm
+#'   alone; a step is headed by both arms. Each cell carries a dagger where its
+#'   interval excludes zero but the difference fails Holm's adjustment over
+#'   every row of the paired file.
+build_surgical_package_paired <- function(data_dir, against_shipped = TRUE) {
+  d <- res_read(sprintf(PACKAGE_STEM, "paired"), data_dir)
+  pairs <- unique(d[, c("from", "to")])
+  pairs <- pairs[(pairs$from == PACKAGE_BASELINE) == against_shipped, ]
+  heads <- if (against_shipped) pairs$to else paste(pairs$to, "against", pairs$from)
+  carried <- Filter(function(r) r[[2]] %in% d$response, PACKAGE_ROWS)
+  rows <- lapply(carried, function(r) {
+    c(r[[1]], vapply(seq_len(nrow(pairs)), function(k) {
+      x <- d[d$from == pairs$from[k] & d$to == pairs$to[k] & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for '%s', found %d",
+                                      r[[2]], heads[k], nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c("Paired difference", heads), rows)
+}
+
 #' Arm the critical-care places sweep's differences are measured against
 AIRLIFT_PLACES_BASELINE <- "36/54, 7 days"
 
@@ -2223,6 +2325,13 @@ RESOLUTION_ROWS <- list(
   list("surgical_teams/surgical_team_sweep_paired.csv",
        "total_dow", "arm", "R2E 3, R2B 1", "R2E 4, R2B 1", 1,
        "Fourth R2E section, died of wounds"),
+  list("surgical_package/surgical_package_paired_high_intensity.csv",
+       "total_dow", "arm", "R2B package", "R2B package, R2E 4 sections", 1,
+       "Fourth R2E section with the R2B package, died of wounds, high intensity"),
+  list("surgical_package/surgical_package_paired_high_intensity.csv",
+       "total_dow", "arm", "R2B package, R2E 6 sections, 3 theatres",
+       "R2B package, R2E 6 sections, 3 theatres, 12 ICU", 1,
+       "Twelve intensive care beds in the full package, died of wounds, high intensity"),
   list("ot_beds/ot_bed_sweep_paired.csv",
        "theatre_mean_queue", "arm", "2 theatres, 3 sections", "3 theatres, 3 sections", 1,
        "Third theatre at three sections, R2E theatre queue"),
@@ -4037,6 +4146,9 @@ RESULTS_TABLES <- list(
   r2b_theatre_high = function(dd) build_r2b_theatre(dd, "_high_intensity"),
   r2b_theatre_paired = build_r2b_theatre_paired,
   r2b_theatre_paired_high = function(dd) build_r2b_theatre_paired(dd, "_high_intensity"),
+  surgical_package = build_surgical_package,
+  surgical_package_paired = build_surgical_package_paired,
+  surgical_package_paired_steps = function(dd) build_surgical_package_paired(dd, FALSE),
   post_op_capacity = function(dd) build_post_op(dd, POST_OP_CARE_COLUMNS),
   post_op_capacity_outcomes = function(dd) build_post_op(dd, POST_OP_OUTCOME_COLUMNS),
   post_op_capacity_paired = function(dd) build_post_op_paired(dd, POST_OP_BASELINE),

@@ -304,8 +304,9 @@ drain_airlift_backlog <- function(route, queued_at, death_time, n_days, interval
 #'
 #' @details A casualty is in the backlog where their evacuation was decided and
 #'   a route assigned but no sortie had carried them by the horizon and they had
-#'   not died. Casualties still in surgery or in a Role 2 bed at the horizon,
-#'   their evacuation not yet decided, are not among them.
+#'   neither died nor returned to duty while waiting. Casualties still in
+#'   surgery or in a Role 2 bed at the horizon, their evacuation not yet
+#'   decided, are not among them.
 role4_backlog_tail_detail <- function(arrivals_log, r4_params, n_days) {
   #' One attribute column of the arrivals log, missing throughout where absent
   #'
@@ -315,8 +316,9 @@ role4_backlog_tail_detail <- function(arrivals_log, r4_params, n_days) {
     if (name %in% names(arrivals_log)) arrivals_log[[name]] else rep(NA_real_, nrow(arrivals_log))
   }
   dead <- !is.na(col("dow")) & col("dow") == 1
+  returned <- !is.na(col("ame_rtd")) & col("ame_rtd") == 1
   waiting <- which(!is.na(col("ame_route")) & is.na(col("evacuation_day")) &
-                     !is.na(col("r2e_evac")) & col("r2e_evac") == 1 & !dead)
+                     !is.na(col("r2e_evac")) & col("r2e_evac") == 1 & !dead & !returned)
   airframe <- resolve_ame_airframe(r4_params)
   places <- c(as.numeric(airframe$critical_capacity), as.numeric(airframe$standard_capacity))
   failure <- as.numeric(r4_params$ame$failure_probability)

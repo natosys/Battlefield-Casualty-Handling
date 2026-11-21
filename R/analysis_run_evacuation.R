@@ -36,12 +36,13 @@ summarise_ame_performance <- function(attributes, combined, output_dir, images_d
     #'   the mean, p10 and p90 wait in minutes.
     #' @details A casualty still queued at the end of the run carries no wait
     #'   time, so the quantiles are taken over the evacuated alone and the
-    #'   remainder are reported as awaiting rather than as a zero wait.
+    #'   casualties still in the queue, neither boarded, dead nor returned to duty
+#'   (`ame_hold_end` unset), are reported as awaiting rather than as a zero wait.
     wait_stats <- function(df) {
       completed <- df %>% filter(!is.na(ame_wait_minutes))
       data.frame(
         n_evacuated       = nrow(completed),
-        n_awaiting        = nrow(df) - nrow(completed),
+        n_awaiting        = sum(is.na(df$ame_hold_end)),
         mean_wait_minutes = if (nrow(completed) > 0) mean(completed$ame_wait_minutes) else NA_real_,
         p10_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.10) else NA_real_,
         p90_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.90) else NA_real_

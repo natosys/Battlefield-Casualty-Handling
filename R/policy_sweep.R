@@ -326,12 +326,14 @@ policy_route_wait <- function(boarded, route) {
 #' Casualties decided for evacuation on one airlift route who had not boarded
 #'
 #' @param decided Casualties the evacuation decision was taken for, carrying
-#'   `ame_route` and `ame_departure_time`.
+#'   `ame_route` and `ame_hold_end`, which a casualty records on leaving the
+#'   queue by boarding, by dying while waiting or by returning to duty, so
+#'   none of those is counted.
 #' @param route Route code to select.
 #' @return The count still waiting at the close.
 policy_route_queued <- function(decided, route) {
   sum(!is.na(decided$ame_route) & decided$ame_route == route &
-        is.na(decided$ame_departure_time))
+        is.na(decided$ame_hold_end))
 }
 
 #' R2E pools whose late-campaign trend each replication reports, by the

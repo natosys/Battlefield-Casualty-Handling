@@ -272,7 +272,7 @@ reduce_triage_replication <- function(env, n_days, seed,
   operated <- !is.na(wide$r2b_surgery_start) | !is.na(wide$r2e_surgery_1_start)
   critical_backlog <- sum(!is.na(wide$r2e_evac) & wide$r2e_evac == 1 &
                             !is.na(wide$ame_route) & wide$ame_route == AIRLIFT_ROUTE_CRITICAL &
-                            is.na(wide$ame_departure_time))
+                            is.na(wide$ame_hold_end))
 
   row <- cbind(
     base, r2b,

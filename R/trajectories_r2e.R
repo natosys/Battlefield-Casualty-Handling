@@ -620,12 +620,61 @@ r2e_surgery_defer_path <- function(icu_beds, icu_path) {
 #'   legacy mechanism the wait carries no died-of-wounds risk: its daily poll
 #'   could not be kept, a polling casualty missing every sortie, and its
 #'   increments were near zero for Priority 1 and 2, whose curve has risen
-#'   fully within hours of injury.
+#'   fully within hours of injury. Under either mechanism a convalescing
+#'   evacuee leaves the queue for duty when their convalescence ends
+#'   (r2e_ame_return_to_duty()), the return being routing rather than risk.
 r2e_ame_wait_and_board <- function(resource_name, bed_id, team_id, evac_team) {
   if (dow_care_state_enabled()) {
     return(r2e_ame_queue_and_board(resource_name, bed_id, team_id, evac_team))
   }
-  trajectory("Awaiting AME") %>% seize(resource_name, 1)
+  returned <- r2e_ame_return_to_duty(bed_id)
+
+  # Branches on the convalescing evacuee's return-to-duty moment (ame_rtd_time()):
+  # - already passed      -> returns to duty on staging
+  # - still to come       -> queues for a seat, reneging to duty at it
+  # - none (not eligible) -> queues for a seat
+  trajectory("Awaiting AME") %>%
+    branch(
+      option = function() {
+        due <- ame_rtd_time()
+        if (is.na(due)) return(3)
+        if (due <= now(env)) return(1)
+        2
+      },
+      continue = c(FALSE, TRUE, TRUE),
+      returned,
+      trajectory("Queued, Convalescing") %>%
+        renege_in(function() ame_rtd_time() - now(env), out = returned, keep_seized = TRUE) %>%
+        seize(resource_name, 1) %>%
+        renege_abort(),
+      trajectory("Queued") %>%
+        seize(resource_name, 1)
+    )
+}
+
+#' Builds the return to duty of an evacuee who convalesced while awaiting airlift
+#'
+#' @param bed_id simmer selection id of the bed the casualty is staged in
+#' @return Simmer trajectory releasing the staging placement and crediting the
+#'   casualty to the force.
+#'
+#' @details Reached by an evacuee whose convalescence ends before a sortie boards
+#'   them (convalesces_awaiting_airlift()), who is then fit for duty in theatre
+#'   and leaves the seat queue. The release is recorded in ame_hold_end, as on
+#'   boarding and on death while waiting, so the holding pool's occupancy split
+#'   charges the bed time to the evacuation wait; ame_rtd marks the casualty so
+#'   the counts of those still awaiting airlift exclude them; and return_day and
+#'   return_echelon record the return as an R2E one, as for a casualty retained
+#'   to convalesce. ame_departure_time is never set: the casualty did not fly.
+r2e_ame_return_to_duty <- function(bed_id) {
+  trajectory("Returned to Duty — Awaiting AME") %>%
+    release_selected(id = bed_id) %>%
+    overflow_leave(staged_in_overflow) %>%
+    set_attribute("ame_hold_end", function() now(env)) %>%
+    set_attribute("ame_rtd", 1) %>%
+    set_attribute("return_day", function() now(env)) %>%
+    set_attribute("return_echelon", 3) %>%
+    credit_rtd()
 }
 
 #' The expected deaths of the evacuation wait so far, added to the running total
@@ -662,12 +711,48 @@ ame_wait_rate <- function() dow_base_rate() * dow_multipliers()$post_op
 #'   casualty boards the first sortie with a seat for them unless the drawn
 #'   moment comes first.
 draw_ame_death_time <- function() {
+  if (convalesces_awaiting_airlift()) return(NA_real_)
   r2b_surg <- get_attribute(env, "r2b_surgery")
   r2e_surg <- get_attribute(env, "r2e_surgery")
   operated <- (!is.na(r2b_surg) && r2b_surg == 1) || (!is.na(r2e_surg) && r2e_surg == 1)
   rate <- ame_wait_rate()
   if (!operated || rate <= 0) return(NA_real_)
   now(env) + stats::rexp(1, rate)
+}
+
+#' Whether a casualty may return to duty while awaiting airlift
+#'
+#' @return TRUE where `r2eheavy.recovery.return_while_awaiting_airlift` is on
+#'   (absent reads as on) and the casualty was evacuated for recovery beyond the
+#'   theatre evacuation policy (`evacuation_reason` 1), so their surgery is
+#'   complete and what remains is convalescence; FALSE otherwise.
+#'
+#' @details Such a casualty is in the state a casualty retained to convalesce is
+#'   in, which carries no died-of-wounds risk (r2e_disposition()), so the wait
+#'   carries none either. Reasons 2 and 3 still need surgery the theatre cannot
+#'   provide and keep the wait's risk and their seat.
+convalesces_awaiting_airlift <- function() {
+  on <- env_data$vars$r2eheavy$recovery$return_while_awaiting_airlift
+  if (!is.null(on) && on == 0) return(FALSE)
+  reason <- get_attribute(env, "evacuation_reason")
+  !is.na(reason) && reason == 1
+}
+
+#' The moment a convalescing evacuee is fit to return to duty
+#'
+#' @return An absolute simulation time, the disposition decision
+#'   (`r2e_departure_time`) plus the convalescence still to serve then
+#'   (r2e_convalescence_remaining_minutes()), or NA for a casualty who cannot
+#'   return to duty while waiting (convalesces_awaiting_airlift()).
+#'
+#' @details Read rather than recorded: every input is fixed at the disposition
+#'   decision, so the moment is the same whenever it is read, and a run with the
+#'   switch off sets no attribute it did not set before. Convalescence runs from
+#'   the decision, through any pre-flight care, as it does for a casualty
+#'   retained to convalesce.
+ame_rtd_time <- function() {
+  if (!convalesces_awaiting_airlift()) return(NA_real_)
+  get_attribute(env, "r2e_departure_time") + r2e_convalescence_remaining_minutes()
 }
 
 #' Builds the queued wait for an airlift seat under the care-state model
@@ -687,7 +772,10 @@ draw_ame_death_time <- function() {
 #'   release in ame_hold_end; boarding cancels the renege. A death time already
 #'   passed when the casualty is staged, which a ventilated casualty's
 #'   pre-flight intensive care stay can carry them beyond, ends the wait at
-#'   once. dow_echelon = 5 records a death here.
+#'   once. dow_echelon = 5 records a death here. A convalescing evacuee
+#'   (convalesces_awaiting_airlift()) carries no death time and reneges instead
+#'   to duty at the end of their convalescence (r2e_ame_return_to_duty()), at
+#'   once if a pre-flight stay has carried them beyond it.
 r2e_ame_queue_and_board <- function(resource_name, bed_id, team_id, evac_team) {
   died <- trajectory("Died of Wounds — Awaiting AME") %>%
     set_attribute("dow_expected_late", ame_wait_expected_late) %>%
@@ -700,23 +788,35 @@ r2e_ame_queue_and_board <- function(resource_name, bed_id, team_id, evac_team) {
     r2e_transport_kia(team_id, evac_team) %>%
     simmer::leave(1)
 
-  # Branches on the casualty's drawn death time:
-  # - already passed      -> dies on staging
-  # - still to come       -> queues for a seat, reneging to death at it
-  # - none (not at risk)  -> queues for a seat
+  returned <- r2e_ame_return_to_duty(bed_id)
+
+  # Branches on the casualty's drawn death time, or for a convalescing evacuee,
+  # who carries none, on their return-to-duty moment (ame_rtd_time()); a
+  # casualty carries at most one of the two:
+  # - death already passed      -> dies on staging
+  # - death still to come       -> queues for a seat, reneging to death at it
+  # - return already passed     -> returns to duty on staging
+  # - return still to come      -> queues for a seat, reneging to duty at it
+  # - neither (not at risk)     -> queues for a seat
   trajectory("Awaiting AME") %>%
     branch(
       option = function() {
         death <- get_attribute(env, "ame_death_time")
-        if (is.na(death)) return(3)
-        if (death <= now(env)) return(1)
-        2
+        if (!is.na(death)) return(if (death <= now(env)) 1 else 2)
+        due <- ame_rtd_time()
+        if (!is.na(due)) return(if (due <= now(env)) 3 else 4)
+        5
       },
-      continue = TRUE,
+      continue = c(TRUE, TRUE, FALSE, TRUE, TRUE),
       died,
       trajectory("Queued, At Risk") %>%
         renege_in(function() get_attribute(env, "ame_death_time") - now(env),
                   out = died, keep_seized = TRUE) %>%
+        seize(resource_name, 1) %>%
+        renege_abort(),
+      returned,
+      trajectory("Queued, Convalescing") %>%
+        renege_in(function() ame_rtd_time() - now(env), out = returned, keep_seized = TRUE) %>%
         seize(resource_name, 1) %>%
         renege_abort(),
       trajectory("Queued") %>%

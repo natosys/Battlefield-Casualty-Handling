@@ -310,6 +310,30 @@ post_definitive_share_faults <- function(vars) {
   character(0)
 }
 
+#' Find a return-to-duty-while-awaiting-airlift switch that is neither 0 nor 1
+#'
+#' @param vars The `vars` block of a parsed configuration.
+#' @return A character vector holding one fault message, or empty when the
+#'   switch is absent, 0 or 1.
+#' @details An absent switch reads as 1, the shipped setting, so a
+#'   configuration saved before the field existed runs as the shipped one does.
+return_while_awaiting_faults <- function(vars) {
+  r2e <- Filter(function(e) identical(e$elm, "r2eheavy"), vars)
+  for (acty in unlist(lapply(r2e, `[[`, "actys"), recursive = FALSE)) {
+    if (!identical(acty$acty, "recovery")) next
+    vals <- setNames(lapply(acty$vals, `[[`, "val"),
+                     vapply(acty$vals, `[[`, character(1), "var"))
+    v <- vals$return_while_awaiting_airlift
+    if (is.null(v)) next
+    if (!(is.numeric(v) && length(v) == 1L && v %in% c(0, 1))) {
+      return(sprintf(
+        "vars[r2eheavy]$recovery: return_while_awaiting_airlift must be 0 or 1, found %s",
+        paste(format(v), collapse = ", ")))
+    }
+  }
+  character(0)
+}
+
 #' Find a forward evacuation delay or prolonged-care multiplier the model cannot use
 #'
 #' @param vars The `vars` block of a parsed configuration.
@@ -405,7 +429,8 @@ surge_size_faults <- function(vars) {
 #'   casualty per vehicle, every triangular distribution is ordered, no
 #'   casualty surge event's minimum exceeds its maximum, and every casualty
 #'   generation rate is a number of at least zero, and the post-definitive
-#'   intensive care share lies from 0 to 1. Each would otherwise
+#'   intensive care share lies from 0 to 1, and the switch for return to duty
+#'   while awaiting airlift is 0 or 1. Each would otherwise
 #'   run, and produce an empty pool, a casualty who can never be moved or a
 #'   draw outside its stated range, rather than fail, or fail inside the
 #'   arrival process without naming the field. Every fault is reported, not
@@ -436,7 +461,7 @@ validate_env_data_values <- function(data, source_label = "env_data.json") {
   }
   problems <- c(problems, triangular_order_faults(data$vars), surge_size_faults(data$vars),
                 generator_rate_faults(data$vars), post_definitive_share_faults(data$vars),
-                evacuation_delay_faults(data$vars))
+                evacuation_delay_faults(data$vars), return_while_awaiting_faults(data$vars))
 
   if (length(problems) > 0) {
     stop(sprintf("validate_env_data_values: %s carries values the model cannot run:\n  - %s",

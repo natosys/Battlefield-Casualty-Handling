@@ -14,7 +14,7 @@ Each replicated experiment ran 30 independent replications of a 360-day campaign
 
 **Results**
 
-At moderate casualty intensity a campaign produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,386.9<!-- /GEN --> casualties and at high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,379.7<!-- /GEN -->. Over the closing 90 days the mean R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->0.967<!-- /GEN --> casualties at moderate intensity and <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->72.616<!-- /GEN --> at high. At high intensity that queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full -->7%<!-- /GEN --> of the campaign, its late-half level classified as <!-- GEN cell:long_horizon_stability|R2E operating theatre queue|High intensity|full -->converged at 71.0<!-- /GEN -->, while at moderate intensity it stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full -->85%<!-- /GEN -->. Over the closing 90 days the national support base carried a mean census of <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|mean -->150.38<!-- /GEN --> beds at moderate intensity and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|mean -->219.86<!-- /GEN --> at high. The treated-cohort died-of-wounds rate of the shipped default configuration was <!-- GEN cell:dow_calibration|Shipped default|Rate at the anchor's horizon|full -->0.507% [0.428%, 0.586%]<!-- /GEN --> at the 30 days of its Ajax Bay anchor and <!-- GEN cell:dow_calibration|Shipped default|Rate at 360 days|full -->0.541% [0.453%, 0.629%]<!-- /GEN --> at 360 days.
+At moderate casualty intensity a campaign produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,386.9<!-- /GEN --> casualties and at high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,379.7<!-- /GEN -->. Over the closing 90 days the mean R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->0.967<!-- /GEN --> casualties at moderate intensity and <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->72.616<!-- /GEN --> at high. At high intensity that queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full -->7%<!-- /GEN --> of the campaign, its late-half level classified as <!-- GEN cell:long_horizon_stability|R2E operating theatre queue|High intensity|full -->converged at 71.0<!-- /GEN -->, while at moderate intensity it stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full -->85%<!-- /GEN -->. Over the closing 90 days the national support base carried a mean census of <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|mean -->150.38<!-- /GEN --> beds at moderate intensity and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|mean -->219.86<!-- /GEN --> at high. The treated-cohort died-of-wounds rate of the shipped default configuration was <!-- GEN cell:dow_calibration|Shipped default|Rate at the anchor's horizon|full -->0.451% [0.380%, 0.522%]<!-- /GEN --> at the 30 days of its Ajax Bay anchor and <!-- GEN cell:dow_calibration|Shipped default|Rate at 360 days|full -->0.505% [0.450%, 0.559%]<!-- /GEN --> at 360 days.
 
 **Conclusion**
 
@@ -233,11 +233,11 @@ The shortfall per day is the mean per-replication slope of the 30-day block mean
 <!-- GEN dow_calibration -->
 | Configuration | Rate at 360 days | Post-operative share at 360 days | Replications at 360 days | Historical anchor | Rate at the anchor's horizon | Post-operative share at the anchor's horizon | Replications at the anchor's horizon |
 |---|---|---|---|---|---|---|---|
-| Shipped default | 0.541% [0.453%, 0.629%] | 24% | 30 | fitted to 0.46% (Ajax Bay, 30 days) | 0.507% [0.428%, 0.586%] | 20% | 150 |
-| High intensity | 5.692% [5.088%, 6.295%] | 19% | 30 | independent bound, at or below 3.40% (Okinawa, 82 days) | 3.494% [3.244%, 3.744%] | 9% | 150 |
+| Shipped default | 0.505% [0.450%, 0.559%] | 14% | 30 | fitted to 0.46% (Ajax Bay, 30 days) | 0.451% [0.380%, 0.522%] | 12% | 150 |
+| High intensity | 6.448% [5.439%, 7.457%] | 11% | 30 | independent bound, at or below 3.40% (Okinawa, 82 days) | 3.376% [3.122%, 3.631%] | 5% | 150 |
 <!-- /GEN -->
 
-At 360 days the shipped default's pooled rate was <!-- GEN cell:dow_calibration|Shipped default|Rate at 360 days|full -->0.541% [0.453%, 0.629%]<!-- /GEN -->, with post-operative care carrying <!-- GEN cell:dow_calibration|Shipped default|Post-operative share at 360 days|full -->24%<!-- /GEN --> of its expected deaths, and high intensity's was <!-- GEN cell:dow_calibration|High intensity|Rate at 360 days|full -->5.692% [5.088%, 6.295%]<!-- /GEN -->, with post-operative care carrying <!-- GEN cell:dow_calibration|High intensity|Post-operative share at 360 days|full -->19%<!-- /GEN -->. Each configuration was also measured at the length of the historical campaign it models, where the two anchors play different roles. The Falklands anchor is the three deaths of wounds among over 650 combat casualties treated by the Ajax Bay field hospital and its forward stations at Teal Inlet and Fitzroy [[2]](#references), a 30-day campaign; the shipped default's base rates and post-operative multiplier are fitted to it, so its rate at that horizon, <!-- GEN cell:dow_calibration|Shipped default|Rate at the anchor's horizon|full -->0.507% [0.428%, 0.586%]<!-- /GEN -->, shows that the fit was achieved rather than measuring an outcome. The Okinawa anchor is the share of casualties reaching a hospital alive who died of wounds over the 82 days of that campaign [[3]](#references); high intensity is not fitted to it, so its rate at that horizon, <!-- GEN cell:dow_calibration|High intensity|Rate at the anchor's horizon|full -->3.494% [3.244%, 3.744%]<!-- /GEN -->, is checked against it as an independent upper bound. The calibration check `tests/checks/check_dow_calibration.R` asserts each anchor at the length of the campaign it describes.
+At 360 days the shipped default's pooled rate was <!-- GEN cell:dow_calibration|Shipped default|Rate at 360 days|full -->0.505% [0.450%, 0.559%]<!-- /GEN -->, with post-operative care carrying <!-- GEN cell:dow_calibration|Shipped default|Post-operative share at 360 days|full -->14%<!-- /GEN --> of its expected deaths, and high intensity's was <!-- GEN cell:dow_calibration|High intensity|Rate at 360 days|full -->6.448% [5.439%, 7.457%]<!-- /GEN -->, with post-operative care carrying <!-- GEN cell:dow_calibration|High intensity|Post-operative share at 360 days|full -->11%<!-- /GEN -->. Each configuration was also measured at the length of the historical campaign it models, where the two anchors play different roles. The Falklands anchor is the three deaths of wounds among over 650 combat casualties treated by the Ajax Bay field hospital and its forward stations at Teal Inlet and Fitzroy [[2]](#references), a 30-day campaign; the shipped default's base rates and post-operative multiplier are fitted to it, so its rate at that horizon, <!-- GEN cell:dow_calibration|Shipped default|Rate at the anchor's horizon|full -->0.451% [0.380%, 0.522%]<!-- /GEN -->, shows that the fit was achieved rather than measuring an outcome. The Okinawa anchor is the share of casualties reaching a hospital alive who died of wounds over the 82 days of that campaign [[3]](#references); high intensity is not fitted to it, so its rate at that horizon, <!-- GEN cell:dow_calibration|High intensity|Rate at the anchor's horizon|full -->3.376% [3.122%, 3.631%]<!-- /GEN -->, is checked against it as an independent upper bound. The calibration check `tests/checks/check_dow_calibration.R` asserts each anchor at the length of the campaign it describes.
 
 ---
 
@@ -2231,12 +2231,12 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_generation -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Combat wounded in action | 1,486 | 1,593 |
-| Support wounded in action | 899 | 796 |
-| Combat killed in action | 666 | 612 |
-| Support killed in action | 284 | 306 |
-| Combat disease and non-battle injury | 1,813 | 1,836 |
-| Support disease and non-battle injury | 429 | 423 |
+| Combat wounded in action | 1,670 | 1,593 |
+| Support wounded in action | 835 | 796 |
+| Combat killed in action | 761 | 612 |
+| Support killed in action | 283 | 306 |
+| Combat disease and non-battle injury | 1,770 | 1,836 |
+| Support disease and non-battle injury | 434 | 423 |
 <!-- /GEN -->
 
 **Triage.** The trauma split applies to wounded and non-battle injury casualties, and its expectation is the configured share of them. A disease casualty is Priority 1 at the configured medical emergency share, and otherwise Priority 2 if it needs emergency surgery and Priority 3 if not, so the expectations for disease are the medical emergency share of disease casualties and the disease surgical share of the rest; battle fatigue is Priority 3.
@@ -2244,14 +2244,14 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_triage -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Priority 1, wounded and non-battle injury | 1,813 | 1,808 |
-| Priority 2, wounded and non-battle injury | 545 | 556 |
-| Priority 3, wounded and non-battle injury | 424 | 417 |
-| Priority 1, disease (medical emergency) | 66 | 64 |
-| Priority 2, disease (emergency surgery) | 76 | 73 |
-| Priority 3, disease | 1,136 | not applicable |
-| Priority 3, battle fatigue | 567 | 567 |
-| Killed in action | 950 | not applicable |
+| Priority 1, wounded and non-battle injury | 1,836 | 1,869 |
+| Priority 2, wounded and non-battle injury | 597 | 575 |
+| Priority 3, wounded and non-battle injury | 442 | 431 |
+| Priority 1, disease (medical emergency) | 72 | 64 |
+| Priority 2, disease (emergency surgery) | 82 | 73 |
+| Priority 3, disease | 1,131 | not applicable |
+| Priority 3, battle fatigue | 548 | 548 |
+| Killed in action | 1,044 | not applicable |
 <!-- /GEN -->
 
 **Damage control.** The expectation is the configured damage control rate times the casualties operated on at that priority.
@@ -2259,10 +2259,10 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_damage_control -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Priority 1 operated | 1,640 | not applicable |
-| Priority 1 damage control | 894 | 902 |
-| Priority 2 operated | 510 | not applicable |
-| Priority 2 damage control | 91 | 102 |
+| Priority 1 operated | 1,638 | not applicable |
+| Priority 1 damage control | 903 | 901 |
+| Priority 2 operated | 551 | not applicable |
+| Priority 2 damage control | 113 | 110 |
 <!-- /GEN -->
 
 **Strategic evacuation.** A sortie carries the casualties queued on each seat pool when it departs, and the places nobody takes depart with it; the expectation of sorties flown is the scheduled sorties before the horizon times the probability that a sortie flies.
@@ -2270,13 +2270,13 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_evacuation -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Strategic evacuation decisions | 2,447 | not applicable |
-| Boarded | 2,399 | not applicable |
-| Still waiting at the close | 48 | not applicable |
-| Mean wait of the casualties boarded (days) | 5.75 | not applicable |
+| Strategic evacuation decisions | 2,494 | not applicable |
+| Boarded | 2,469 | not applicable |
+| Still waiting at the close | 25 | not applicable |
+| Mean wait of the casualties boarded (days) | 5.45 | not applicable |
 | Sorties flown | 51 | 51 |
 | Critical places departing empty per sortie (mean) | 5.3 | not applicable |
-| Standard places departing empty per sortie (mean) | 37.7 | not applicable |
+| Standard places departing empty per sortie (mean) | 36.3 | not applicable |
 <!-- /GEN -->
 
 **Admission at Role 2.** Minor casualties are Priority 3 wounded and non-battle injury casualties and disease casualties below Priority 1, who share one convalescence factor; the expectation is the share of that factor's convalescence draws exceeding the theatre evacuation policy. A casualty returned to duty while queued is one whose convalescence or restoration elapsed before a holding bed came free.
@@ -2284,9 +2284,9 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_admission -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Minor casualties evacuated strategically (% of those with a disposition) | 11.4 | 9.3 |
-| Returned to duty while queued for a holding bed | 563 | not applicable |
-| Battle fatigue returned to duty from Role 2 | 567 | not applicable |
+| Minor casualties evacuated strategically (% of those with a disposition) | 11.6 | 9.3 |
+| Returned to duty while queued for a holding bed | 594 | not applicable |
+| Battle fatigue returned to duty from Role 2 | 545 | not applicable |
 <!-- /GEN -->
 
 **Placement at Role 2.** A casualty whose care calls for a bed takes the best one free when that care begins: the bed the care calls for, otherwise a holding bed, otherwise overflow, with no bed. A stabilisation is counted where a stay was served, and the overflow census is the time-weighted mean number of casualties cared for without a bed at each point over the campaign.
@@ -2294,25 +2294,25 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_placement -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| R2B reception, straight to a resuscitation bed | 2,243 | not applicable |
-| R2B reception, waiting in a holding bed | 108 | not applicable |
-| R2B reception, waiting in overflow | 130 | not applicable |
-| R2B wait for the evacuation vehicle in intensive care | 619 | not applicable |
-| R2B wait for the evacuation vehicle in a holding bed | 10 | not applicable |
-| R2B wait for the evacuation vehicle in overflow | 40 | not applicable |
-| R2E stabilisation in intensive care | 303 | not applicable |
-| R2E stabilisation in a holding bed | 53 | not applicable |
-| R2E stabilisation in overflow | 641 | not applicable |
-| R2E post-definitive care in intensive care | 736 | not applicable |
-| R2E post-definitive care in a holding bed | 112 | not applicable |
-| R2E post-definitive care in overflow | 1,378 | not applicable |
-| Evacuees staged in a holding bed | 213 | not applicable |
-| Evacuees staged in overflow | 2,231 | not applicable |
-| Mean overflow census, R2B reception | 0.04 | not applicable |
-| Mean overflow census, R2B wait for the evacuation vehicle | 0.02 | not applicable |
-| Mean overflow census, R2E post-operative stays | 5.82 | not applicable |
-| Mean overflow census, R2E pre-flight care | 0.61 | not applicable |
-| Mean overflow census, R2E staging | 34.21 | not applicable |
+| R2B reception, straight to a resuscitation bed | 2,369 | not applicable |
+| R2B reception, waiting in a holding bed | 111 | not applicable |
+| R2B reception, waiting in overflow | 66 | not applicable |
+| R2B wait for the evacuation vehicle in intensive care | 575 | not applicable |
+| R2B wait for the evacuation vehicle in a holding bed | 7 | not applicable |
+| R2B wait for the evacuation vehicle in overflow | 12 | not applicable |
+| R2E stabilisation in intensive care | 297 | not applicable |
+| R2E stabilisation in a holding bed | 43 | not applicable |
+| R2E stabilisation in overflow | 690 | not applicable |
+| R2E post-definitive care in intensive care | 784 | not applicable |
+| R2E post-definitive care in a holding bed | 100 | not applicable |
+| R2E post-definitive care in overflow | 1,439 | not applicable |
+| Evacuees staged in a holding bed | 245 | not applicable |
+| Evacuees staged in overflow | 2,248 | not applicable |
+| Mean overflow census, R2B reception | 0.02 | not applicable |
+| Mean overflow census, R2B wait for the evacuation vehicle | 0.00 | not applicable |
+| Mean overflow census, R2E post-operative stays | 6.09 | not applicable |
+| Mean overflow census, R2E pre-flight care | 0.48 | not applicable |
+| Mean overflow census, R2E staging | 33.22 | not applicable |
 <!-- /GEN -->
 
 **Surgical load.** Utilisation of open time is the time-weighted share of a section's rostered time during which its first surgeon was in use, and the queued share is the share of that open time with one or more casualties waiting for any role in the section.
@@ -2320,15 +2320,15 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_surgical_load -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Diverted from R2B, surgical team off shift | 1,255 | not applicable |
-| Diverted from R2B, theatre busy | 266 | not applicable |
-| R2B holding beds in use, both facilities (mean) | 7.89 | not applicable |
-| R2E section 1 utilisation of open time (%) | 31.8 | not applicable |
-| R2E section 2 utilisation of open time (%) | 47.0 | not applicable |
-| R2E section 3 utilisation of open time (%) | 35.8 | not applicable |
-| R2E section 1 open time with casualties waiting for a section (%) | 11.3 | not applicable |
-| R2E section 2 open time with casualties waiting for a section (%) | 20.4 | not applicable |
-| R2E section 3 open time with casualties waiting for a section (%) | 11.3 | not applicable |
+| Diverted from R2B, surgical team off shift | 1,293 | not applicable |
+| Diverted from R2B, theatre busy | 252 | not applicable |
+| R2B holding beds in use, both facilities (mean) | 7.87 | not applicable |
+| R2E section 1 utilisation of open time (%) | 32.4 | not applicable |
+| R2E section 2 utilisation of open time (%) | 48.3 | not applicable |
+| R2E section 3 utilisation of open time (%) | 38.2 | not applicable |
+| R2E section 1 open time with casualties waiting for a section (%) | 11.0 | not applicable |
+| R2E section 2 open time with casualties waiting for a section (%) | 21.3 | not applicable |
+| R2E section 3 open time with casualties waiting for a section (%) | 11.0 | not applicable |
 <!-- /GEN -->
 
 **Force regeneration.** The effective force is the combat or support pool at the day shown, under the shipped seven-day reinforcement cycle.
@@ -2337,11 +2337,11 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 | Measure | Realised | Configured expectation |
 |---|---|---|
 | Combat force, day 0 | 2,500 | not applicable |
-| Combat force, day 180 | 2,475 | not applicable |
-| Combat force, day 360 | 2,414 | not applicable |
+| Combat force, day 180 | 2,264 | not applicable |
+| Combat force, day 360 | 2,408 | not applicable |
 | Support force, day 0 | 1,250 | not applicable |
-| Support force, day 180 | 1,223 | not applicable |
-| Support force, day 360 | 1,218 | not applicable |
+| Support force, day 180 | 1,177 | not applicable |
+| Support force, day 360 | 1,216 | not applicable |
 <!-- /GEN -->
 
 The conservation of a casualty's intensive care requirement across the three post-operative routes is asserted by `tests/checks/check_icu_time_conservation.R` and the generation rates by `tests/checks/check_arrival_rate_fidelity.R`.

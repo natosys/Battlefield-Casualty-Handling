@@ -852,7 +852,7 @@ Each echelon's gate can be switched off through `icu_gating.enabled` (1 in both 
 | Priority 1 base rate, `p1_rate` | 0.02701 per day | The treated-cohort rate (below) |
 | Priority 2 base rate, `p2_rate` | 0.02251 per day | Follows `p1_rate` at a fixed ratio |
 | Priority 3 base rate, `p3_rate` | 0.00302 per day | Follows `p1_rate` at a fixed ratio |
-| Post-operative multiplier, `post_op` | 0.02699 | The post-operative share (below) |
+| Post-operative multiplier, `post_op` | 0.01548 | Held beneath the post-operative share (below) |
 
 The base rates and the post-operative multiplier are the model's fitted mortality parameters; every other value in the chapter is sourced or an informed estimate. No dataset gives a death rate per hour of untreated injury, so the Priority 1 base rate is searched for until the model's treated-cohort rate meets a historical target, the other two following at fixed ratios: Priority 2 at 0.83 of Priority 1 and Priority 3 at 0.11, the ratios of the ceilings the earlier model carried, kept as informed estimates of relative severity.
 
@@ -872,16 +872,16 @@ The base rates and the post-operative multiplier are the one group of the mortal
 
 The target is a treated-cohort rate, the proportion of casualties who reached a surgical facility alive and then died of wounds, never a rate over all wounded, which understates mortality for the reason given under [Calibration](#calibration). The source may give an upper bound, as the Ajax Bay account does, or a reported rate against a stated denominator, and the fit meets the target either way; whether a configuration may sit beneath a bound is the check's question and not the fitter's.
 
-`scripts/calibrate_dow.R` alternates two bracketing root searches: the post-operative multiplier until the post-operative share meets its target, then the Priority 1 base rate, the other two following at their ratios, until the treated-cohort rate meets its own. Each target moves a little with both values, so the searches alternate for a stated number of rounds. Each evaluation pools independent measurements at control seeds held fixed across the search, and the fitter reports the fitted values with the interval of the rate they achieved. It edits no configuration: a fitted value enters one by a reviewed change.
+`scripts/calibrate_dow.R` alternates two bracketing root searches: the post-operative multiplier until the post-operative share meets its target, then the Priority 1 base rate, the other two following at their ratios, until the treated-cohort rate meets its own. Each target moves a little with both values, so the searches alternate for a stated number of rounds; with `--hold-post-op` the base rate is searched alone at the configured multiplier, which is how the shipped values are fitted. Each evaluation pools independent measurements at control seeds held fixed across the search, and the fitter reports the fitted values with the interval of the rate they achieved. It edits no configuration: a fitted value enters one by a reviewed change.
 
 ```bash
-# Re-derive the shipped values, holding the rate the earlier model produced
-Rscript scripts/calibrate_dow.R --scenario default --hold-legacy-rate
+# Re-derive the shipped base rates at the configured post-operative multiplier
+Rscript scripts/calibrate_dow.R --scenario default --hold-post-op
 # Fit a saved configuration to a target of 1.2% over a 30-day horizon
 Rscript scripts/calibrate_dow.R --config my_config.json --target 0.012 --days 30
 ```
 
-The fit is confirmed by `tests/checks/check_dow_calibration.R`, which measures the configuration at its own sizing and fails where a bound is overshot, a reported rate is missed by more than its tolerance, or the post-operative share falls outside its tolerance. A pooled rate carries sampling noise ([Methods](docs/Methods.md#replication-count-and-resolution)), so the search stops on a tolerance rather than an exact root, and `tests/checks/check_dow_fitter.R` asserts that the search recovers values it is known to be able to find.
+The fit is confirmed by `tests/checks/check_dow_calibration.R`, which measures the configuration at its own sizing and fails where a bound is overshot, a reported rate is missed by more than its tolerance, or the post-operative share exceeds its ceiling. A pooled rate carries sampling noise ([Methods](docs/Methods.md#replication-count-and-resolution)), so the search stops on a tolerance rather than an exact root, and `tests/checks/check_dow_fitter.R` asserts that the search recovers values it is known to be able to find.
 
 ### The Earlier Model
 

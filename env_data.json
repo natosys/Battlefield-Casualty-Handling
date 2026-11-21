@@ -778,9 +778,9 @@
         {
           "acty": "rates",
           "vals": [
-            { "var": "p1_rate", "val": 0.02701 },
-            { "var": "p2_rate", "val": 0.02251 },
-            { "var": "p3_rate", "val": 0.00302 }
+            { "var": "p1_rate", "val": 0.02774 },
+            { "var": "p2_rate", "val": 0.02312 },
+            { "var": "p3_rate", "val": 0.00310 }
           ]
         },
         {

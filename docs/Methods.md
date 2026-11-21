@@ -976,10 +976,10 @@ The searches gave the following.
 
 | Round | Search | Evaluations | Result | Treated-cohort rate | Post-operative share |
 |---|---|---|---|---|---|
-| 1 | Post-operative multiplier, base rate 0.01846 per day | 8 | 0.01544 | 0.333% [0.277%, 0.389%] | 19.9% |
-| 1 | Priority 1 base rate, multiplier 0.01544 | 3 | 0.02350 per day | 0.428% [0.365%, 0.490%] | 20.1% |
-| 2 | Post-operative multiplier, base rate 0.02350 per day | 6 | 0.01548 | 0.431% [0.368%, 0.494%] | 20.1% |
-| 2 | Priority 1 base rate, multiplier 0.01548 | 3 | 0.02373 per day | 0.433% [0.369%, 0.497%] | 20.1% |
+| 1 | Post-operative multiplier, base rate 0.02373 per day | 6 | 0.02682 | 0.416% [0.348%, 0.483%] | 20.1% |
+| 1 | Priority 1 base rate, multiplier 0.02682 | 3 | 0.02755 per day | 0.494% [0.418%, 0.570%] | 19.9% |
+| 2 | Post-operative multiplier, base rate 0.02755 per day | 6 | 0.02699 | 0.493% [0.417%, 0.569%] | 20.0% |
+| 2 | Priority 1 base rate, multiplier 0.02699 | 3 | 0.02701 per day | 0.507% [0.428%, 0.586%] | 19.9% |
 
 The shipped values are those of the final round. `high_intensity` carries no fit of its own: it shares the default's mortality model and differs from it in casualty generation alone, so its mortality is a model output, checked against Okinawa's 3.4% as an upper bound over that campaign's 82 days rather than fitted to it.
 

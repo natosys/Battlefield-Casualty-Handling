@@ -71,6 +71,7 @@ check_role4_demand_protocol.R,11
 check_role4_surgical_demand.R,169
 check_role4_ward_phases.R,9
 check_roxygen.R,5
+check_rtd_awaiting_airlift.R,125
 check_scenario_labels.R,7
 check_scenario_protocol.R,8
 check_screen_cache.R,7

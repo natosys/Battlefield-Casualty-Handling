@@ -326,9 +326,8 @@ return_while_awaiting_faults <- function(vars) {
     v <- vals$return_while_awaiting_airlift
     if (is.null(v)) next
     if (!(is.numeric(v) && length(v) == 1L && v %in% c(0, 1))) {
-      return(sprintf(
-        "vars[r2eheavy]$recovery: return_while_awaiting_airlift must be 0 or 1, found %s",
-        paste(format(v), collapse = ", ")))
+      msg <- "vars[r2eheavy]$recovery: return_while_awaiting_airlift must be 0 or 1, found %s"
+      return(sprintf(msg, paste(format(v), collapse = ", ")))
     }
   }
   character(0)

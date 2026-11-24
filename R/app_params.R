@@ -319,7 +319,9 @@ SRC_EVAC_POLICY       <- "The theatre patient return policy of NATO AJP-4.10 (Ed
 SRC_RETURN_WHILE_AWAITING <- paste(
   "Model consistency rather than a sourced value: a casualty whose surgery is complete and who is",
   "convalescing carries no died-of-wounds risk and returns to duty when fit, whether retained in",
-  "theatre or awaiting airlift. See README Further Development L44.")
+  "theatre or awaiting airlift; how a force disposes of such casualties is unsourced. See",
+  "README Further Development L44 and L48."
+)
 SRC_RECOVERY_TO_DUTY  <- "Base convalescence distribution retained from the earlier in-theatre recovery duration; the severity factors scaling it are informed estimates anchored to the Role 4 length-of-stay gradient already in the model, calibrated so the realised in-theatre share sits inside the 7.6%-42.1% range of Vietnam War return-to-duty rates by treatment location, of which only 42.1% is an in-theatre figure. High uncertainty — see README R2E Heavy Trajectory."
 SRC_PRE_FLIGHT_ICU    <- "Bounded on the Camp Bastion deployed-ICU observation that coalition casualties are usually evacuated within 24 hours of admission; the ventilated share is an informed estimate, as no open-access source reports it — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."

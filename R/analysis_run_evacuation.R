@@ -37,7 +37,7 @@ summarise_ame_performance <- function(attributes, combined, output_dir, images_d
     #' @details A casualty still queued at the end of the run carries no wait
     #'   time, so the quantiles are taken over the evacuated alone and the
     #'   casualties still in the queue, neither boarded, dead nor returned to duty
-#'   (`ame_hold_end` unset), are reported as awaiting rather than as a zero wait.
+    #'   (`ame_hold_end` unset), are reported as awaiting rather than as a zero wait.
     wait_stats <- function(df) {
       completed <- df %>% filter(!is.na(ame_wait_minutes))
       data.frame(

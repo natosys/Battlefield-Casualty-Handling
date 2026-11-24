@@ -3211,6 +3211,61 @@ build_role4_backlog <- function(data_dir) {
   ), "Load once the airlift backlog is flown out")
 }
 
+#' Convalescent evacuees who returned to duty from R2E while awaiting airlift
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the casualties evacuated for recovery beyond the
+#'   theatre evacuation policy, those of them who returned to duty from R2E
+#'   while awaiting airlift and their share, the recovery each served beyond the
+#'   policy and the time each held a staging place from the evacuation decision,
+#'   and that time summed over every casualty returned, at each casualty
+#'   intensity.
+#'
+#' @details Each row is the Student t interval of a per-replication value. The
+#'   share and the two per-casualty rows are ratios taken within each
+#'   replication, the two per-casualty rows over the replications in which at
+#'   least one casualty returned, which is every replication at high intensity.
+build_role4_returned <- function(data_dir) {
+  d <- res_read("role4_demand/role4_demand_replications.csv", data_dir)
+  d <- d[d$series == "census_tail", ]
+  #' One measure's per-replication totals at one intensity, in replication order
+  #'
+  #' @param sc Scenario key.
+  #' @param m Measure name.
+  #' @return Numeric vector of the measure's totals.
+  per_rep <- function(sc, m) {
+    x <- d[d$scenario == sc & d$subject == m, ]
+    stopifnot(nrow(x) > 0L)
+    x$total[order(x$replication)]
+  }
+  #' Print the interval of a per-replication value
+  #'
+  #' @param x Per-replication values.
+  #' @param dp Decimal places.
+  #' @return The printed interval.
+  cell <- function(x, dp) {
+    ci <- res_t_interval(x)
+    res_ci(ci[["mean"]], ci[["lower"]], ci[["upper"]], dp = dp, big = TRUE, floor0 = TRUE)
+  }
+  cols <- lapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
+    evac <- per_rep(sc, "convalescent_evacuees")
+    ret <- per_rep(sc, "returned_awaiting_airlift")
+    beyond <- per_rep(sc, "returned_days_beyond_policy")
+    held <- per_rep(sc, "returned_days_held")
+    some <- ret > 0
+    c(cell(evac, 1L), cell(ret, 1L), cell(100 * ret / evac, 1L),
+      cell(beyond[some] / ret[some], 1L), cell(held[some] / ret[some], 1L), cell(held, 0L))
+  })
+  labels <- c("Casualties evacuated for recovery beyond the policy",
+              "Of them, returned to duty from R2E awaiting airlift",
+              "Share returned (%)",
+              "Recovery served beyond the policy, per casualty returned (days)",
+              "Staging place held after the evacuation decision, per casualty returned (days)",
+              "Staging place held after the evacuation decision, all returned (days)")
+  rows <- lapply(seq_along(labels), function(i) c(labels[i], vapply(cols, `[`, "", i)))
+  res_table(c("Convalescent evacuees", unname(ROLE4_INTENSITY_HEADINGS)), rows)
+}
+
 #' Role 4 census stationarity table
 #'
 #' @param data_dir The data directory.
@@ -4214,6 +4269,7 @@ RESULTS_TABLES <- list(
   role4_operations = build_role4_operations,
   role4_tail = build_role4_tail,
   role4_backlog = build_role4_backlog,
+  role4_returned = build_role4_returned,
   role4_stability = build_role4_stability,
   role4_cma = build_role4_cma,
   role4_levers_policy = function(dd) build_role4_levers(dd, "policy"),

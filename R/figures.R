@@ -566,13 +566,13 @@ plot_evac_delay <- function(moderate_df, high_df) {
 
 #' Theatre and team options the post-operative pressure figure compares, with their labels
 #'
-#' @details The arms of the operating theatre sweep in its order. Three theatres at
-#'   three sections is the sweep's null control: two sections on the larger shift
-#'   never outnumber three theatres, so the added theatre cannot be used, and the
-#'   label says so.
+#' @details The arms of the operating theatre sweep in its order. At three theatres
+#'   and three sections the added theatre is used only when an operation
+#'   overrunning a shift change holds a theatre the incoming section needs, and
+#'   the label says so.
 POST_OP_PRESSURE_OPTIONS <- c(
   "2 theatres, 3 sections" = "Shipped: 3 R2E teams, 2 theatres",
-  "3 theatres, 3 sections" = "3 R2E teams, 3 theatres (third theatre unusable)",
+  "3 theatres, 3 sections" = "3 R2E teams, 3 theatres (third at shift changes)",
   "2 theatres, 6 sections" = "6 R2E teams, 2 theatres",
   "3 theatres, 6 sections" = "6 R2E teams, 3 theatres",
   "4 theatres, 8 sections" = "8 R2E teams, 4 theatres"

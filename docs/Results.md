@@ -1159,7 +1159,7 @@ At the shipped establishment at high intensity the R2E theatre queue averaged <!
 
 ![Three panels of the R2E theatre queue, operated casualties in post-operative overflow and the R2E holding queue for five theatre and surgical team options at high intensity](../images/post_op_pressure.png)
 
-The closing 90-day mean R2E theatre queue (left), operated casualties in post-operative overflow (centre) and R2E holding queue (right) for each theatre and section establishment at high intensity, each with its 95% interval and every axis starting at zero. Three theatres at three sections is the null control, its added theatre being unusable.
+The closing 90-day mean R2E theatre queue (left), operated casualties in post-operative overflow (centre) and R2E holding queue (right) for each theatre and section establishment at high intensity, each with its 95% interval and every axis starting at zero. At three theatres and three sections the added theatre is used only at a shift change, when an operation overrunning it still holds a theatre and an incoming section would otherwise wait.
 
 ### Surgery and Post-Operative Beds Together
 

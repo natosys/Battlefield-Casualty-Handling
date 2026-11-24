@@ -3255,7 +3255,7 @@ build_role4_returned <- function(data_dir) {
     beyond <- per_rep(sc, "returned_days_beyond_policy")
     held <- per_rep(sc, "returned_days_held")
     some <- ret > 0
-    c(cell(evac, 1L), cell(ret, 1L), cell(100 * ret / evac, 1L),
+    c(cell(evac, 1L), cell(ret, 1L), cell(100 * ret / evac, 2L),
       cell(beyond[some] / ret[some], 1L), cell(held[some] / ret[some], 1L), cell(held, 0L))
   })
   labels <- c("Casualties evacuated for recovery beyond the policy",

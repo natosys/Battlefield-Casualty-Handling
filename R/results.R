@@ -2771,7 +2771,9 @@ seed42_verification_rows <- function(mon, cfg, days) {
     x <- last[last$key == key, ]
     setNames(x$value, x$name)
   }
-  arr_names <- mon$arrivals$name
+  # Read with ongoing = TRUE, the monitor lists a casualty still mid-activity at
+  # the horizon twice, so each name is counted once, as the arrival diagnostics do.
+  arr_names <- unique(mon$arrivals$name)
   acc <- new.env()
   acc$rows <- list()
   #' Append one measurement to the verification table

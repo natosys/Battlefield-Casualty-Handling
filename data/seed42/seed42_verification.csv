@@ -3,9 +3,9 @@
 "generation","wia_spt_total",835,796.5
 "generation","kia_cbt_total",761,612
 "generation","kia_spt_total",283,306
-"generation","dnbi_cbt_total",1770,1836
+"generation","dnbi_cbt_total",1769,1836
 "generation","dnbi_spt_total",434,423
-"generation","arrivals_total",5753,NA
+"generation","arrivals_total",5752,NA
 "triage","priority_1",1836,1868.75
 "triage","priority_2",597,575
 "triage","priority_3",442,431.25

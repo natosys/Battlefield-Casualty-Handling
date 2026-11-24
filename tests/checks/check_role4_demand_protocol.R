@@ -170,7 +170,8 @@ if (!is.null(series)) {
          paste("the series carries the census, the demand owed within, after and in all,",
                "and the load left when the campaign ends"))
   tail_subjects <- unique(series$subject[series$series == "census_tail"])
-  report(setequal(tail_subjects, c(ROLE4_TAIL_MEASURES, ROLE4_BACKLOG_MEASURES)),
+  report(setequal(tail_subjects, c(ROLE4_TAIL_MEASURES, ROLE4_BACKLOG_MEASURES,
+                                   ROLE4_RETURNED_MEASURES)),
          "the load left at the end carries every measure (%s)",
          paste(sort(tail_subjects), collapse = ", "))
   ops_subjects <- unique(series$subject[series$series == "operations"])
@@ -474,7 +475,8 @@ if (!is.null(ops_rows) && !is.null(summary_rows)) {
                  ROLE4_TOTAL))
   for (s in spec) {
     # Totals print as whole numbers and the rest to two decimals, so each is
-    # compared to half a unit of its own last printed place.
+    # compared to half a unit of its own last printed place, a mean falling exactly
+    # on the half rounding either way.
     tol <- if (s[3] == "total") 0.5 else 0.005
     row <- ops_rows[startsWith(sub("^\\| ", "", ops_rows), paste0(s[1], " |"))]
     if (length(row) != 1) {
@@ -486,7 +488,7 @@ if (!is.null(ops_rows) && !is.null(summary_rows)) {
       x <- summary_rows[summary_rows$scenario == ROLE4_DEMAND_SCENARIOS[k] &
                           summary_rows$series == s[2] & summary_rows$subject == s[4] &
                           summary_rows$response == s[3], ]
-      report(nrow(x) == 1 && abs(leading_number(cells[k]) - x$mean) < tol,
+      report(nrow(x) == 1 && abs(leading_number(cells[k]) - x$mean) <= tol + TOL,
              "'%s' for %s prints %s against the data's %s", s[1], ROLE4_DEMAND_SCENARIOS[k],
              cells[k], if (nrow(x) == 1) format(round(x$mean, 2)) else "no row")
     }
@@ -624,6 +626,22 @@ report(identical(unname(tl), c(3, 4, 11, 11, 15)) &&
        paste(tl, collapse = ", "))
 report(all(role4_census_tail(tail_phases[0, ], n_days = 10L) == 0),
        "a campaign that sent nobody home leaves no load")
+
+# Convalescent evacuees under a 21-day policy: casualties 1 to 3 were evacuated
+# for recovery beyond it, 4 for reconstruction and 5 retained. Casualties 1 and 2
+# returned to duty awaiting airlift, after 30 and 25 days of recovery, having
+# waited 4 and 2 days from their evacuation decision, so they served 9 + 4 days
+# beyond the policy and held a staging place for 4 + 2 days.
+conv <- data.frame(evacuation_reason = c(1, 1, 1, 2, 0), ame_rtd = c(1, 1, NA, NA, NA),
+                   recovery_to_duty_days = c(30, 25, 40, 60, 10),
+                   r2e_departure_time = c(10, 20, 30, 40, NA) * DAY_MIN,
+                   ame_hold_end = c(14, 22, NA, NA, NA) * DAY_MIN)
+rd <- role4_returned_detail(conv, policy_days = 21)
+report(identical(unname(rd), c(3, 2, 13, 6)) && identical(names(rd), ROLE4_RETURNED_MEASURES),
+       "the convalescent returns awaiting airlift are those computed by hand (%s)",
+       paste(rd, collapse = ", "))
+report(all(role4_returned_detail(conv[0, ], policy_days = 21) == 0),
+       "a campaign with no convalescent evacuee returns nobody")
 
 # The airlift backlog at a ten-day horizon on a weekly schedule with one place
 # per route: the next sorties fly on days 14 and 21. Casualty 2 heads the

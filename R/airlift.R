@@ -239,7 +239,10 @@ reduce_airlift_replication <- function(env, n_days, seed) {
 
   decided <- wide[!is.na(wide$r2e_evac) & wide$r2e_evac == 1, ]
   boarded <- decided[!is.na(decided$ame_departure_time), ]
-  queued  <- nrow(decided) - nrow(boarded)
+  # Still waiting: decided and not yet out of the queue, which a casualty
+  # leaves on boarding, on dying while waiting or on returning to duty, each
+  # recording ame_hold_end (R/trajectories_r2e.R).
+  queued  <- sum(is.na(decided$ame_hold_end))
 
   #' Mean or 90th percentile wait over one airlift route, in days
   #'

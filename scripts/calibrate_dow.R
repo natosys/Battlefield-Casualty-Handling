@@ -7,6 +7,7 @@
 #
 # Usage:
 #   Rscript scripts/calibrate_dow.R --scenario default
+#   Rscript scripts/calibrate_dow.R --scenario default --hold-post-op
 #   Rscript scripts/calibrate_dow.R --scenario default --hold-legacy-rate
 #   Rscript scripts/calibrate_dow.R --config my_config.json --target 0.012 --days 30
 #   Rscript scripts/calibrate_dow.R --scenario default --cache fit_cache.csv
@@ -32,7 +33,11 @@
 # under the legacy mechanism at the same seeds and horizon, which is how the
 # shipped rates were fitted when the care-state model replaced it: held where
 # the earlier model held mortality, beneath the Ajax Bay bound, rather than
-# raised to it.
+# raised to it. --hold-post-op fits the base rate alone, at the configured
+# post-operative multiplier, which is how the shipped values are fitted: the
+# post-operative share is then reported rather than searched for, since the
+# 30-day deaths it is drawn from include deaths after strategic evacuation, a
+# part of the cohort's mortality the model does not count (README, Calibration).
 #
 # What the target must be. The treated cohort, the casualties who reached a
 # surgical facility alive, not the whole wounded population: a rate over all
@@ -84,6 +89,9 @@ option_list <- list(
   make_option("--hold-legacy-rate", action = "store_true", default = FALSE,
               help = paste("Take the rate target from the configuration run under the legacy",
                            "mechanism at the same seeds and horizon")),
+  make_option("--hold-post-op", action = "store_true", default = FALSE,
+              help = paste("Fit the base rate alone, holding the post-operative multiplier",
+                           "at its configured value")),
   make_option("--late-share", type = "double", default = DOW_LATE_SHARE_TARGET,
               help = paste("Share of the treated cohort's expected deaths that should accrue",
                            "after surgery [default: %default]")),
@@ -143,7 +151,8 @@ if (!(lower > 0 && upper > lower)) {
   stop(sprintf("the bracket must satisfy 0 < lower < upper, found [%g, %g]", lower, upper),
        call. = FALSE)
 }
-fit_late <- isTRUE(resolved$care_state$enabled == 1) && resolved$multipliers$post_op > 0
+fit_late <- isTRUE(resolved$care_state$enabled == 1) && resolved$multipliers$post_op > 0 &&
+  !opt$`hold-post-op`
 
 seeds <- DOW_CONTROL_SEEDS[seq_len(opt$measurements)]
 

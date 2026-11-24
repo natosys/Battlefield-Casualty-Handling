@@ -29,7 +29,7 @@
 #      reduction of the evidence beside them.
 #   3. In the evidence, deaths while held forward rise with the delay and are
 #      zero without it, the time to first incision grows by at least most of
-#      the mean delay, and the PMV ambulance fleet's utilisation does not grow
+#      the mean delay within sampling error, and the PMV ambulance fleet's utilisation does not grow
 #      with the delay.
 #   4. The arm without a delay reproduces the shipped configuration: replication
 #      by replication it equals the triage share sweep's shipped arm, run on the
@@ -255,6 +255,18 @@ arm_means <- function(rows, response) {
          numeric(1))
 }
 
+#' Each arm's 95% Student t half-width of one response, in ascending order of delay
+#'
+#' @param rows Per-replication responses of every arm.
+#' @param response Response column.
+#' @return Named numeric vector, one half-width per arm.
+arm_halfwidths <- function(rows, response) {
+  vapply(EVAC_DELAY_SWEEP_ARMS$arm, function(a) {
+    x <- rows[[response]][rows$arm == a]
+    qt(0.975, length(x) - 1L) * sd(x) / sqrt(length(x))
+  }, numeric(1))
+}
+
 for (label in names(SUFFIXES)) {
   suffix <- SUFFIXES[[label]]
   rows <- read_sweep("evac_delay_sweep_replications", suffix)
@@ -302,11 +314,18 @@ for (label in names(SUFFIXES)) {
   report(died[[1]] == 0 && all(diff(died) >= 0),
          "%s: deaths while held forward are zero without a delay and rise with it (%s)",
          label, paste(sprintf("%.1f", died), collapse = ", "))
+  # The arms draw different casualty streams, so a short delay's rise can sit
+  # inside the spread of the time to first incision itself, which at high
+  # intensity runs to tens of hours; the rise is held to the share within the
+  # two arms' sampling error rather than exactly.
   incision_rise <- arm_means(rows, "first_incision_hours") -
     arm_means(rows, "first_incision_hours")[[1]]
+  incision_error <- arm_halfwidths(rows, "first_incision_hours") +
+    arm_halfwidths(rows, "first_incision_hours")[[1]]
   delay_hours <- arm_means(rows, "mean_delay_days") * 24
-  report(all((incision_rise >= INCISION_SHARE * delay_hours)[-1]),
-         "%s: time to first incision grows by at least %.0f%% of the mean delay in every arm",
+  report(all((incision_rise + incision_error >= INCISION_SHARE * delay_hours)[-1]),
+         paste("%s: time to first incision grows by at least %.0f%% of the mean delay in every",
+               "arm, within the two arms' sampling error"),
          label, 100 * INCISION_SHARE)
   pmv <- arm_means(rows, "pmv_utilisation")
   report(all(pmv <= pmv[[1]] + PMV_TOLERANCE),

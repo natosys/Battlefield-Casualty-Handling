@@ -335,6 +335,10 @@
             {
               "var": "evacuation_policy_days",
               "val": 21
+            },
+            {
+              "var": "return_while_awaiting_airlift",
+              "val": 1
             }
           ]
         },
@@ -774,9 +778,9 @@
         {
           "acty": "rates",
           "vals": [
-            { "var": "p1_rate", "val": 0.02373 },
-            { "var": "p2_rate", "val": 0.01978 },
-            { "var": "p3_rate", "val": 0.00265 }
+            { "var": "p1_rate", "val": 0.02774 },
+            { "var": "p2_rate", "val": 0.02312 },
+            { "var": "p3_rate", "val": 0.00310 }
           ]
         },
         {

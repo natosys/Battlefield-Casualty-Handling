@@ -764,7 +764,7 @@ summarise_ame_wait_by_route <- function(combined, output_dir) {
       completed <- df %>% filter(!is.na(ame_wait_minutes))
       data.frame(
         n_evacuated       = nrow(completed),
-        n_awaiting        = nrow(df) - nrow(completed),
+        n_awaiting        = sum(is.na(df$ame_hold_end)),
         mean_wait_minutes = if (nrow(completed) > 0) mean(completed$ame_wait_minutes) else NA_real_,
         p10_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.10) else NA_real_,
         p90_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.90) else NA_real_

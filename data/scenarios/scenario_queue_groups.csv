@@ -1,23 +1,23 @@
 "scenario","scenario_label","group","n_reps","mean_q","p10_q","p90_q","ci_lower","ci_upper"
 "moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B OT",30,0,0,0,0,0
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B Hold",30,0.0903384906886771,0,0.271162952811022,0.0497367558255818,0.130940225551772
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E OT",30,0.967011200417008,0.216115522779744,2.38514038899969,0.626521989005811,1.30750041182821
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B Hold",30,0.061978314786055,0,0.207239837932056,0.0314209279850041,0.092535701587106
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E OT",30,0.663284541783102,0.212896378499296,1.22516409159824,0.441575481708438,0.884993601857767
 "moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E ICU",30,0,0,0,0,0
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E Hold",30,24.3756102784234,18.2130422425625,30.1537616263678,22.5910898117201,26.1601307451268
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","Transport",30,0.462082974271715,0.0343708353885209,1.18457056770123,0.22496469013464,0.699201258408791
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B reception overflow",30,0.0652077423504176,1.19819399648501e-05,0.193893586328664,0.0244035112601162,0.106011973440719
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B evacuation wait overflow",30,0.050605226313484,0,0.174181796748944,0.0174613116333644,0.0837491409936036
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E post-operative overflow",30,5.72357692742816,4.47001843050155,6.9392616356995,5.35928896078693,6.0878648940694
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E pre-flight overflow",30,0.550541035014723,0.29552057426533,1.00298256087346,0.453127152951032,0.647954917078414
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E staging overflow",30,32.1628636257475,18.0075176546741,47.153962626031,26.868605221965,37.4571220295299
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E Hold",30,23.0507256400684,18.0756292841684,27.6351357894269,21.4068570107322,24.6945942694047
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","Transport",30,0.186601842603434,0.0334964906547569,0.433076253239634,0.0791507123075486,0.294052972899319
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B reception overflow",30,0.0255380944253266,7.83723290571041e-05,0.0365260314506477,-0.00522750398421948,0.0563036928348727
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B evacuation wait overflow",30,0.0160123527412547,0,0.0180254159532344,-0.00319423900464521,0.0352189444871545
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E post-operative overflow",30,5.56793227269646,4.56396885820529,6.90742266055983,5.18036885843053,5.95549568696239
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E pre-flight overflow",30,0.45499733423691,0.251115445792062,0.758464293035803,0.369223302450862,0.540771366022958
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E staging overflow",30,33.7334315193523,18.7355499427677,46.6360944476155,25.8746058916448,41.5922571470597
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B OT",30,0,0,0,0,0
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B Hold",30,0.33540605820588,0.154203469330723,0.543125119989005,0.275758067015077,0.395054049396683
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E OT",30,72.6163171443374,17.665108371391,135.999242306914,51.4040696315586,93.8285646571162
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B Hold",30,0.352898270408165,0.0773480096444776,0.606924874647105,0.277416629269101,0.42837991154723
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E OT",30,100.454264153703,20.1817674766478,199.275588135739,68.730305324158,132.178222983248
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E ICU",30,0,0,0,0,0
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E Hold",30,54.0642620711615,48.2699383786819,60.9775371691842,52.006882262132,56.121641880191
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","Transport",30,1.76016416534836,0.774009291838812,2.89232697044491,1.43543787737805,2.08489045331866
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B reception overflow",30,0.277680228004305,0.104635374984984,0.436033004826431,0.218778793439071,0.336581662569539
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B evacuation wait overflow",30,0.157430997556547,0.0360006856906632,0.287828221466409,0.118462923446038,0.196399071667055
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E post-operative overflow",30,19.7938515281391,18.7114802794035,20.624942020188,19.4725431801475,20.1151598761308
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E pre-flight overflow",30,5.53704828451348,4.52138675042263,6.12808111059349,5.30625765022451,5.76783891880245
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E staging overflow",30,2515.74652235368,2371.56223588329,2657.41630792771,2474.06847135928,2557.42457334808
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E Hold",30,54.3700795649326,46.332184685028,61.9353619887555,52.1069316807062,56.633227449159
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","Transport",30,2.27752827233682,0.829101941721906,3.77830981870377,1.68711389608565,2.86794264858799
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B reception overflow",30,0.35205326985949,0.139394709122538,0.597342768339605,0.265231169081838,0.438875370637141
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B evacuation wait overflow",30,0.248837098623576,0.0718040398398587,0.427071721382388,0.162481373696774,0.335192823550378
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E post-operative overflow",30,19.6226007471616,18.2083169483302,20.5607227443238,19.2488457090184,19.9963557853048
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E pre-flight overflow",30,5.49157797654024,4.55043985996125,6.06624130699546,5.23955736432021,5.74359858876027
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E staging overflow",30,1412.07090174231,1292.17622722706,1521.43841582498,1378.54223685544,1445.59956662919

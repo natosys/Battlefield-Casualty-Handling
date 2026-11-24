@@ -261,9 +261,10 @@ run_backlog <- compute_ame_backlog(attributes, CHECK_DAYS)
 report(nrow(run_backlog) > 0, "the run produced a backlog series (%d events)",
        nrow(run_backlog))
 
-# The two reconstructions differ by the casualties that died, and by nothing
-# else: every other casualty releases its staging placement at the instant it
-# boards, so the release and the departure are the same event for them.
+# The two reconstructions differ by the casualties that died and those that
+# returned to duty while waiting, and by nothing else: every other casualty
+# releases its staging placement at the instant it boards, so the release and
+# the departure are the same event for them.
 close <- CHECK_DAYS * DAY_MIN
 corrected <- run_backlog %>%
   group_by(pool) %>%
@@ -274,9 +275,11 @@ corrected <- run_backlog %>%
 decided <- wide[!is.na(wide$r2e_evac) & wide$r2e_evac == 1 & !is.na(wide$ame_route), ]
 boarded <- decided[!is.na(decided$ame_departure_time), ]
 old_total <- nrow(decided) - nrow(boarded)
-report(abs(sum(corrected$backlog) - (old_total - nrow(died))) < 1e-9,
-       "the backlog at the close is %d, the superseded %d, differing by the %d who died",
-       sum(corrected$backlog), old_total, nrow(died))
+returned <- decided[!is.na(decided$ame_rtd) & decided$ame_rtd == 1, ]
+report(abs(sum(corrected$backlog) - (old_total - nrow(died) - nrow(returned))) < 1e-9,
+       paste("the backlog at the close is %d, the superseded %d, differing by the %d who died",
+             "and the %d who returned to duty"),
+       sum(corrected$backlog), old_total, nrow(died), nrow(returned))
 report(all(run_backlog$backlog >= 0),
        "the backlog is never negative, so no casualty leaves the queue twice")
 

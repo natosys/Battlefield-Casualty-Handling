@@ -1,661 +1,661 @@
 "scenario","replication","group","mean_q"
-"moderate_intensity",1,"R2B Hold",0.00839157868841865
+"moderate_intensity",1,"R2B Hold",0.0897975206630463
 "moderate_intensity",1,"R2B OT",0
-"moderate_intensity",1,"R2E Hold",23.7557736934852
+"moderate_intensity",1,"R2E Hold",27.1111550717393
 "moderate_intensity",1,"R2E ICU",0
-"moderate_intensity",1,"R2E OT",3.69837895738658
-"moderate_intensity",1,"Transport",1.64365510172173
-"moderate_intensity",1,"R2B reception overflow",0.362608336526931
-"moderate_intensity",1,"R2B evacuation wait overflow",0.193874201505762
-"moderate_intensity",1,"R2E post-operative overflow",6.44332588199707
-"moderate_intensity",1,"R2E pre-flight overflow",1.15019677826821
-"moderate_intensity",1,"R2E staging overflow",43.6232435828873
+"moderate_intensity",1,"R2E OT",1.06476294244801
+"moderate_intensity",1,"Transport",0.13332448593242
 "moderate_intensity",2,"R2B Hold",0
 "moderate_intensity",2,"R2B OT",0
-"moderate_intensity",2,"R2E Hold",18.9340013059963
+"moderate_intensity",2,"R2E Hold",30.1722343376027
 "moderate_intensity",2,"R2E ICU",0
-"moderate_intensity",2,"R2E OT",0.317350465213668
-"moderate_intensity",2,"Transport",0.031196589171484
-"moderate_intensity",2,"R2B reception overflow",0.00464171666862114
-"moderate_intensity",2,"R2B evacuation wait overflow",0.00151541713933657
-"moderate_intensity",2,"R2E post-operative overflow",4.38997877351681
-"moderate_intensity",2,"R2E pre-flight overflow",0.318485235729833
-"moderate_intensity",2,"R2E staging overflow",17.5961589366802
-"moderate_intensity",3,"R2B Hold",0.307194074850139
+"moderate_intensity",2,"R2E OT",1.92093302026186
+"moderate_intensity",2,"Transport",0.250550068835886
+"moderate_intensity",3,"R2B Hold",0.175810050158194
 "moderate_intensity",3,"R2B OT",0
-"moderate_intensity",3,"R2E Hold",25.9011682282488
+"moderate_intensity",3,"R2E Hold",20.0449334388723
 "moderate_intensity",3,"R2E ICU",0
-"moderate_intensity",3,"R2E OT",2.36584887181429
-"moderate_intensity",3,"Transport",1.13211545796857
-"moderate_intensity",3,"R2B reception overflow",0.154385267190604
-"moderate_intensity",3,"R2B evacuation wait overflow",0.170979721538537
-"moderate_intensity",3,"R2E post-operative overflow",7.10790213469517
-"moderate_intensity",3,"R2E pre-flight overflow",1.00258717523331
-"moderate_intensity",3,"R2E staging overflow",46.6483386894842
-"moderate_intensity",4,"R2B Hold",0
+"moderate_intensity",3,"R2E OT",0.20271752695627
+"moderate_intensity",3,"Transport",0.135887330677102
+"moderate_intensity",4,"R2B Hold",0.216578136992744
 "moderate_intensity",4,"R2B OT",0
-"moderate_intensity",4,"R2E Hold",28.8979235230943
+"moderate_intensity",4,"R2E Hold",26.7048413808465
 "moderate_intensity",4,"R2E ICU",0
-"moderate_intensity",4,"R2E OT",1.3088407186189
-"moderate_intensity",4,"Transport",0.332783124951522
-"moderate_intensity",4,"R2B reception overflow",0.0363677681272766
-"moderate_intensity",4,"R2B evacuation wait overflow",0.0490313087681451
-"moderate_intensity",4,"R2E post-operative overflow",7.40763398565755
-"moderate_intensity",4,"R2E pre-flight overflow",0.781862969780801
-"moderate_intensity",4,"R2E staging overflow",51.7045780549514
-"moderate_intensity",5,"R2B Hold",0.0787394213008987
+"moderate_intensity",4,"R2E OT",0.448180979512183
+"moderate_intensity",4,"Transport",0.206964349607408
+"moderate_intensity",5,"R2B Hold",0.0369597777003344
 "moderate_intensity",5,"R2B OT",0
-"moderate_intensity",5,"R2E Hold",23.6988371725474
+"moderate_intensity",5,"R2E Hold",26.9936411782835
 "moderate_intensity",5,"R2E ICU",0
-"moderate_intensity",5,"R2E OT",1.73795073221477
-"moderate_intensity",5,"Transport",0.901030752047559
-"moderate_intensity",5,"R2B reception overflow",0.156866591216171
-"moderate_intensity",5,"R2B evacuation wait overflow",0.173393590124389
-"moderate_intensity",5,"R2E post-operative overflow",6.50668841312536
-"moderate_intensity",5,"R2E pre-flight overflow",0.649728200339724
-"moderate_intensity",5,"R2E staging overflow",30.3223527731664
-"moderate_intensity",6,"R2B Hold",0.0816879105308135
+"moderate_intensity",5,"R2E OT",0.198438363981834
+"moderate_intensity",5,"Transport",0.0456238135891437
+"moderate_intensity",6,"R2B Hold",0
 "moderate_intensity",6,"R2B OT",0
-"moderate_intensity",6,"R2E Hold",31.2125451646821
+"moderate_intensity",6,"R2E Hold",19.7510909152027
 "moderate_intensity",6,"R2E ICU",0
-"moderate_intensity",6,"R2E OT",0.971614231056027
-"moderate_intensity",6,"Transport",0.162362331629348
-"moderate_intensity",6,"R2B reception overflow",0.0634854738612301
-"moderate_intensity",6,"R2B evacuation wait overflow",0.017347009390088
-"moderate_intensity",6,"R2E post-operative overflow",6.90253275334243
-"moderate_intensity",6,"R2E pre-flight overflow",0.578658988513994
-"moderate_intensity",6,"R2E staging overflow",32.5986817572174
-"moderate_intensity",7,"R2B Hold",0.267159494806675
+"moderate_intensity",6,"R2E OT",0.336491428974418
+"moderate_intensity",6,"Transport",0.0897606010477673
+"moderate_intensity",7,"R2B Hold",0.0297163566501043
 "moderate_intensity",7,"R2B OT",0
-"moderate_intensity",7,"R2E Hold",23.5605031572577
+"moderate_intensity",7,"R2E Hold",27.4045359361089
 "moderate_intensity",7,"R2E ICU",0
-"moderate_intensity",7,"R2E OT",0.510509406343509
-"moderate_intensity",7,"Transport",0.20325431813753
-"moderate_intensity",7,"R2B reception overflow",0.00318803685878838
-"moderate_intensity",7,"R2B evacuation wait overflow",0
-"moderate_intensity",7,"R2E post-operative overflow",5.94677110554553
-"moderate_intensity",7,"R2E pre-flight overflow",0.470425863465531
-"moderate_intensity",7,"R2E staging overflow",25.3252577534148
-"moderate_intensity",8,"R2B Hold",0
+"moderate_intensity",7,"R2E OT",1.20272817402122
+"moderate_intensity",7,"Transport",0.163795737270039
+"moderate_intensity",8,"R2B Hold",0.0559837935945742
 "moderate_intensity",8,"R2B OT",0
-"moderate_intensity",8,"R2E Hold",23.8945175324885
+"moderate_intensity",8,"R2E Hold",18.0795276563569
 "moderate_intensity",8,"R2E ICU",0
-"moderate_intensity",8,"R2E OT",0.406614567674214
-"moderate_intensity",8,"Transport",0.0416237545896828
-"moderate_intensity",8,"R2B reception overflow",0.000283092411565896
-"moderate_intensity",8,"R2B evacuation wait overflow",0
-"moderate_intensity",8,"R2E post-operative overflow",5.35044825430895
-"moderate_intensity",8,"R2E pre-flight overflow",0.431076175911921
-"moderate_intensity",8,"R2E staging overflow",23.2583812141004
-"moderate_intensity",9,"R2B Hold",0.0455065993962058
+"moderate_intensity",8,"R2E OT",0.321954733910709
+"moderate_intensity",8,"Transport",0.0436791492908351
+"moderate_intensity",9,"R2B Hold",0
 "moderate_intensity",9,"R2B OT",0
-"moderate_intensity",9,"R2E Hold",19.4261897946846
+"moderate_intensity",9,"R2E Hold",18.8683864031526
 "moderate_intensity",9,"R2E ICU",0
-"moderate_intensity",9,"R2E OT",0.114695222749983
-"moderate_intensity",9,"Transport",0.0401136319364638
-"moderate_intensity",9,"R2B reception overflow",0
-"moderate_intensity",9,"R2B evacuation wait overflow",0
-"moderate_intensity",9,"R2E post-operative overflow",4.43671589416053
-"moderate_intensity",9,"R2E pre-flight overflow",0.162639244901377
-"moderate_intensity",9,"R2E staging overflow",17.4457089563412
-"moderate_intensity",10,"R2B Hold",0
+"moderate_intensity",9,"R2E OT",0.262594992445681
+"moderate_intensity",9,"Transport",0.0271240067600269
+"moderate_intensity",10,"R2B Hold",0.203256851204691
 "moderate_intensity",10,"R2B OT",0
-"moderate_intensity",10,"R2E Hold",26.6717561546579
+"moderate_intensity",10,"R2E Hold",23.1396447832141
 "moderate_intensity",10,"R2E ICU",0
-"moderate_intensity",10,"R2E OT",0.526339844601192
-"moderate_intensity",10,"Transport",0.070428982225327
-"moderate_intensity",10,"R2B reception overflow",0.000502891408408978
-"moderate_intensity",10,"R2B evacuation wait overflow",0
-"moderate_intensity",10,"R2E post-operative overflow",5.23278069056747
-"moderate_intensity",10,"R2E pre-flight overflow",0.408741622483037
-"moderate_intensity",10,"R2E staging overflow",23.6822151015906
-"moderate_intensity",11,"R2B Hold",0.07264298384235
+"moderate_intensity",10,"R2E OT",0.882447354247975
+"moderate_intensity",10,"Transport",0.453958084079291
+"moderate_intensity",11,"R2B Hold",0.0996751631330586
 "moderate_intensity",11,"R2B OT",0
-"moderate_intensity",11,"R2E Hold",17.8025309165984
+"moderate_intensity",11,"R2E Hold",23.9141675838667
 "moderate_intensity",11,"R2E ICU",0
-"moderate_intensity",11,"R2E OT",0.279411583812032
-"moderate_intensity",11,"Transport",0.0697403536618587
-"moderate_intensity",11,"R2B reception overflow",0.000416592894577246
-"moderate_intensity",11,"R2B evacuation wait overflow",0
-"moderate_intensity",11,"R2E post-operative overflow",4.64005251494806
-"moderate_intensity",11,"R2E pre-flight overflow",0.307602898442923
-"moderate_intensity",11,"R2E staging overflow",18.0532241788957
-"moderate_intensity",12,"R2B Hold",0.407676744783863
+"moderate_intensity",11,"R2E OT",0.233105819591774
+"moderate_intensity",11,"Transport",0.0554761203920466
+"moderate_intensity",12,"R2B Hold",0.126405605180286
 "moderate_intensity",12,"R2B OT",0
-"moderate_intensity",12,"R2E Hold",28.2663056551617
+"moderate_intensity",12,"R2E Hold",20.7274904116761
 "moderate_intensity",12,"R2E ICU",0
-"moderate_intensity",12,"R2E OT",1.60905570423076
-"moderate_intensity",12,"Transport",2.18045294292951
-"moderate_intensity",12,"R2B reception overflow",0.185753078269212
-"moderate_intensity",12,"R2B evacuation wait overflow",0.128236477131846
-"moderate_intensity",12,"R2E post-operative overflow",5.7759817595598
-"moderate_intensity",12,"R2E pre-flight overflow",0.468970405262588
-"moderate_intensity",12,"R2E staging overflow",32.0343302913595
-"moderate_intensity",13,"R2B Hold",0.00145925423955316
+"moderate_intensity",12,"R2E OT",0.237225140647849
+"moderate_intensity",12,"Transport",0.0318459695334748
+"moderate_intensity",13,"R2B Hold",0
 "moderate_intensity",13,"R2B OT",0
-"moderate_intensity",13,"R2E Hold",21.7930329589208
+"moderate_intensity",13,"R2E Hold",19.5013886080712
 "moderate_intensity",13,"R2E ICU",0
-"moderate_intensity",13,"R2E OT",0.495134363685764
-"moderate_intensity",13,"Transport",0.0902639313787222
-"moderate_intensity",13,"R2B reception overflow",0.0255052988364498
-"moderate_intensity",13,"R2B evacuation wait overflow",0.0160388504335343
-"moderate_intensity",13,"R2E post-operative overflow",5.47595464098834
-"moderate_intensity",13,"R2E pre-flight overflow",0.40654083104216
-"moderate_intensity",13,"R2E staging overflow",29.5143112502867
-"moderate_intensity",14,"R2B Hold",0.105997055789208
+"moderate_intensity",13,"R2E OT",0.677261740891809
+"moderate_intensity",13,"Transport",0.0498519783939619
+"moderate_intensity",14,"R2B Hold",0.206202249147535
 "moderate_intensity",14,"R2B OT",0
-"moderate_intensity",14,"R2E Hold",37.1933429480821
+"moderate_intensity",14,"R2E Hold",23.8253020233168
 "moderate_intensity",14,"R2E ICU",0
-"moderate_intensity",14,"R2E OT",0.447412889804573
-"moderate_intensity",14,"Transport",0.146142104901001
-"moderate_intensity",14,"R2B reception overflow",0.00225080647927601
-"moderate_intensity",14,"R2B evacuation wait overflow",0.00244195332506933
-"moderate_intensity",14,"R2E post-operative overflow",6.92052380247776
-"moderate_intensity",14,"R2E pre-flight overflow",0.700453310621537
-"moderate_intensity",14,"R2E staging overflow",58.4514759857054
-"moderate_intensity",15,"R2B Hold",0.0884133688496378
+"moderate_intensity",14,"R2E OT",2.80635615826136
+"moderate_intensity",14,"Transport",1.35792686861358
+"moderate_intensity",15,"R2B Hold",0.0179267791297209
 "moderate_intensity",15,"R2B OT",0
-"moderate_intensity",15,"R2E Hold",21.7336940610983
+"moderate_intensity",15,"R2E Hold",20.9936627304313
 "moderate_intensity",15,"R2E ICU",0
-"moderate_intensity",15,"R2E OT",0.996734893357769
-"moderate_intensity",15,"Transport",0.254305793720023
-"moderate_intensity",15,"R2B reception overflow",0.0062571135427137
-"moderate_intensity",15,"R2B evacuation wait overflow",0.00914758417711171
-"moderate_intensity",15,"R2E post-operative overflow",5.97571682152173
-"moderate_intensity",15,"R2E pre-flight overflow",0.562273530316295
-"moderate_intensity",15,"R2E staging overflow",33.0756030724086
+"moderate_intensity",15,"R2E OT",1.06699628951097
+"moderate_intensity",15,"Transport",0.212873988702456
 "moderate_intensity",16,"R2B Hold",0
 "moderate_intensity",16,"R2B OT",0
-"moderate_intensity",16,"R2E Hold",21.9639431950353
+"moderate_intensity",16,"R2E Hold",20.6961389734954
 "moderate_intensity",16,"R2E ICU",0
-"moderate_intensity",16,"R2E OT",0.53571512254133
-"moderate_intensity",16,"Transport",0.122516089099551
-"moderate_intensity",16,"R2B reception overflow",0.00793924620290106
-"moderate_intensity",16,"R2B evacuation wait overflow",0
-"moderate_intensity",16,"R2E post-operative overflow",4.73951632296679
-"moderate_intensity",16,"R2E pre-flight overflow",0.499987057096798
-"moderate_intensity",16,"R2E staging overflow",28.38607492447
-"moderate_intensity",17,"R2B Hold",0.131542693341551
+"moderate_intensity",16,"R2E OT",1.19331359559118
+"moderate_intensity",16,"Transport",0.93939004988785
+"moderate_intensity",17,"R2B Hold",0
 "moderate_intensity",17,"R2B OT",0
-"moderate_intensity",17,"R2E Hold",30.1523343479873
+"moderate_intensity",17,"R2E Hold",21.0887114430695
 "moderate_intensity",17,"R2E ICU",0
-"moderate_intensity",17,"R2E OT",0.495490549629542
-"moderate_intensity",17,"Transport",0.123265665414265
-"moderate_intensity",17,"R2B reception overflow",0.00787861288911239
-"moderate_intensity",17,"R2B evacuation wait overflow",0.000970679892139563
-"moderate_intensity",17,"R2E post-operative overflow",5.45018728656981
-"moderate_intensity",17,"R2E pre-flight overflow",0.492546969201297
-"moderate_intensity",17,"R2E staging overflow",28.181517508787
-"moderate_intensity",18,"R2B Hold",0.076676004428976
+"moderate_intensity",17,"R2E OT",0.213783053318634
+"moderate_intensity",17,"Transport",0.0240182871017766
+"moderate_intensity",18,"R2B Hold",0
 "moderate_intensity",18,"R2B OT",0
-"moderate_intensity",18,"R2E Hold",27.6401014548096
+"moderate_intensity",18,"R2E Hold",19.7718949778825
 "moderate_intensity",18,"R2E ICU",0
-"moderate_intensity",18,"R2E OT",2.86389946801948
-"moderate_intensity",18,"Transport",0.756505011679883
-"moderate_intensity",18,"R2B reception overflow",0.108491359274608
-"moderate_intensity",18,"R2B evacuation wait overflow",0.0974748318179811
-"moderate_intensity",18,"R2E post-operative overflow",6.59151022083768
-"moderate_intensity",18,"R2E pre-flight overflow",1.00654103163477
-"moderate_intensity",18,"R2E staging overflow",44.4457587685667
-"moderate_intensity",19,"R2B Hold",0
+"moderate_intensity",18,"R2E OT",0.374075749449612
+"moderate_intensity",18,"Transport",0.0558263454731234
+"moderate_intensity",19,"R2B Hold",0.0501303057386664
 "moderate_intensity",19,"R2B OT",0
-"moderate_intensity",19,"R2E Hold",16.53768040357
+"moderate_intensity",19,"R2E Hold",27.1847748631746
 "moderate_intensity",19,"R2E ICU",0
-"moderate_intensity",19,"R2E OT",0.165999373368163
-"moderate_intensity",19,"Transport",0.0310649799004759
-"moderate_intensity",19,"R2B reception overflow",0
-"moderate_intensity",19,"R2B evacuation wait overflow",0
-"moderate_intensity",19,"R2E post-operative overflow",4.47371871231722
-"moderate_intensity",19,"R2E pre-flight overflow",0.272673774556144
-"moderate_intensity",19,"R2E staging overflow",15.1411741518637
-"moderate_intensity",20,"R2B Hold",0.0521042298566146
+"moderate_intensity",19,"R2E OT",0.77564595983971
+"moderate_intensity",19,"Transport",0.161451083830579
+"moderate_intensity",20,"R2B Hold",0
 "moderate_intensity",20,"R2B OT",0
-"moderate_intensity",20,"R2E Hold",22.1806205325758
+"moderate_intensity",20,"R2E Hold",17.4821792484884
 "moderate_intensity",20,"R2E ICU",0
-"moderate_intensity",20,"R2E OT",1.77935651163514
-"moderate_intensity",20,"Transport",1.01162166207056
-"moderate_intensity",20,"R2B reception overflow",0.267158158863737
-"moderate_intensity",20,"R2B evacuation wait overflow",0.181275656369943
-"moderate_intensity",20,"R2E post-operative overflow",6.17422311767977
-"moderate_intensity",20,"R2E pre-flight overflow",0.594577780920428
-"moderate_intensity",20,"R2E staging overflow",44.5527473119583
-"moderate_intensity",21,"R2B Hold",0.0247777733142635
+"moderate_intensity",20,"R2E OT",0.35220769108446
+"moderate_intensity",20,"Transport",0.0557141534823515
+"moderate_intensity",21,"R2B Hold",0.223941424392928
 "moderate_intensity",21,"R2B OT",0
-"moderate_intensity",21,"R2E Hold",28.7535045734285
+"moderate_intensity",21,"R2E Hold",20.2500592332853
 "moderate_intensity",21,"R2E ICU",0
-"moderate_intensity",21,"R2E OT",0.28258815270657
-"moderate_intensity",21,"Transport",0.0347235294126361
-"moderate_intensity",21,"R2B reception overflow",0.00409095897868812
-"moderate_intensity",21,"R2B evacuation wait overflow",0
-"moderate_intensity",21,"R2E post-operative overflow",5.9629487705874
-"moderate_intensity",21,"R2E pre-flight overflow",0.322492770549038
-"moderate_intensity",21,"R2E staging overflow",30.487672202756
+"moderate_intensity",21,"R2E OT",0.204916305125252
+"moderate_intensity",21,"Transport",0.0520759321287466
 "moderate_intensity",22,"R2B Hold",0
 "moderate_intensity",22,"R2B OT",0
-"moderate_intensity",22,"R2E Hold",22.5229232767603
+"moderate_intensity",22,"R2E Hold",26.531149134049
 "moderate_intensity",22,"R2E ICU",0
-"moderate_intensity",22,"R2E OT",0.217305930883912
-"moderate_intensity",22,"Transport",0.0281295067855688
-"moderate_intensity",22,"R2B reception overflow",1.33132666276112e-05
-"moderate_intensity",22,"R2B evacuation wait overflow",0
-"moderate_intensity",22,"R2E post-operative overflow",5.00954381229725
-"moderate_intensity",22,"R2E pre-flight overflow",0.363772456340675
-"moderate_intensity",22,"R2E staging overflow",26.3666529599453
-"moderate_intensity",23,"R2B Hold",0.31187980018436
+"moderate_intensity",22,"R2E OT",0.391449390035947
+"moderate_intensity",22,"Transport",0.0768209919090122
+"moderate_intensity",23,"R2B Hold",0.068211232367364
 "moderate_intensity",23,"R2B OT",0
-"moderate_intensity",23,"R2E Hold",24.9690888313802
+"moderate_intensity",23,"R2E Hold",21.7619246726485
 "moderate_intensity",23,"R2E ICU",0
-"moderate_intensity",23,"R2E OT",2.55876404366832
-"moderate_intensity",23,"Transport",2.24166175524644
-"moderate_intensity",23,"R2B reception overflow",0.403979603076209
-"moderate_intensity",23,"R2B evacuation wait overflow",0.375340480134358
-"moderate_intensity",23,"R2E post-operative overflow",6.47782854602484
-"moderate_intensity",23,"R2E pre-flight overflow",0.842668515559895
-"moderate_intensity",23,"R2E staging overflow",45.5230114530804
-"moderate_intensity",24,"R2B Hold",0.0320346303563417
+"moderate_intensity",23,"R2E OT",0.42915750772367
+"moderate_intensity",23,"Transport",0.065800203407174
+"moderate_intensity",24,"R2B Hold",0
 "moderate_intensity",24,"R2B OT",0
-"moderate_intensity",24,"R2E Hold",18.258654612114
+"moderate_intensity",24,"R2E Hold",16.5853384365977
 "moderate_intensity",24,"R2E ICU",0
-"moderate_intensity",24,"R2E OT",0.390946628579749
-"moderate_intensity",24,"Transport",0.123158951272843
-"moderate_intensity",24,"R2B reception overflow",0.0147481618491724
-"moderate_intensity",24,"R2B evacuation wait overflow",0.00281631175416143
-"moderate_intensity",24,"R2E post-operative overflow",5.05654458897583
-"moderate_intensity",24,"R2E pre-flight overflow",0.298059107566351
-"moderate_intensity",24,"R2E staging overflow",20.0189484982896
-"moderate_intensity",25,"R2B Hold",0.0123042327021692
+"moderate_intensity",24,"R2E OT",0.577231414548414
+"moderate_intensity",24,"Transport",0.0642643351135049
+"moderate_intensity",25,"R2B Hold",0.0179694457054979
 "moderate_intensity",25,"R2B OT",0
-"moderate_intensity",25,"R2E Hold",17.7133334454625
+"moderate_intensity",25,"R2E Hold",35.0331252639123
 "moderate_intensity",25,"R2E ICU",0
-"moderate_intensity",25,"R2E OT",0.469604478840773
-"moderate_intensity",25,"Transport",0.0822442356054388
-"moderate_intensity",25,"R2B reception overflow",0
-"moderate_intensity",25,"R2B evacuation wait overflow",0
-"moderate_intensity",25,"R2E post-operative overflow",5.70076589605815
-"moderate_intensity",25,"R2E pre-flight overflow",0.605307268165021
-"moderate_intensity",25,"R2E staging overflow",26.7423655902306
-"moderate_intensity",26,"R2B Hold",0.205644340024121
+"moderate_intensity",25,"R2E OT",1.42708734979147
+"moderate_intensity",25,"Transport",0.430756049813006
+"moderate_intensity",26,"R2B Hold",0.0167326803549723
 "moderate_intensity",26,"R2B OT",0
-"moderate_intensity",26,"R2E Hold",30.1666071317923
+"moderate_intensity",26,"R2E Hold",21.2671502167845
 "moderate_intensity",26,"R2E ICU",0
-"moderate_intensity",26,"R2E OT",1.43775062098817
-"moderate_intensity",26,"Transport",1.13356117503228
-"moderate_intensity",26,"R2B reception overflow",0.0664786834157304
-"moderate_intensity",26,"R2B evacuation wait overflow",0.072996187364588
-"moderate_intensity",26,"R2E post-operative overflow",7.95949424944203
-"moderate_intensity",26,"R2E pre-flight overflow",1.10752422003586
-"moderate_intensity",26,"R2E staging overflow",78.9467963210532
-"moderate_intensity",27,"R2B Hold",0.0429316098399755
+"moderate_intensity",26,"R2E OT",0.426447369151227
+"moderate_intensity",26,"Transport",0.0794031804068939
+"moderate_intensity",27,"R2B Hold",0
 "moderate_intensity",27,"R2B OT",0
-"moderate_intensity",27,"R2E Hold",19.9732578266391
+"moderate_intensity",27,"R2E Hold",18.040543934472
 "moderate_intensity",27,"R2E ICU",0
-"moderate_intensity",27,"R2E OT",0.36036629749644
-"moderate_intensity",27,"Transport",0.0567628674433451
-"moderate_intensity",27,"R2B reception overflow",0.00967013707471464
-"moderate_intensity",27,"R2B evacuation wait overflow",0
-"moderate_intensity",27,"R2E post-operative overflow",4.50352159690034
-"moderate_intensity",27,"R2E pre-flight overflow",0.422782401277447
-"moderate_intensity",27,"R2E staging overflow",19.9176307581439
-"moderate_intensity",28,"R2B Hold",0.137834228160476
+"moderate_intensity",27,"R2E OT",0.231819113639562
+"moderate_intensity",27,"Transport",0.0336798818904549
+"moderate_intensity",28,"R2B Hold",0
 "moderate_intensity",28,"R2B OT",0
-"moderate_intensity",28,"R2E Hold",28.9564860636791
+"moderate_intensity",28,"R2E Hold",22.2609896048704
 "moderate_intensity",28,"R2E ICU",0
-"moderate_intensity",28,"R2E OT",0.205401849842232
-"moderate_intensity",28,"Transport",0.0611146125929394
-"moderate_intensity",28,"R2B reception overflow",0.000284463652736313
-"moderate_intensity",28,"R2B evacuation wait overflow",0
-"moderate_intensity",28,"R2E post-operative overflow",4.36968534544744
-"moderate_intensity",28,"R2E pre-flight overflow",0.189739902530395
-"moderate_intensity",28,"R2E staging overflow",19.4055234258366
-"moderate_intensity",29,"R2B Hold",0.157019347324603
+"moderate_intensity",28,"R2E OT",0.845655933058324
+"moderate_intensity",28,"Transport",0.0778448291964836
+"moderate_intensity",29,"R2B Hold",0.224052071467934
 "moderate_intensity",29,"R2B OT",0
-"moderate_intensity",29,"R2E Hold",24.9429726445352
+"moderate_intensity",29,"R2E Hold",29.7105344692885
 "moderate_intensity",29,"R2E ICU",0
-"moderate_intensity",29,"R2E OT",0.792087599233519
-"moderate_intensity",29,"Transport",0.309819525093835
-"moderate_intensity",29,"R2B reception overflow",0.0229632330086297
-"moderate_intensity",29,"R2B evacuation wait overflow",0.00955965124515017
-"moderate_intensity",29,"R2E post-operative overflow",5.3195405903852
-"moderate_intensity",29,"R2E pre-flight overflow",0.585797720972109
-"moderate_intensity",29,"R2E staging overflow",27.6043836845202
-"moderate_intensity",30,"R2B Hold",0.0605373440490996
+"moderate_intensity",29,"R2E OT",0.222549636055023
+"moderate_intensity",29,"Transport",0.167775176633726
+"moderate_intensity",30,"R2B Hold",0
 "moderate_intensity",30,"R2B OT",0
-"moderate_intensity",30,"R2E Hold",23.7946777459298
+"moderate_intensity",30,"R2E Hold",26.6252522712923
 "moderate_intensity",30,"R2E ICU",0
-"moderate_intensity",30,"R2E OT",0.669166932512864
-"moderate_intensity",30,"Transport",0.446870490531048
-"moderate_intensity",30,"R2B reception overflow",0.0400242746678365
-"moderate_intensity",30,"R2B evacuation wait overflow",0.0157168772923803
-"moderate_intensity",30,"R2E post-operative overflow",5.40527133994256
-"moderate_intensity",30,"R2E pre-flight overflow",0.511516843722217
-"moderate_intensity",30,"R2E staging overflow",25.8317896144322
-"high_intensity",1,"R2B Hold",0.556654044438826
+"moderate_intensity",30,"R2E OT",0.371001519416664
+"moderate_intensity",30,"Transport",0.0545922251028884
+"moderate_intensity",1,"R2B reception overflow",0.0330647638363092
+"moderate_intensity",1,"R2B evacuation wait overflow",0.00958299955258194
+"moderate_intensity",1,"R2E post-operative overflow",7.95599194919593
+"moderate_intensity",1,"R2E pre-flight overflow",0.789191953237083
+"moderate_intensity",1,"R2E staging overflow",46.5537956073334
+"moderate_intensity",2,"R2B reception overflow",0.0180021682308507
+"moderate_intensity",2,"R2B evacuation wait overflow",0.0011801107196354
+"moderate_intensity",2,"R2E post-operative overflow",8.32577959077102
+"moderate_intensity",2,"R2E pre-flight overflow",1.00617094624179
+"moderate_intensity",2,"R2E staging overflow",68.5692655733311
+"moderate_intensity",3,"R2B reception overflow",0.000558499196420958
+"moderate_intensity",3,"R2B evacuation wait overflow",0
+"moderate_intensity",3,"R2E post-operative overflow",4.59272945190301
+"moderate_intensity",3,"R2E pre-flight overflow",0.138556660233539
+"moderate_intensity",3,"R2E staging overflow",24.1746573557274
+"moderate_intensity",4,"R2B reception overflow",0.0118136707567316
+"moderate_intensity",4,"R2B evacuation wait overflow",0.00216755910467642
+"moderate_intensity",4,"R2E post-operative overflow",6.25609816361716
+"moderate_intensity",4,"R2E pre-flight overflow",0.505196227050667
+"moderate_intensity",4,"R2E staging overflow",43.330861923827
+"moderate_intensity",5,"R2B reception overflow",0
+"moderate_intensity",5,"R2B evacuation wait overflow",0
+"moderate_intensity",5,"R2E post-operative overflow",5.36376257700853
+"moderate_intensity",5,"R2E pre-flight overflow",0.255390333832865
+"moderate_intensity",5,"R2E staging overflow",36.7989200816506
+"moderate_intensity",6,"R2B reception overflow",0.00698623562577807
+"moderate_intensity",6,"R2B evacuation wait overflow",0.00483873578148857
+"moderate_intensity",6,"R2E post-operative overflow",4.58086112486964
+"moderate_intensity",6,"R2E pre-flight overflow",0.368366296731684
+"moderate_intensity",6,"R2E staging overflow",18.2539657321639
+"moderate_intensity",7,"R2B reception overflow",0.00517733694444438
+"moderate_intensity",7,"R2B evacuation wait overflow",0.0154121287770213
+"moderate_intensity",7,"R2E post-operative overflow",6.90080515507044
+"moderate_intensity",7,"R2E pre-flight overflow",0.638321249933691
+"moderate_intensity",7,"R2E staging overflow",29.0285965610075
+"moderate_intensity",8,"R2B reception overflow",0.0143380988104103
+"moderate_intensity",8,"R2B evacuation wait overflow",0
+"moderate_intensity",8,"R2E post-operative overflow",3.77361138221387
+"moderate_intensity",8,"R2E pre-flight overflow",0.283327301787823
+"moderate_intensity",8,"R2E staging overflow",24.5953348098352
+"moderate_intensity",9,"R2B reception overflow",0.00270309009682809
+"moderate_intensity",9,"R2B evacuation wait overflow",0
+"moderate_intensity",9,"R2E post-operative overflow",4.57808524721154
+"moderate_intensity",9,"R2E pre-flight overflow",0.212641453424841
+"moderate_intensity",9,"R2E staging overflow",27.0112666433
+"moderate_intensity",10,"R2B reception overflow",0.00207618771101144
+"moderate_intensity",10,"R2B evacuation wait overflow",0
+"moderate_intensity",10,"R2E post-operative overflow",5.79014298330285
+"moderate_intensity",10,"R2E pre-flight overflow",0.592207723974097
+"moderate_intensity",10,"R2E staging overflow",29.5621639009974
+"moderate_intensity",11,"R2B reception overflow",0.0012388810870978
+"moderate_intensity",11,"R2B evacuation wait overflow",0
+"moderate_intensity",11,"R2E post-operative overflow",5.76191531697947
+"moderate_intensity",11,"R2E pre-flight overflow",0.266132461905169
+"moderate_intensity",11,"R2E staging overflow",21.7382522060059
+"moderate_intensity",12,"R2B reception overflow",0.000780540305109124
+"moderate_intensity",12,"R2B evacuation wait overflow",0
+"moderate_intensity",12,"R2E post-operative overflow",5.0882056432506
+"moderate_intensity",12,"R2E pre-flight overflow",0.273846428027482
+"moderate_intensity",12,"R2E staging overflow",18.7890592995014
+"moderate_intensity",13,"R2B reception overflow",0.000821164577186501
+"moderate_intensity",13,"R2B evacuation wait overflow",0
+"moderate_intensity",13,"R2E post-operative overflow",4.71545672708132
+"moderate_intensity",13,"R2E pre-flight overflow",0.390458254669733
+"moderate_intensity",13,"R2E staging overflow",25.3876529132666
+"moderate_intensity",14,"R2B reception overflow",0.450621309940023
+"moderate_intensity",14,"R2B evacuation wait overflow",0.269216524201357
+"moderate_intensity",14,"R2E post-operative overflow",6.31970616607328
+"moderate_intensity",14,"R2E pre-flight overflow",1.01530880735496
+"moderate_intensity",14,"R2E staging overflow",47.376784010154
+"moderate_intensity",15,"R2B reception overflow",0.0163660543966209
+"moderate_intensity",15,"R2B evacuation wait overflow",0.01041593495985
+"moderate_intensity",15,"R2E post-operative overflow",5.16218835453275
+"moderate_intensity",15,"R2E pre-flight overflow",0.399517206601257
+"moderate_intensity",15,"R2E staging overflow",24.5942765485767
+"moderate_intensity",16,"R2B reception overflow",0.0676774399796938
+"moderate_intensity",16,"R2B evacuation wait overflow",0.0975648854073024
+"moderate_intensity",16,"R2E post-operative overflow",5.53271686256829
+"moderate_intensity",16,"R2E pre-flight overflow",0.717872739882782
+"moderate_intensity",16,"R2E staging overflow",23.9468290469149
+"moderate_intensity",17,"R2B reception overflow",0.000349589107871806
+"moderate_intensity",17,"R2B evacuation wait overflow",0
+"moderate_intensity",17,"R2E post-operative overflow",4.06585386581187
+"moderate_intensity",17,"R2E pre-flight overflow",0.157507948189949
+"moderate_intensity",17,"R2E staging overflow",17.4869161538026
+"moderate_intensity",18,"R2B reception overflow",0.00116145140913387
+"moderate_intensity",18,"R2B evacuation wait overflow",0
+"moderate_intensity",18,"R2E post-operative overflow",5.38287900938045
+"moderate_intensity",18,"R2E pre-flight overflow",0.441233837229172
+"moderate_intensity",18,"R2E staging overflow",27.4748310624257
+"moderate_intensity",19,"R2B reception overflow",0.0139162554002604
+"moderate_intensity",19,"R2B evacuation wait overflow",0.0119146351671382
+"moderate_intensity",19,"R2E post-operative overflow",6.40871016939245
+"moderate_intensity",19,"R2E pre-flight overflow",0.5944823281648
+"moderate_intensity",19,"R2E staging overflow",34.5442744468158
+"moderate_intensity",20,"R2B reception overflow",0.00366577576647906
+"moderate_intensity",20,"R2B evacuation wait overflow",0.00214183508115246
+"moderate_intensity",20,"R2E post-operative overflow",4.43692135714904
+"moderate_intensity",20,"R2E pre-flight overflow",0.363283890784712
+"moderate_intensity",20,"R2E staging overflow",18.1063162884649
+"moderate_intensity",21,"R2B reception overflow",0.00170109850008705
+"moderate_intensity",21,"R2B evacuation wait overflow",0
+"moderate_intensity",21,"R2E post-operative overflow",4.93023578252867
+"moderate_intensity",21,"R2E pre-flight overflow",0.332970616824911
+"moderate_intensity",21,"R2E staging overflow",41.1469666240155
+"moderate_intensity",22,"R2B reception overflow",0
+"moderate_intensity",22,"R2B evacuation wait overflow",0
+"moderate_intensity",22,"R2E post-operative overflow",5.7679326862412
+"moderate_intensity",22,"R2E pre-flight overflow",0.41675442916696
+"moderate_intensity",22,"R2E staging overflow",25.4948183515923
+"moderate_intensity",23,"R2B reception overflow",0.00114170081007031
+"moderate_intensity",23,"R2B evacuation wait overflow",0
+"moderate_intensity",23,"R2E post-operative overflow",4.97115557128551
+"moderate_intensity",23,"R2E pre-flight overflow",0.321054799527043
+"moderate_intensity",23,"R2E staging overflow",20.6347508158499
+"moderate_intensity",24,"R2B reception overflow",0.00945829008051617
+"moderate_intensity",24,"R2B evacuation wait overflow",0.00672512557018813
+"moderate_intensity",24,"R2E post-operative overflow",5.13077552152523
+"moderate_intensity",24,"R2E pre-flight overflow",0.355936344744825
+"moderate_intensity",24,"R2E staging overflow",24.4827219043746
+"moderate_intensity",25,"R2B reception overflow",0.0776993093508685
+"moderate_intensity",25,"R2B evacuation wait overflow",0.0415450005391517
+"moderate_intensity",25,"R2E post-operative overflow",6.96698020996433
+"moderate_intensity",25,"R2E pre-flight overflow",0.589577045890481
+"moderate_intensity",25,"R2E staging overflow",127.774407050274
+"moderate_intensity",26,"R2B reception overflow",0.00699465689591352
+"moderate_intensity",26,"R2B evacuation wait overflow",0
+"moderate_intensity",26,"R2E post-operative overflow",5.65678846492831
+"moderate_intensity",26,"R2E pre-flight overflow",0.589356583221531
+"moderate_intensity",26,"R2E staging overflow",45.7217651206783
+"moderate_intensity",27,"R2B reception overflow",7.93429620368701e-05
+"moderate_intensity",27,"R2B evacuation wait overflow",0.000901113819076452
+"moderate_intensity",27,"R2E post-operative overflow",5.25419526706401
+"moderate_intensity",27,"R2E pre-flight overflow",0.298083274642052
+"moderate_intensity",27,"R2E staging overflow",22.3550187667311
+"moderate_intensity",28,"R2B reception overflow",0.0167287512835124
+"moderate_intensity",28,"R2B evacuation wait overflow",0.00576917024441902
+"moderate_intensity",28,"R2E post-operative overflow",6.14251419061333
+"moderate_intensity",28,"R2E pre-flight overflow",0.755050108568993
+"moderate_intensity",28,"R2E staging overflow",32.9057626335979
+"moderate_intensity",29,"R2B reception overflow",6.96366322392103e-05
+"moderate_intensity",29,"R2B evacuation wait overflow",0
+"moderate_intensity",29,"R2E post-operative overflow",5.80283789517284
+"moderate_intensity",29,"R2E pre-flight overflow",0.285584382461092
+"moderate_intensity",29,"R2E staging overflow",34.6837735500968
+"moderate_intensity",30,"R2B reception overflow",0.000951533066292967
+"moderate_intensity",30,"R2B evacuation wait overflow",0.000994823312600748
+"moderate_intensity",30,"R2E post-operative overflow",5.42213149418688
+"moderate_intensity",30,"R2E pre-flight overflow",0.296538392801318
+"moderate_intensity",30,"R2E staging overflow",29.4789405982553
+"high_intensity",1,"R2B Hold",0.605042964829923
 "high_intensity",1,"R2B OT",0
-"high_intensity",1,"R2E Hold",55.7889148707677
+"high_intensity",1,"R2E Hold",57.8570769873975
 "high_intensity",1,"R2E ICU",0
-"high_intensity",1,"R2E OT",132.019931970849
-"high_intensity",1,"Transport",1.48589721743183
-"high_intensity",1,"R2B reception overflow",0.116048843121328
-"high_intensity",1,"R2B evacuation wait overflow",0.0705066965688789
-"high_intensity",1,"R2E post-operative overflow",20.5274002621032
-"high_intensity",1,"R2E pre-flight overflow",5.85485575221883
-"high_intensity",1,"R2E staging overflow",2630.4269218314
-"high_intensity",2,"R2B Hold",0.208983391417057
+"high_intensity",1,"R2E OT",104.604834211478
+"high_intensity",1,"Transport",4.62394708367904
+"high_intensity",2,"R2B Hold",0.166674697111378
 "high_intensity",2,"R2B OT",0
-"high_intensity",2,"R2E Hold",51.8204509911413
+"high_intensity",2,"R2E Hold",51.1986167829716
 "high_intensity",2,"R2E ICU",0
-"high_intensity",2,"R2E OT",122.893047193726
-"high_intensity",2,"Transport",2.00698033126336
-"high_intensity",2,"R2B reception overflow",0.288455109307793
-"high_intensity",2,"R2B evacuation wait overflow",0.156090771442487
-"high_intensity",2,"R2E post-operative overflow",20.2573786444249
-"high_intensity",2,"R2E pre-flight overflow",5.94555328879032
-"high_intensity",2,"R2E staging overflow",2459.47119173356
-"high_intensity",3,"R2B Hold",0.352445767634112
+"high_intensity",2,"R2E OT",139.663678729815
+"high_intensity",2,"Transport",2.18545484593254
+"high_intensity",3,"R2B Hold",0.350430685482331
 "high_intensity",3,"R2B OT",0
-"high_intensity",3,"R2E Hold",49.4576179227309
+"high_intensity",3,"R2E Hold",46.0354731761468
 "high_intensity",3,"R2E ICU",0
-"high_intensity",3,"R2E OT",74.049725182576
-"high_intensity",3,"Transport",1.75202457081876
-"high_intensity",3,"R2B reception overflow",0.478626691739074
-"high_intensity",3,"R2B evacuation wait overflow",0.256960921437786
-"high_intensity",3,"R2E post-operative overflow",20.3419441408087
-"high_intensity",3,"R2E pre-flight overflow",5.96290471328086
-"high_intensity",3,"R2E staging overflow",2591.89121085384
-"high_intensity",4,"R2B Hold",0.439391107784398
+"high_intensity",3,"R2E OT",329.597041229675
+"high_intensity",3,"Transport",3.68435012259541
+"high_intensity",4,"R2B Hold",0.0763261803112376
 "high_intensity",4,"R2B OT",0
-"high_intensity",4,"R2E Hold",50.2840183486422
+"high_intensity",4,"R2E Hold",55.9600298024966
 "high_intensity",4,"R2E ICU",0
-"high_intensity",4,"R2E OT",92.0263169186706
-"high_intensity",4,"Transport",2.73700268684394
-"high_intensity",4,"R2B reception overflow",0.431300372947249
-"high_intensity",4,"R2B evacuation wait overflow",0.38671425238727
-"high_intensity",4,"R2E post-operative overflow",19.6180719800668
-"high_intensity",4,"R2E pre-flight overflow",5.15885960881782
-"high_intensity",4,"R2E staging overflow",2447.77771530411
-"high_intensity",5,"R2B Hold",0.381677341142879
+"high_intensity",4,"R2E OT",47.3332610716146
+"high_intensity",4,"Transport",1.85042545409914
+"high_intensity",5,"R2B Hold",0.467874919022593
 "high_intensity",5,"R2B OT",0
-"high_intensity",5,"R2E Hold",54.8744416484249
+"high_intensity",5,"R2E Hold",61.3244568121149
 "high_intensity",5,"R2E ICU",0
-"high_intensity",5,"R2E OT",21.155959970256
-"high_intensity",5,"Transport",1.88469090068544
-"high_intensity",5,"R2B reception overflow",0.297628186615659
-"high_intensity",5,"R2B evacuation wait overflow",0.144086521736455
-"high_intensity",5,"R2E post-operative overflow",20.0409769337576
-"high_intensity",5,"R2E pre-flight overflow",5.71621721142327
-"high_intensity",5,"R2E staging overflow",2507.11803132953
-"high_intensity",6,"R2B Hold",0.0180302700670156
+"high_intensity",5,"R2E OT",95.5659188271801
+"high_intensity",5,"Transport",6.50676198625986
+"high_intensity",6,"R2B Hold",0.253151637885612
 "high_intensity",6,"R2B OT",0
-"high_intensity",6,"R2E Hold",48.1477312820985
+"high_intensity",6,"R2E Hold",62.4612700544166
 "high_intensity",6,"R2E ICU",0
-"high_intensity",6,"R2E OT",101.500333634537
-"high_intensity",6,"Transport",1.18437738644449
-"high_intensity",6,"R2B reception overflow",0.26480420344047
-"high_intensity",6,"R2B evacuation wait overflow",0.183246699395784
-"high_intensity",6,"R2E post-operative overflow",19.472738616626
-"high_intensity",6,"R2E pre-flight overflow",5.68368177567525
-"high_intensity",6,"R2E staging overflow",2591.2503543098
-"high_intensity",7,"R2B Hold",0.394044484079623
+"high_intensity",6,"R2E OT",78.2377423138232
+"high_intensity",6,"Transport",0.699071187975739
+"high_intensity",7,"R2B Hold",0.28061310839867
 "high_intensity",7,"R2B OT",0
-"high_intensity",7,"R2E Hold",56.3576406938741
+"high_intensity",7,"R2E Hold",47.5369439623321
 "high_intensity",7,"R2E ICU",0
-"high_intensity",7,"R2E OT",46.0041655198773
-"high_intensity",7,"Transport",2.88799964617836
-"high_intensity",7,"R2B reception overflow",0.348969962915618
-"high_intensity",7,"R2B evacuation wait overflow",0.224343964523747
-"high_intensity",7,"R2E post-operative overflow",19.2008715105484
-"high_intensity",7,"R2E pre-flight overflow",4.87953113852413
-"high_intensity",7,"R2E staging overflow",2324.32298644725
-"high_intensity",8,"R2B Hold",0.4157379541809
+"high_intensity",7,"R2E OT",19.2345075756438
+"high_intensity",7,"Transport",0.76367858789909
+"high_intensity",8,"R2B Hold",0.198561645607779
 "high_intensity",8,"R2B OT",0
-"high_intensity",8,"R2E Hold",53.9806833963601
+"high_intensity",8,"R2E Hold",50.5597565332717
 "high_intensity",8,"R2E ICU",0
-"high_intensity",8,"R2E OT",46.7785457428216
-"high_intensity",8,"Transport",2.96253003293775
-"high_intensity",8,"R2B reception overflow",0.262035047482575
-"high_intensity",8,"R2B evacuation wait overflow",0.164230076048924
-"high_intensity",8,"R2E post-operative overflow",20.6141096189238
-"high_intensity",8,"R2E pre-flight overflow",6.09527698068621
-"high_intensity",8,"R2E staging overflow",2666.41773851438
-"high_intensity",9,"R2B Hold",0.39197449108209
+"high_intensity",8,"R2E OT",97.3773007343926
+"high_intensity",8,"Transport",2.21206757151658
+"high_intensity",9,"R2B Hold",0.623862063001744
 "high_intensity",9,"R2B OT",0
-"high_intensity",9,"R2E Hold",47.7125329256688
+"high_intensity",9,"R2E Hold",49.3924949733583
 "high_intensity",9,"R2E ICU",0
-"high_intensity",9,"R2E OT",33.5031990233522
-"high_intensity",9,"Transport",1.93312677932635
-"high_intensity",9,"R2B reception overflow",0.223072779312713
-"high_intensity",9,"R2B evacuation wait overflow",0.135699984886551
-"high_intensity",9,"R2E post-operative overflow",20.3678373374804
-"high_intensity",9,"R2E pre-flight overflow",6.11871326177362
-"high_intensity",9,"R2E staging overflow",2603.81239176398
-"high_intensity",10,"R2B Hold",0.639434362607819
+"high_intensity",9,"R2E OT",226.29775454897
+"high_intensity",9,"Transport",2.36296129177931
+"high_intensity",10,"R2B Hold",0.520594921165808
 "high_intensity",10,"R2B OT",0
-"high_intensity",10,"R2E Hold",60.0858158596023
+"high_intensity",10,"R2E Hold",58.6338315068707
 "high_intensity",10,"R2E ICU",0
-"high_intensity",10,"R2E OT",238.775088485516
-"high_intensity",10,"Transport",2.69499328586969
-"high_intensity",10,"R2B reception overflow",0.308161285876169
-"high_intensity",10,"R2B evacuation wait overflow",0.298989772277971
-"high_intensity",10,"R2E post-operative overflow",19.8942159173733
-"high_intensity",10,"R2E pre-flight overflow",5.39891759762
-"high_intensity",10,"R2E staging overflow",2574.28003779556
-"high_intensity",11,"R2B Hold",0.160724922640211
+"high_intensity",10,"R2E OT",172.818931265236
+"high_intensity",10,"Transport",0.907499780512934
+"high_intensity",11,"R2B Hold",0.493232490847391
 "high_intensity",11,"R2B OT",0
-"high_intensity",11,"R2E Hold",49.7570730726351
+"high_intensity",11,"R2E Hold",49.7276886945496
 "high_intensity",11,"R2E ICU",0
-"high_intensity",11,"R2E OT",8.42823937376357
-"high_intensity",11,"Transport",0.501325533367868
-"high_intensity",11,"R2B reception overflow",0.0841486149963636
-"high_intensity",11,"R2B evacuation wait overflow",0.0172016360954072
-"high_intensity",11,"R2E post-operative overflow",17.4564504871618
-"high_intensity",11,"R2E pre-flight overflow",4.02795720799965
-"high_intensity",11,"R2E staging overflow",2332.76055034775
-"high_intensity",12,"R2B Hold",0.243758150213453
+"high_intensity",11,"R2E OT",55.0450924287158
+"high_intensity",11,"Transport",0.836371203257774
+"high_intensity",12,"R2B Hold",0.393870214692809
 "high_intensity",12,"R2B OT",0
-"high_intensity",12,"R2E Hold",51.5598712639956
+"high_intensity",12,"R2E Hold",57.7525348953858
 "high_intensity",12,"R2E ICU",0
-"high_intensity",12,"R2E OT",116.582344411632
-"high_intensity",12,"Transport",1.42878690021333
-"high_intensity",12,"R2B reception overflow",0.220759790450704
-"high_intensity",12,"R2B evacuation wait overflow",0.112828484532624
-"high_intensity",12,"R2E post-operative overflow",20.3394448996408
-"high_intensity",12,"R2E pre-flight overflow",5.91545287414529
-"high_intensity",12,"R2E staging overflow",2576.5265559788
-"high_intensity",13,"R2B Hold",0.236154423895984
+"high_intensity",12,"R2E OT",196.273125200936
+"high_intensity",12,"Transport",2.91995074897864
+"high_intensity",13,"R2B Hold",0.234855519369508
 "high_intensity",13,"R2B OT",0
-"high_intensity",13,"R2E Hold",60.9455850672211
+"high_intensity",13,"R2E Hold",52.5395496307627
 "high_intensity",13,"R2E ICU",0
-"high_intensity",13,"R2E OT",69.8470342991321
-"high_intensity",13,"Transport",1.38479318432345
-"high_intensity",13,"R2B reception overflow",0.235908182387892
-"high_intensity",13,"R2B evacuation wait overflow",0.068026865382937
-"high_intensity",13,"R2E post-operative overflow",20.4801820751738
-"high_intensity",13,"R2E pre-flight overflow",6.21800172959961
-"high_intensity",13,"R2E staging overflow",2615.97142112896
-"high_intensity",14,"R2B Hold",0.28922696921821
+"high_intensity",13,"R2E OT",27.4698953512652
+"high_intensity",13,"Transport",1.56358632774317
+"high_intensity",14,"R2B Hold",0.0774615462370598
 "high_intensity",14,"R2B OT",0
-"high_intensity",14,"R2E Hold",55.7928547759549
+"high_intensity",14,"R2E Hold",46.3651526304593
 "high_intensity",14,"R2E ICU",0
-"high_intensity",14,"R2E OT",71.1728487931307
-"high_intensity",14,"Transport",0.920795352836701
-"high_intensity",14,"R2B reception overflow",0.177987902139776
-"high_intensity",14,"R2B evacuation wait overflow",0.0501514205179329
-"high_intensity",14,"R2E post-operative overflow",20.8705918909667
-"high_intensity",14,"R2E pre-flight overflow",6.21239174997235
-"high_intensity",14,"R2E staging overflow",2491.89926011686
-"high_intensity",15,"R2B Hold",0.255095131835805
+"high_intensity",14,"R2E OT",15.9435675578698
+"high_intensity",14,"Transport",1.10766654601819
+"high_intensity",15,"R2B Hold",0.385356694136878
 "high_intensity",15,"R2B OT",0
-"high_intensity",15,"R2E Hold",59.8770980937486
+"high_intensity",15,"R2E Hold",58.6803564875025
 "high_intensity",15,"R2E ICU",0
-"high_intensity",15,"R2E OT",171.813035331501
-"high_intensity",15,"Transport",4.28974572219722
-"high_intensity",15,"R2B reception overflow",0.285449200869798
-"high_intensity",15,"R2B evacuation wait overflow",0.2228500391839
-"high_intensity",15,"R2E post-operative overflow",19.598329302105
-"high_intensity",15,"R2E pre-flight overflow",5.39707018132789
-"high_intensity",15,"R2E staging overflow",2462.52043835075
-"high_intensity",16,"R2B Hold",0.572592959063101
+"high_intensity",15,"R2E OT",24.6144856178537
+"high_intensity",15,"Transport",3.64032753836715
+"high_intensity",16,"R2B Hold",0.282212630186402
 "high_intensity",16,"R2B OT",0
-"high_intensity",16,"R2E Hold",48.9709876175411
+"high_intensity",16,"R2E Hold",43.0105336495186
 "high_intensity",16,"R2E ICU",0
-"high_intensity",16,"R2E OT",16.1974192618131
-"high_intensity",16,"Transport",1.02011315344008
-"high_intensity",16,"R2B reception overflow",0.280644517535493
-"high_intensity",16,"R2B evacuation wait overflow",0.122871519678441
-"high_intensity",16,"R2E post-operative overflow",19.7626766105692
-"high_intensity",16,"R2E pre-flight overflow",5.15035279162906
-"high_intensity",16,"R2E staging overflow",2410.03443521059
-"high_intensity",17,"R2B Hold",0.455234855798947
+"high_intensity",16,"R2E OT",20.2870185767593
+"high_intensity",16,"Transport",1.14993315020986
+"high_intensity",17,"R2B Hold",0.563429015350814
 "high_intensity",17,"R2B OT",0
-"high_intensity",17,"R2E Hold",48.2835169449689
+"high_intensity",17,"R2E Hold",57.6436901662207
 "high_intensity",17,"R2E ICU",0
-"high_intensity",17,"R2E OT",195.734798024453
-"high_intensity",17,"Transport",2.93127288884378
-"high_intensity",17,"R2B reception overflow",0.832296578276112
-"high_intensity",17,"R2B evacuation wait overflow",0.442155561516056
-"high_intensity",17,"R2E post-operative overflow",19.4444923260383
-"high_intensity",17,"R2E pre-flight overflow",5.66904855979512
-"high_intensity",17,"R2E staging overflow",2446.7707316605
-"high_intensity",18,"R2B Hold",0.18819616122316
+"high_intensity",17,"R2E OT",76.2299264494415
+"high_intensity",17,"Transport",1.45521234747092
+"high_intensity",18,"R2B Hold",0.126158973584467
 "high_intensity",18,"R2B OT",0
-"high_intensity",18,"R2E Hold",50.0218884616785
+"high_intensity",18,"R2E Hold",49.7931403877419
 "high_intensity",18,"R2E ICU",0
-"high_intensity",18,"R2E OT",69.2423409464232
-"high_intensity",18,"Transport",1.81143760892393
-"high_intensity",18,"R2B reception overflow",0.480889947217569
-"high_intensity",18,"R2B evacuation wait overflow",0.193532753211679
-"high_intensity",18,"R2E post-operative overflow",20.7224336315661
-"high_intensity",18,"R2E pre-flight overflow",6.25834600816832
-"high_intensity",18,"R2E staging overflow",2656.41614897364
-"high_intensity",19,"R2B Hold",0.35684969600549
+"high_intensity",18,"R2E OT",49.3488262727577
+"high_intensity",18,"Transport",2.88455090973915
+"high_intensity",19,"R2B Hold",0.375942693350074
 "high_intensity",19,"R2B OT",0
-"high_intensity",19,"R2E Hold",57.3358525438261
+"high_intensity",19,"R2E Hold",57.2348045608526
 "high_intensity",19,"R2E ICU",0
-"high_intensity",19,"R2E OT",83.6120793105278
-"high_intensity",19,"Transport",1.41028242473777
-"high_intensity",19,"R2B reception overflow",0.411679025673363
-"high_intensity",19,"R2B evacuation wait overflow",0.190221531231593
-"high_intensity",19,"R2E post-operative overflow",20.7966605475504
-"high_intensity",19,"R2E pre-flight overflow",5.99241379907358
-"high_intensity",19,"R2E staging overflow",2517.67022732735
-"high_intensity",20,"R2B Hold",0.233729467700658
+"high_intensity",19,"R2E OT",131.2314579423
+"high_intensity",19,"Transport",1.88343794849225
+"high_intensity",20,"R2B Hold",0.262138810820741
 "high_intensity",20,"R2B OT",0
-"high_intensity",20,"R2E Hold",49.690007266658
+"high_intensity",20,"R2E Hold",51.1885745545374
 "high_intensity",20,"R2E ICU",0
-"high_intensity",20,"R2E OT",44.5209931387574
-"high_intensity",20,"Transport",0.727760539644169
-"high_intensity",20,"R2B reception overflow",0.0669816365338318
-"high_intensity",20,"R2B evacuation wait overflow",0.0304133440486871
-"high_intensity",20,"R2E post-operative overflow",18.9854627076741
-"high_intensity",20,"R2E pre-flight overflow",5.19243300269133
-"high_intensity",20,"R2E staging overflow",2606.40874051078
-"high_intensity",21,"R2B Hold",0.0955103895453324
+"high_intensity",20,"R2E OT",129.611295292563
+"high_intensity",20,"Transport",2.50929922015423
+"high_intensity",21,"R2B Hold",0.226791131771135
 "high_intensity",21,"R2B OT",0
-"high_intensity",21,"R2E Hold",57.7029442837232
+"high_intensity",21,"R2E Hold",61.3789427433396
 "high_intensity",21,"R2E ICU",0
-"high_intensity",21,"R2E OT",17.8281849391219
-"high_intensity",21,"Transport",0.779148042082661
-"high_intensity",21,"R2B reception overflow",0.100622314575162
-"high_intensity",21,"R2B evacuation wait overflow",0.0364326227416331
-"high_intensity",21,"R2E post-operative overflow",18.7785931200296
-"high_intensity",21,"R2E pre-flight overflow",4.55235372755631
-"high_intensity",21,"R2E staging overflow",2506.1290885189
-"high_intensity",22,"R2B Hold",0.189690927501393
+"high_intensity",21,"R2E OT",133.670495033734
+"high_intensity",21,"Transport",1.37092581275289
+"high_intensity",22,"R2B Hold",0.372542881259662
 "high_intensity",22,"R2B OT",0
-"high_intensity",22,"R2E Hold",53.8733252011354
+"high_intensity",22,"R2E Hold",53.9858673582936
 "high_intensity",22,"R2E ICU",0
-"high_intensity",22,"R2E OT",46.7987609890874
-"high_intensity",22,"Transport",2.1105956666613
-"high_intensity",22,"R2B reception overflow",0.402202982899708
-"high_intensity",22,"R2B evacuation wait overflow",0.286588049154013
-"high_intensity",22,"R2E post-operative overflow",19.9242657001933
-"high_intensity",22,"R2E pre-flight overflow",5.55139114660299
-"high_intensity",22,"R2E staging overflow",2389.98835862458
-"high_intensity",23,"R2B Hold",0.377581638971197
+"high_intensity",22,"R2E OT",36.8422363793036
+"high_intensity",22,"Transport",2.75269370741328
+"high_intensity",23,"R2B Hold",0.803552175214661
 "high_intensity",23,"R2B OT",0
-"high_intensity",23,"R2E Hold",54.3993945130674
+"high_intensity",23,"R2E Hold",67.35589197883
 "high_intensity",23,"R2E ICU",0
-"high_intensity",23,"R2E OT",11.8736995221246
-"high_intensity",23,"Transport",1.38624438919368
-"high_intensity",23,"R2B reception overflow",0.167606489623759
-"high_intensity",23,"R2B evacuation wait overflow",0.116149532417845
-"high_intensity",23,"R2E post-operative overflow",18.1074647137683
-"high_intensity",23,"R2E pre-flight overflow",4.24268395621954
-"high_intensity",23,"R2E staging overflow",2674.62569292944
-"high_intensity",24,"R2B Hold",0.541621906161247
+"high_intensity",23,"R2E OT",64.2153752389229
+"high_intensity",23,"Transport",7.14639851116737
+"high_intensity",24,"R2B Hold",0.0639213191403447
 "high_intensity",24,"R2B OT",0
-"high_intensity",24,"R2E Hold",48.5104849471414
+"high_intensity",24,"R2E Hold",52.8813437812556
 "high_intensity",24,"R2E ICU",0
-"high_intensity",24,"R2E OT",97.2300439430746
-"high_intensity",24,"Transport",1.88836813186476
-"high_intensity",24,"R2B reception overflow",0.396391937348989
-"high_intensity",24,"R2B evacuation wait overflow",0.202191971732694
-"high_intensity",24,"R2E post-operative overflow",20.5502057028064
-"high_intensity",24,"R2E pre-flight overflow",5.94906978014153
-"high_intensity",24,"R2E staging overflow",2459.59600278726
-"high_intensity",25,"R2B Hold",0.492855389506427
+"high_intensity",24,"R2E OT",95.5763377099766
+"high_intensity",24,"Transport",1.10109707030039
+"high_intensity",25,"R2B Hold",0.400773041119791
 "high_intensity",25,"R2B OT",0
-"high_intensity",25,"R2E Hold",67.1458082804726
+"high_intensity",25,"R2E Hold",62.9028092424084
 "high_intensity",25,"R2E ICU",0
-"high_intensity",25,"R2E OT",99.0476770184653
-"high_intensity",25,"Transport",1.99800030462614
-"high_intensity",25,"R2B reception overflow",0.151425931857895
-"high_intensity",25,"R2B evacuation wait overflow",0.0808153380204991
-"high_intensity",25,"R2E post-operative overflow",19.516794356147
-"high_intensity",25,"R2E pre-flight overflow",5.54951099119117
-"high_intensity",25,"R2E staging overflow",2487.89622938067
-"high_intensity",26,"R2B Hold",0.453691489110189
+"high_intensity",25,"R2E OT",353.417190487329
+"high_intensity",25,"Transport",2.04193625307776
+"high_intensity",26,"R2B Hold",0.436515913000849
 "high_intensity",26,"R2B OT",0
-"high_intensity",26,"R2E Hold",56.5513851548333
+"high_intensity",26,"R2E Hold",55.5286285746529
 "high_intensity",26,"R2E ICU",0
-"high_intensity",26,"R2E OT",32.9966635631439
-"high_intensity",26,"Transport",1.07617168898519
-"high_intensity",26,"R2B reception overflow",0.198582387480869
-"high_intensity",26,"R2B evacuation wait overflow",0.16442993697749
-"high_intensity",26,"R2E post-operative overflow",19.9985867119037
-"high_intensity",26,"R2E pre-flight overflow",5.72762636985751
-"high_intensity",26,"R2E staging overflow",2375.87353427613
-"high_intensity",27,"R2B Hold",0.043923722150774
+"high_intensity",26,"R2E OT",48.5536816446694
+"high_intensity",26,"Transport",2.38450470938173
+"high_intensity",27,"R2B Hold",0.318423265193412
 "high_intensity",27,"R2B OT",0
-"high_intensity",27,"R2E Hold",43.0274057908064
+"high_intensity",27,"R2E Hold",51.2913059655557
 "high_intensity",27,"R2E ICU",0
-"high_intensity",27,"R2E OT",20.521463307321
-"high_intensity",27,"Transport",0.49554439474281
-"high_intensity",27,"R2B reception overflow",0.143301983766568
-"high_intensity",27,"R2B evacuation wait overflow",0.0321132522319336
-"high_intensity",27,"R2E post-operative overflow",17.8552942370369
-"high_intensity",27,"R2E pre-flight overflow",4.20307271881782
-"high_intensity",27,"R2E staging overflow",2276.63779362165
-"high_intensity",28,"R2B Hold",0.5353633229333
+"high_intensity",27,"R2E OT",78.5065712556443
+"high_intensity",27,"Transport",0.990433501218578
+"high_intensity",28,"R2B Hold",0.788289729621029
 "high_intensity",28,"R2B OT",0
-"high_intensity",28,"R2E Hold",64.5333941498958
+"high_intensity",28,"R2E Hold",61.8769277592376
 "high_intensity",28,"R2E ICU",0
-"high_intensity",28,"R2E OT",33.2589246050957
-"high_intensity",28,"Transport",2.62448356678135
-"high_intensity",28,"R2B reception overflow",0.37030534019133
-"high_intensity",28,"R2B evacuation wait overflow",0.187729701809371
-"high_intensity",28,"R2E post-operative overflow",20.4041398841314
-"high_intensity",28,"R2E pre-flight overflow",5.75790428330006
-"high_intensity",28,"R2E staging overflow",2474.3843515378
-"high_intensity",29,"R2B Hold",0.267709924989001
+"high_intensity",28,"R2E OT",66.521879165488
+"high_intensity",28,"Transport",1.59176863311335
+"high_intensity",29,"R2B Hold",0.43834724453086
 "high_intensity",29,"R2B OT",0
-"high_intensity",29,"R2E Hold",54.1740306793789
+"high_intensity",29,"R2E Hold",54.3778473131804
 "high_intensity",29,"R2E ICU",0
-"high_intensity",29,"R2E OT",23.8650542114977
-"high_intensity",29,"Transport",0.944127615891622
-"high_intensity",29,"R2B reception overflow",0.105081270586075
-"high_intensity",29,"R2B evacuation wait overflow",0.04294049366251
-"high_intensity",29,"R2E post-operative overflow",19.8260604335502
-"high_intensity",29,"R2E pre-flight overflow",5.68739112604241
-"high_intensity",29,"R2E staging overflow",2670.58199309864
-"high_intensity",30,"R2B Hold",0.274297083277791
+"high_intensity",29,"R2E OT",91.0708697906318
+"high_intensity",29,"Transport",2.6645180431537
+"high_intensity",30,"R2B Hold",0
 "high_intensity",30,"R2B OT",0
-"high_intensity",30,"R2E Hold",61.2651060868513
+"high_intensity",30,"R2E Hold",44.6268459823166
 "high_intensity",30,"R2E ICU",0
-"high_intensity",30,"R2E OT",39.2115956978758
-"high_intensity",30,"Transport",1.54630501329293
-"high_intensity",30,"R2B reception overflow",0.19903832295924
-"high_intensity",30,"R2B evacuation wait overflow",0.102416211843305
-"high_intensity",30,"R2E post-operative overflow",20.0618715440482
-"high_intensity",30,"R2E pre-flight overflow",6.04246520246261
-"high_intensity",30,"R2E staging overflow",2642.93553634591
+"high_intensity",30,"R2E OT",8.46762670709855
+"high_intensity",30,"Transport",0.535018075844589
+"high_intensity",1,"R2B reception overflow",0.5774388834485
+"high_intensity",1,"R2B evacuation wait overflow",0.411728801216488
+"high_intensity",1,"R2E post-operative overflow",20.4576263224855
+"high_intensity",1,"R2E pre-flight overflow",5.75303640174942
+"high_intensity",1,"R2E staging overflow",1580.1528667971
+"high_intensity",2,"R2B reception overflow",0.416950003320193
+"high_intensity",2,"R2B evacuation wait overflow",0.226456768208955
+"high_intensity",2,"R2E post-operative overflow",19.5028704458406
+"high_intensity",2,"R2E pre-flight overflow",5.88573417683124
+"high_intensity",2,"R2E staging overflow",1379.80192961739
+"high_intensity",3,"R2B reception overflow",0.501463245661355
+"high_intensity",3,"R2B evacuation wait overflow",0.549062729435285
+"high_intensity",3,"R2E post-operative overflow",17.8530667400662
+"high_intensity",3,"R2E pre-flight overflow",4.55449656234223
+"high_intensity",3,"R2E staging overflow",1407.7414400799
+"high_intensity",4,"R2B reception overflow",0.209090743965821
+"high_intensity",4,"R2B evacuation wait overflow",0.140745584918986
+"high_intensity",4,"R2E post-operative overflow",21.0618850396777
+"high_intensity",4,"R2E pre-flight overflow",6.47441256534466
+"high_intensity",4,"R2E staging overflow",1406.19517793348
+"high_intensity",5,"R2B reception overflow",0.841955252166666
+"high_intensity",5,"R2B evacuation wait overflow",0.83718810807331
+"high_intensity",5,"R2E post-operative overflow",20.1439132525805
+"high_intensity",5,"R2E pre-flight overflow",5.99304623557581
+"high_intensity",5,"R2E staging overflow",1407.44875267546
+"high_intensity",6,"R2B reception overflow",0.0942534323093814
+"high_intensity",6,"R2B evacuation wait overflow",0.0465345191524192
+"high_intensity",6,"R2E post-operative overflow",20.4681900034219
+"high_intensity",6,"R2E pre-flight overflow",6.17041568568421
+"high_intensity",6,"R2E staging overflow",1403.09720529957
+"high_intensity",7,"R2B reception overflow",0.167740676107231
+"high_intensity",7,"R2B evacuation wait overflow",0.0913358814315093
+"high_intensity",7,"R2E post-operative overflow",18.2477891936929
+"high_intensity",7,"R2E pre-flight overflow",4.51392953853247
+"high_intensity",7,"R2E staging overflow",1320.74949285872
+"high_intensity",8,"R2B reception overflow",0.529851287675364
+"high_intensity",8,"R2B evacuation wait overflow",0.253990156517557
+"high_intensity",8,"R2E post-operative overflow",20.0961590745959
+"high_intensity",8,"R2E pre-flight overflow",5.9095982530619
+"high_intensity",8,"R2E staging overflow",1241.09799818286
+"high_intensity",9,"R2B reception overflow",0.776477732359545
+"high_intensity",9,"R2B evacuation wait overflow",0.413517164932066
+"high_intensity",9,"R2E post-operative overflow",18.5312805233175
+"high_intensity",9,"R2E pre-flight overflow",4.78314077756469
+"high_intensity",9,"R2E staging overflow",1282.43085387007
+"high_intensity",10,"R2B reception overflow",0.139979589104149
+"high_intensity",10,"R2B evacuation wait overflow",0.0723135104967469
+"high_intensity",10,"R2E post-operative overflow",19.0273730104344
+"high_intensity",10,"R2E pre-flight overflow",5.06645860596244
+"high_intensity",10,"R2E staging overflow",1372.38994771197
+"high_intensity",11,"R2B reception overflow",0.246077231572929
+"high_intensity",11,"R2B evacuation wait overflow",0.0998496398581869
+"high_intensity",11,"R2E post-operative overflow",20.2511003073327
+"high_intensity",11,"R2E pre-flight overflow",5.66439325324806
+"high_intensity",11,"R2E staging overflow",1397.1682505082
+"high_intensity",12,"R2B reception overflow",0.19796289997061
+"high_intensity",12,"R2B evacuation wait overflow",0.186571454785573
+"high_intensity",12,"R2E post-operative overflow",18.578737760036
+"high_intensity",12,"R2E pre-flight overflow",4.89033001196726
+"high_intensity",12,"R2E staging overflow",1343.07250806688
+"high_intensity",13,"R2B reception overflow",0.202265646684306
+"high_intensity",13,"R2B evacuation wait overflow",0.179600865380259
+"high_intensity",13,"R2E post-operative overflow",19.8803940119299
+"high_intensity",13,"R2E pre-flight overflow",5.35329607727771
+"high_intensity",13,"R2E staging overflow",1387.38442742432
+"high_intensity",14,"R2B reception overflow",0.183201035030585
+"high_intensity",14,"R2B evacuation wait overflow",0.0789448392980517
+"high_intensity",14,"R2E post-operative overflow",19.3289253000364
+"high_intensity",14,"R2E pre-flight overflow",4.94381163055451
+"high_intensity",14,"R2E staging overflow",1293.25904648895
+"high_intensity",15,"R2B reception overflow",0.456978339454441
+"high_intensity",15,"R2B evacuation wait overflow",0.353014061578011
+"high_intensity",15,"R2E post-operative overflow",19.7664327778237
+"high_intensity",15,"R2E pre-flight overflow",5.29202809816131
+"high_intensity",15,"R2E staging overflow",1463.84056534941
+"high_intensity",16,"R2B reception overflow",0.219271775442031
+"high_intensity",16,"R2B evacuation wait overflow",0.0887415094812119
+"high_intensity",16,"R2E post-operative overflow",19.0193396675823
+"high_intensity",16,"R2E pre-flight overflow",5.14317621736244
+"high_intensity",16,"R2E staging overflow",1363.31270029413
+"high_intensity",17,"R2B reception overflow",0.333804914467874
+"high_intensity",17,"R2B evacuation wait overflow",0.129050031048531
+"high_intensity",17,"R2E post-operative overflow",20.4688552044282
+"high_intensity",17,"R2E pre-flight overflow",6.05466637603005
+"high_intensity",17,"R2E staging overflow",1512.17560128447
+"high_intensity",18,"R2B reception overflow",0.372752766640643
+"high_intensity",18,"R2B evacuation wait overflow",0.336222201003238
+"high_intensity",18,"R2E post-operative overflow",19.7053664053816
+"high_intensity",18,"R2E pre-flight overflow",6.01262026525794
+"high_intensity",18,"R2E staging overflow",1530.09049648529
+"high_intensity",19,"R2B reception overflow",0.307787546848758
+"high_intensity",19,"R2B evacuation wait overflow",0.27361272538236
+"high_intensity",19,"R2E post-operative overflow",19.4007011578548
+"high_intensity",19,"R2E pre-flight overflow",5.70202590734822
+"high_intensity",19,"R2E staging overflow",1425.40696192054
+"high_intensity",20,"R2B reception overflow",0.323145956898562
+"high_intensity",20,"R2B evacuation wait overflow",0.359154689180336
+"high_intensity",20,"R2E post-operative overflow",20.1418433859028
+"high_intensity",20,"R2E pre-flight overflow",5.83779511605198
+"high_intensity",20,"R2E staging overflow",1520.47707352939
+"high_intensity",21,"R2B reception overflow",0.134130789288044
+"high_intensity",21,"R2B evacuation wait overflow",0.0672188039278644
+"high_intensity",21,"R2E post-operative overflow",19.6471563902088
+"high_intensity",21,"R2E pre-flight overflow",5.48920934354731
+"high_intensity",21,"R2E staging overflow",1463.53643299783
+"high_intensity",22,"R2B reception overflow",0.398342206385601
+"high_intensity",22,"R2B evacuation wait overflow",0.310036979709067
+"high_intensity",22,"R2E post-operative overflow",19.7838796697242
+"high_intensity",22,"R2E pre-flight overflow",5.45448476114512
+"high_intensity",22,"R2E staging overflow",1407.84219388926
+"high_intensity",23,"R2B reception overflow",1.10453275202729
+"high_intensity",23,"R2B evacuation wait overflow",1.0581359642316
+"high_intensity",23,"R2E post-operative overflow",20.0575832318526
+"high_intensity",23,"R2E pre-flight overflow",6.02177812368877
+"high_intensity",23,"R2E staging overflow",1570.40190863654
+"high_intensity",24,"R2B reception overflow",0.126900936850263
+"high_intensity",24,"R2B evacuation wait overflow",0.0453907671468398
+"high_intensity",24,"R2E post-operative overflow",20.5349258222711
+"high_intensity",24,"R2E pre-flight overflow",5.71077722519123
+"high_intensity",24,"R2E staging overflow",1457.73729576665
+"high_intensity",25,"R2B reception overflow",0.322608662716513
+"high_intensity",25,"R2B evacuation wait overflow",0.134745588100489
+"high_intensity",25,"R2E post-operative overflow",17.6776408455902
+"high_intensity",25,"R2E pre-flight overflow",4.33478028825127
+"high_intensity",25,"R2E staging overflow",1248.23949320187
+"high_intensity",26,"R2B reception overflow",0.35065830446502
+"high_intensity",26,"R2B evacuation wait overflow",0.243757263609503
+"high_intensity",26,"R2E post-operative overflow",20.792895042798
+"high_intensity",26,"R2E pre-flight overflow",5.76353671621662
+"high_intensity",26,"R2E staging overflow",1465.50111540426
+"high_intensity",27,"R2B reception overflow",0.237507409859767
+"high_intensity",27,"R2B evacuation wait overflow",0.113105029517627
+"high_intensity",27,"R2E post-operative overflow",20.1697683593215
+"high_intensity",27,"R2E pre-flight overflow",6.03491125074969
+"high_intensity",27,"R2E staging overflow",1441.24539187682
+"high_intensity",28,"R2B reception overflow",0.194410669044596
+"high_intensity",28,"R2B evacuation wait overflow",0.0921748069736098
+"high_intensity",28,"R2E post-operative overflow",20.8117166788232
+"high_intensity",28,"R2E pre-flight overflow",6.42614850490755
+"high_intensity",28,"R2E staging overflow",1459.39790011539
+"high_intensity",29,"R2B reception overflow",0.444201816137055
+"high_intensity",29,"R2B evacuation wait overflow",0.194042552132398
+"high_intensity",29,"R2E post-operative overflow",20.3035439988993
+"high_intensity",29,"R2E pre-flight overflow",5.98157729249847
+"high_intensity",29,"R2E staging overflow",1517.43071656087
+"high_intensity",30,"R2B reception overflow",0.149855589881596
+"high_intensity",30,"R2B evacuation wait overflow",0.0788699619791979
+"high_intensity",30,"R2E post-operative overflow",16.9670627909386
+"high_intensity",30,"R2E pre-flight overflow",3.53172403410271
+"high_intensity",30,"R2E staging overflow",1293.50130744183

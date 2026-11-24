@@ -304,8 +304,9 @@ drain_airlift_backlog <- function(route, queued_at, death_time, n_days, interval
 #'
 #' @details A casualty is in the backlog where their evacuation was decided and
 #'   a route assigned but no sortie had carried them by the horizon and they had
-#'   not died. Casualties still in surgery or in a Role 2 bed at the horizon,
-#'   their evacuation not yet decided, are not among them.
+#'   neither died nor returned to duty while waiting. Casualties still in
+#'   surgery or in a Role 2 bed at the horizon, their evacuation not yet
+#'   decided, are not among them.
 role4_backlog_tail_detail <- function(arrivals_log, r4_params, n_days) {
   #' One attribute column of the arrivals log, missing throughout where absent
   #'
@@ -315,8 +316,9 @@ role4_backlog_tail_detail <- function(arrivals_log, r4_params, n_days) {
     if (name %in% names(arrivals_log)) arrivals_log[[name]] else rep(NA_real_, nrow(arrivals_log))
   }
   dead <- !is.na(col("dow")) & col("dow") == 1
+  returned <- !is.na(col("ame_rtd")) & col("ame_rtd") == 1
   waiting <- which(!is.na(col("ame_route")) & is.na(col("evacuation_day")) &
-                     !is.na(col("r2e_evac")) & col("r2e_evac") == 1 & !dead)
+                     !is.na(col("r2e_evac")) & col("r2e_evac") == 1 & !dead & !returned)
   airframe <- resolve_ame_airframe(r4_params)
   places <- c(as.numeric(airframe$critical_capacity), as.numeric(airframe$standard_capacity))
   failure <- as.numeric(r4_params$ame$failure_probability)
@@ -340,6 +342,50 @@ role4_backlog_tail_detail <- function(arrivals_log, r4_params, n_days) {
   out[["census_peak_after_all"]] <- role4_census_peak_after(phases, n_days)
   out[c("days_to_half_all", "days_to_tenth_all", "days_to_empty_all", "bed_days_after_all")] <-
     all[c("days_to_half", "days_to_tenth", "days_to_empty", "bed_days_after")]
+  out
+}
+
+#' Measures of the convalescent evacuees who returned to duty awaiting airlift
+#'
+#' `convalescent_evacuees` counts the casualties evacuated for recovery beyond
+#' the theatre evacuation policy (`evacuation_reason` 1);
+#' `returned_awaiting_airlift` those of them whose convalescence ended before a
+#' sortie carried them, who returned to duty from R2E (`ame_rtd`);
+#' `returned_days_beyond_policy` the convalescence those returned served beyond
+#' the policy, summed over them, in days; and `returned_days_held` the time from
+#' their evacuation decision to their return, summed over them, in days.
+ROLE4_RETURNED_MEASURES <- c("convalescent_evacuees", "returned_awaiting_airlift",
+                             "returned_days_beyond_policy", "returned_days_held")
+
+#' Count the convalescent evacuees who returned to duty while awaiting airlift
+#'
+#' @param arrivals_log Per-casualty arrivals and attributes of one replication.
+#' @param policy_days The theatre evacuation policy, in days.
+#' @return Named numeric vector of ROLE4_RETURNED_MEASURES.
+#'
+#' @details Each of these casualties is load the national support base never
+#'   receives, so the measures size what the backlog removes from Role 4 rather
+#'   than delays. The days beyond the policy are the drawn recovery less the
+#'   policy, the convalescence the policy would have served at Role 4; the days
+#'   held run from the evacuation decision (`r2e_departure_time`) to the return
+#'   (`ame_hold_end`), the time spent holding a staging place while waiting.
+#'   Draws no random number.
+role4_returned_detail <- function(arrivals_log, policy_days) {
+  #' One attribute column of the arrivals log, missing throughout where absent
+  #'
+  #' @param name Attribute name.
+  #' @return The column, or NA for every casualty where the run never set it.
+  col <- function(name) {
+    if (name %in% names(arrivals_log)) arrivals_log[[name]] else rep(NA_real_, nrow(arrivals_log))
+  }
+  reason <- col("evacuation_reason")
+  returned <- which(!is.na(col("ame_rtd")) & col("ame_rtd") == 1)
+  out <- stats::setNames(numeric(length(ROLE4_RETURNED_MEASURES)), ROLE4_RETURNED_MEASURES)
+  out[["convalescent_evacuees"]] <- sum(!is.na(reason) & reason == 1)
+  out[["returned_awaiting_airlift"]] <- length(returned)
+  out[["returned_days_beyond_policy"]] <- sum(col("recovery_to_duty_days")[returned] - policy_days)
+  out[["returned_days_held"]] <-
+    sum(col("ame_hold_end")[returned] - col("r2e_departure_time")[returned]) / DAY_MIN
   out
 }
 
@@ -444,19 +490,22 @@ role4_operations_detail <- function(arrivals_log, r4_params, n_days) {
 #' @param n_days Campaign length in days.
 #' @param seed The replication's seed, under which the length-of-stay draw is
 #'   taken.
+#' @param policy_days The theatre evacuation policy, in days, against which
+#'   role4_returned_detail() measures the convalescence served in theatre.
 #' @return Data frame of day, series, subject and value in long form: the
 #'   `census` of each subject, the `operations` owed each day by source and in
 #'   all, the `theatre_minutes` owed each day, and two single-row series on the last day: the
 #'   `operations_after_horizon` owed after it and the `operations_admitted`
 #'   owed in all by the casualties the campaign admitted, and the `census_tail`,
-#'   one row per measure of role4_census_tail() on the last day.
+#'   one row per measure of role4_census_tail(), role4_backlog_tail_detail()
+#'   and role4_returned_detail() on the last day.
 #'
 #' @details The census and the demand are each drawn under the replication's
 #'   own seed, from the same position, so the two rest on one length-of-stay
 #'   draw and the day an operation is owed on is a day the casualty is in a
 #'   bed (R/policy_sweep.R does the same). The caller's stream is restored, so
 #'   the reduction is a function of the seed and nothing else.
-reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
+reduce_role4_demand <- function(wide, r4_params, n_days, seed, policy_days) {
   census <- with_preserved_rng({
     set.seed(seed)
     role4_census_detail(wide, r4_params, n_days)
@@ -473,6 +522,7 @@ reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
     set.seed(seed)
     role4_backlog_tail_detail(wide, r4_params, n_days)
   })
+  returned <- role4_returned_detail(wide, policy_days)
   daily <- ops$daily
   label <- unname(ROLE4_OPERATION_SOURCES[daily$source])
   per_day <- aggregate(cbind(operations, theatre_minutes) ~ day, data = daily, FUN = sum)
@@ -492,7 +542,9 @@ reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
     data.frame(day = n_days, series = "census_tail", subject = names(tail),
                value = unname(tail), stringsAsFactors = FALSE),
     data.frame(day = n_days, series = "census_tail", subject = names(backlog),
-               value = unname(backlog), stringsAsFactors = FALSE)
+               value = unname(backlog), stringsAsFactors = FALSE),
+    data.frame(day = n_days, series = "census_tail", subject = names(returned),
+               value = unname(returned), stringsAsFactors = FALSE)
   )
 }
 
@@ -513,7 +565,8 @@ reduce_role4_demand_replication <- function(env, n_days, seed) {
   wide <- build_attributes_wide(attributes, arrivals) %>%
     dplyr::right_join(arrivals, by = c("name", "replication"),
                       suffix = c("", "_arrival"))
-  reduce_role4_demand(wide, env_data$vars$role4, n_days, seed)
+  reduce_role4_demand(wide, env_data$vars$role4, n_days, seed,
+                      env_data$vars$r2eheavy$recovery$evacuation_policy_days)
 }
 
 #' Run the demand measurement across replications under the bound configuration

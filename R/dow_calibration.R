@@ -72,11 +72,11 @@ DOW_TARGETS <- list(
 #'   is taken as the share accruing after surgery. It is counted by when the
 #'   risk accrued rather than by the time of the check that records a death, a
 #'   check settling risk that accrued hours before it (README Died of Wounds,
-#'   Calibration).
+#'   Calibration). The thirty-day deaths include those after strategic
+#'   evacuation, which the model does not count, so the share is a ceiling on
+#'   the in-theatre share rather than its value: the shipped multiplier is not
+#'   fitted to it, and the check asserts only that it is not exceeded.
 DOW_LATE_SHARE_TARGET <- 0.20
-
-#' Tolerance of the post-operative share, as an absolute difference
-DOW_LATE_SHARE_TOLERANCE <- 0.03
 
 #' Control seeds the pooled measurements are drawn under
 #'

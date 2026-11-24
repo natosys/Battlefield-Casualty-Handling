@@ -427,6 +427,7 @@ seconds.
 | `check_role4_surgical_demand.R` | fast | 169 s | the operating theatre requirement a released casualty carries to the national support base |
 | `check_role4_ward_phases.R` | fast | 9 s | the Role 4 ward split conserves the length of stay |
 | `check_roxygen.R` | fast | 5 s | Roxygen ratchet against R1 and R2 |
+| `check_rtd_awaiting_airlift.R` | fast | 125 s | a convalescing evacuee returns to duty when their recovery ends before a sortie boards them, and carries no risk waiting |
 | `check_scenario_labels.R` | fast | 7 s | comparative scenario plotting is independent of the session's character locale Terminal / Claude Code cloud: |
 | `check_scenario_protocol.R` | fast | 8 s | the comparative scenario analysis's parameters, its responses and its published tables agree |
 | `check_screen_cache.R` | slow | 7 s | a screen's point cache resumes what it recorded |

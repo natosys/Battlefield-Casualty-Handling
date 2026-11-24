@@ -16,8 +16,9 @@
 # that ratio: the shipped establishment (two on shift against two theatres), six
 # sections against two theatres (limited by theatres), six against three (the
 # third theatre isolated), eight against four (balanced growth) and three
-# sections against three theatres, a null control at which the theatres cannot
-# limit.
+# sections against three theatres, at which the third theatre is used only when
+# an operation overrunning a shift change holds a theatre the incoming section
+# needs (r2e_surgery_block()).
 #
 # A theatre is a room: its staff come from the surgical section, which
 # r2e_surgery_block() seizes before it takes a theatre from the unit's theatre
@@ -64,7 +65,7 @@ ot_arm_label <- function(theatres, sections) {
 #' The arms swept, as an R2E theatre and surgical section count
 #'
 #' @details Ordered as the results table reads them: the shipped
-#'   establishment, the null control, then the three arms at six or more
+#'   establishment, the third theatre at three sections, then the three arms at six or more
 #'   sections. Sections on shift are the odd-numbered sections on shift 1, so
 #'   the column `on_shift` is the larger shift's count, the one that meets the
 #'   theatres.

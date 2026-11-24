@@ -110,7 +110,8 @@ reduce_pool_series <- function(resources, n_days, elms) {
 #' @return Data frame of day, arrivals, dow and evac_backlog, one row per day.
 #'
 #' @details `evac_backlog` is the number of casualties whose evacuation had been
-#'   decided by the end of the day and who had not yet departed, which is the
+#'   decided by the end of the day and who were still waiting, having neither
+#'   boarded, died while waiting nor returned to duty, which is the
 #'   quantity a strategic lift plan is sized against; it is a level at the end of
 #'   the day rather than a count over it, so a day on which nothing happened
 #'   carries the previous day's value rather than a zero.
@@ -150,7 +151,9 @@ reduce_flow_series <- function(arrivals, attributes, n_days) {
   }
 
   decided  <- cumsum(per_day(value_at("evacuation_decision_day")))
-  departed <- cumsum(per_day(value_at("ame_departure_time")))
+  # A casualty leaves the backlog on boarding, on dying while waiting or on
+  # returning to duty, each of which records ame_hold_end.
+  departed <- cumsum(per_day(value_at("ame_hold_end")))
 
   data.frame(
     day          = seq_len(n_days),

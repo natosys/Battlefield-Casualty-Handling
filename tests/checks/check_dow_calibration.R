@@ -46,12 +46,12 @@
 #      and it is measured over Okinawa's 82 days rather than the default's 30.
 #
 # Under the accrual mechanism the same runs also measure the share of the
-# treated cohort's expected deaths that the post-operative hazard causes, the
-# quantity the hazard rates are fitted to (DOW_LATE_SHARE_TARGET,
-# R/dow_calibration.R), and the check fails where it falls outside
-# DOW_LATE_SHARE_TOLERANCE of the target. The share is an expected count rather
-# than a count of deaths, so it carries no Bernoulli noise and needs no
-# interval.
+# treated cohort's expected deaths that the post-operative hazard causes, and
+# the check fails where it exceeds DOW_LATE_SHARE_TARGET (R/dow_calibration.R).
+# The historical share counts deaths after strategic evacuation, which the model
+# does not, so it bounds the model's in-theatre share from above rather than
+# giving its value. The share is an expected count rather than a count of
+# deaths, so it carries no Bernoulli noise and needs no interval.
 #
 # The check pools independent measurements rather than taking one. That
 # departure from this project's usual practice is deliberate, and is why the
@@ -113,11 +113,11 @@ N_REPS       <- as.integer(arg_value("--reps",         if (quick) 10L else 50L))
 #' Horizon given on the command line, or NULL to measure each anchor at its own
 DAYS_ARG     <- if ("--days" %in% args) as.integer(arg_value("--days", NULL)) else
                   if (quick) 10L else NULL
-#' Horizon the post-operative multiplier is fitted at, the one the share is gated at
+#' Horizon the post-operative share is asserted at, the Ajax Bay campaign's
 #'
 #' @details Over a longer campaign queues lengthen and the risk banked before
 #'   surgery grows, so the share falls; at any other horizon it is reported
-#'   rather than asserted, the target describing a campaign of this length.
+#'   rather than asserted, the ceiling describing a campaign of this length.
 FIT_DAYS     <- 30L
 #' Where to write each scenario's pooled measurement as CSV, or NULL to write none
 #'
@@ -271,15 +271,15 @@ for (scenario in SCENARIOS) {
   if (!is.na(share) && late > 0 && (check_days(scenario) != FIT_DAYS || tgt$kind != "point")) {
     cat(sprintf("  [note] %s: post-operative care carries %.3f of expected deaths at %d days;",
                 scenario, share, check_days(scenario)),
-        sprintf("the %.2f target is asserted at %d days alone\n", DOW_LATE_SHARE_TARGET, FIT_DAYS))
+        sprintf("the %.2f ceiling is asserted at %d days alone\n", DOW_LATE_SHARE_TARGET, FIT_DAYS))
   } else if (!is.na(share) && late > 0) {
-    ok <- abs(share - DOW_LATE_SHARE_TARGET) <= DOW_LATE_SHARE_TOLERANCE
+    ok <- share <= DOW_LATE_SHARE_TARGET
     if (!ok) {
-      fail("%s: the post-operative hazard causes %.3f of expected deaths, outside %.2f of %.2f",
-           scenario, share, DOW_LATE_SHARE_TOLERANCE, DOW_LATE_SHARE_TARGET)
+      fail("%s: the post-operative hazard causes %.3f of expected deaths, above %.2f",
+           scenario, share, DOW_LATE_SHARE_TARGET)
     }
-    report(ok, "%s: the post-operative hazard causes %.3f of expected deaths (target %.2f +/- %.2f)",
-           scenario, share, DOW_LATE_SHARE_TARGET, DOW_LATE_SHARE_TOLERANCE)
+    report(ok, "%s: the post-operative hazard causes %.3f of expected deaths (at most %.2f)",
+           scenario, share, DOW_LATE_SHARE_TARGET)
   }
 
   # Not a failure, but the reason this check pools: if the individual

@@ -432,8 +432,9 @@ cat("\n-- a casualty who dies awaiting a sortie is charged to its death --\n")
 #'
 #' @details Kept so that the correction is asserted against the behaviour it
 #'   replaced rather than only against the monitor. A casualty who died while
-#'   waiting has no departure time, so this estimator charges it to the
-#'   window's close and over-counts the pool by the wait it did not serve.
+#'   waiting, or returned to duty from the staging bed, has no departure time,
+#'   so this estimator charges it to the window's close and over-counts the
+#'   pool by the wait it did not serve.
 superseded <- function(wide, horizon_min) {
   rows <- wide[!is.na(wide$ame_hold_start) & wide$ame_hold_start < horizon_min, ]
   end  <- ifelse(is.na(rows$ame_departure_time), horizon_min, rows$ame_departure_time)
@@ -463,13 +464,19 @@ for (arm in list(list("shipped reliability", shipped),
          "%s: each release falls inside the window rather than at its close", label)
 
   # The gap between the two estimators is exactly the unserved remainder of the
-  # window, which is what the superseded one claimed. Asserting the size rather
-  # than only the direction is what would catch a correction that moved the
-  # boundary to some other instant.
-  unserved <- sum(a$horizon_min - died$ame_hold_end) / DAY_MIN
+  # window, which is what the superseded one claimed, for every casualty who
+  # left a staging bed without departing: those who died and those who returned
+  # to duty from it. Asserting the size rather than only the direction is what
+  # would catch a correction that moved the boundary to some other instant.
+  w <- a$wide
+  left <- w[!is.na(w$ame_hold_start) & w$ame_hold_start < a$horizon_min &
+              !is.na(w$ame_hold_end) & w$ame_hold_end < a$horizon_min &
+              is.na(w$ame_departure_time), ]
+  unserved <- sum(a$horizon_min - left$ame_hold_end) / DAY_MIN
   report(abs((superseded(a$wide, a$horizon_min) - a$split$evacuation_bed_days) -
                unserved) < TOL,
-         "%s: the superseded estimator over-counts by the %.3f bed-days they did not serve",
+         paste("%s: the superseded estimator over-counts by the %.3f bed-days the dead and",
+               "the returned did not serve"),
          label, unserved)
   report(unserved > CLOSE_TOL,
          "%s: and that over-count is large enough to have mattered (%.3f bed-days)",

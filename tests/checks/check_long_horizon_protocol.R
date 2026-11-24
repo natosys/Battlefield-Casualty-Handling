@@ -383,9 +383,9 @@ if (!all(file.exists(stability_path, blocks_path))) {
 
   # The figures the section's prose states, each read from the tracked set.
   conv <- stability[stability$stability == "converged", ]
-  report(nrow(conv) == 28 && max(conv$settles_by_block) == 8 &&
-           sum(conv$settles_by_block <= 2) == 15,
-         "28 responses converge, all settle by block 8 and 15 by block 2 (found %d, %d, %d)",
+  report(nrow(conv) == 30 && max(conv$settles_by_block) == 12 &&
+           sum(conv$settles_by_block <= 2) == 22,
+         "30 responses converge, all settle by block 12 and 22 by block 2 (found %d, %d, %d)",
          nrow(conv), max(conv$settles_by_block), sum(conv$settles_by_block <= 2))
 
   mod <- stability[stability$scenario == "moderate_intensity" &
@@ -399,10 +399,10 @@ if (!all(file.exists(stability_path, blocks_path))) {
            hold$ci_lower < 0 && hold$ci_upper > 0 &&
            identical(overflow$stability, "converged") &&
            overflow$ci_lower < 0 && overflow$ci_upper > 0 &&
-           identical(backlog$stability, "drifting") && backlog$ci_lower > 0,
-         paste("the moderate-intensity R2E holding queue and post-operative overflow census",
-               "converge on late slopes whose intervals span zero, while the evacuation",
-               "backlog drifts on a late slope whose interval excludes it"))
+           identical(backlog$stability, "converged") &&
+           backlog$ci_lower < 0 && backlog$ci_upper > 0,
+         paste("the moderate-intensity R2E holding queue, post-operative overflow census",
+               "and evacuation backlog all converge on late slopes whose intervals span zero"))
 
   #' Mean casualty arrivals per day in one block of one scenario
   #'
@@ -414,8 +414,8 @@ if (!all(file.exists(stability_path, blocks_path))) {
   }
   report(identical(round(c(arrivals("moderate_intensity", 1), arrivals("moderate_intensity", 12),
                            arrivals("high_intensity", 1), arrivals("high_intensity", 12)), 1),
-                   c(15.2, 14.8, 34.5, 34.5)),
-         paste("arrivals per day read 15.2 and 14.8 (moderate) and 34.5 and 34.5 (high)",
+                   c(15.2, 15.1, 34.9, 35.3)),
+         paste("arrivals per day read 15.2 and 15.1 (moderate) and 34.9 and 35.3 (high)",
                "in blocks one and twelve"))
 
   occ1 <- blocks$mean[blocks$series == "occupancy" & blocks$scenario == "high_intensity" &
@@ -423,10 +423,10 @@ if (!all(file.exists(stability_path, blocks_path))) {
   occ_settle <- stability$settles_by_block[stability$series == "occupancy" &
                                              stability$scenario == "high_intensity" &
                                              grepl("^R2E", stability$subject)]
-  report(identical(round(range(occ1), 2), c(0.70, 0.96)) &&
-           identical(as.numeric(sort(occ_settle)), c(2, 3, 8)),
-         paste("high-intensity R2E occupancy reads 0.70 to 0.96 in block one and",
-               "settles by blocks 2, 3 and 8"))
+  report(identical(round(range(occ1), 2), c(0.71, 0.96)) &&
+           identical(as.numeric(sort(occ_settle)), c(6, 6, 6)),
+         paste("high-intensity R2E occupancy reads 0.71 to 0.96 in block one and",
+               "settles by block 6 in every pool"))
 
   #' Mean high-intensity R2E theatre queue in one block
   #'
@@ -436,8 +436,8 @@ if (!all(file.exists(stability_path, blocks_path))) {
     blocks$mean[blocks$series == "mean_queue" & blocks$subject == "R2E operating theatres" &
                   blocks$scenario == "high_intensity" & blocks$block == b]
   }
-  report(identical(round(c(theatre(1), theatre(12)), 1), c(25.4, 73.9)),
-         "the high-intensity R2E theatre queue reads 25.4 in block one and 73.9 in block twelve")
+  report(identical(round(c(theatre(1), theatre(12)), 1), c(25.5, 91.0)),
+         "the high-intensity R2E theatre queue reads 25.5 in block one and 91.0 in block twelve")
 }
 
 # ── Result ──────────────────────────────────────────────────────────────────

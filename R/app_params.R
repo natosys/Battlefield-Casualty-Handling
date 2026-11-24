@@ -316,6 +316,13 @@ SRC_R2B_PRE_OPEN      <- "Informed estimate; no open-access source states how fa
 SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). Applied to the post-operative rate while an operated casualty is in an R2B ICU bed. See README Died of Wounds."
 SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_EVAC_POLICY       <- "The theatre patient return policy of NATO AJP-4.10 (Edition C) para 1.55: the maximum time a patient may remain in theatre to recover and return to duty, set by the operational level commander. The doctrine prescribes no value; 21 days is a planning choice — see README R2E Heavy Trajectory."
+#' Source note for the switch returning convalescent evacuees to duty while awaiting airlift
+SRC_RETURN_WHILE_AWAITING <- paste(
+  "Model consistency rather than a sourced value: a casualty whose surgery is complete and who is",
+  "convalescing carries no died-of-wounds risk and returns to duty when fit, whether retained in",
+  "theatre or awaiting airlift; how a force disposes of such casualties is unsourced. See",
+  "README Further Development L44 and L48."
+)
 SRC_RECOVERY_TO_DUTY  <- "Base convalescence distribution retained from the earlier in-theatre recovery duration; the severity factors scaling it are informed estimates anchored to the Role 4 length-of-stay gradient already in the model, calibrated so the realised in-theatre share sits inside the 7.6%-42.1% range of Vietnam War return-to-duty rates by treatment location, of which only 42.1% is an in-theatre figure. High uncertainty — see README R2E Heavy Trajectory."
 SRC_PRE_FLIGHT_ICU    <- "Bounded on the Camp Bastion deployed-ICU observation that coalition casualties are usually evacuated within 24 hours of admission; the ventilated share is an informed estimate, as no open-access source reports it — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
@@ -997,6 +1004,14 @@ r2e_fields <- function() {
               "Theatre Evacuation Policy", "Days. A casualty expected back on duty within this many days is retained in theatre; everyone else is strategically evacuated.",
               type = "integer", min = 1, max = 120, step = 1,
               range_name = "evacuation_policy_days", source = SRC_EVAC_POLICY),
+    var_field("r2e_return_while_awaiting", GRP_PROVISION, "R2E — Recovery & Evacuation",
+              "r2eheavy", "recovery", "return_while_awaiting_airlift",
+              "Return to Duty While Awaiting Airlift (0 Off, 1 On)",
+              paste("1, the shipped value, returns a casualty evacuated for recovery beyond",
+                    "the policy to duty if their recovery ends before a sortie boards them, and",
+                    "charges their wait no died-of-wounds risk. 0 keeps them queued, at the",
+                    "post-operative rate, until they board."),
+              type = "integer", min = 0, max = 1, step = 1, source = SRC_RETURN_WHILE_AWAITING),
     var_field("r2e_rtd_p1_surgical", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery_to_duty", "p1_surgical",
               "Recovery Factor — P1 Surgical", "Multiplier applied to the base recovery-to-duty duration for an operated Priority 1 casualty.",
               min = 1, max = 12, step = 0.1, source = SRC_RECOVERY_TO_DUTY),

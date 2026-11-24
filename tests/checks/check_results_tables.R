@@ -324,14 +324,12 @@ contains_zero <- function(pool, col) {
   length(b) == 3L && b[2] <= 0 && b[3] >= 0
 }
 zero_moderate <- c("R2E operating theatres", "R2E holding beds", "R2E post-operative overflow",
-                   "R2E staging overflow")
-growing_moderate <- "Strategic evacuation backlog"
+                   "R2E staging overflow", "Strategic evacuation backlog")
 zero_high <- c("R2E operating theatres", "R2E holding beds", "R2E post-operative overflow")
 growing_high <- c("R2E staging overflow", "Strategic evacuation backlog")
-report(all(vapply(zero_moderate, contains_zero, logical(1), col = 2L)) &&
-         !any(vapply(growing_moderate, contains_zero, logical(1), col = 2L)),
-       paste("at moderate intensity the theatre, holding, post-operative and staging intervals",
-             "contain zero and the airlift interval does not, as the prose states"))
+report(all(vapply(zero_moderate, contains_zero, logical(1), col = 2L)),
+       paste("at moderate intensity the theatre, holding, post-operative, staging and airlift",
+             "intervals all contain zero, as the prose states"))
 report(all(vapply(zero_high, contains_zero, logical(1), col = 4L)) &&
          !any(vapply(growing_high, contains_zero, logical(1), col = 4L)),
        paste("at high intensity the theatre, holding and post-operative intervals contain zero",

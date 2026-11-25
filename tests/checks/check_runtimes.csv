@@ -11,6 +11,7 @@ check_arrival_rate_fidelity.R,12
 check_baseline_reproduction.R,37
 check_bed_queue_coverage.R,27
 check_capacity_sweep_protocol.R,7
+check_casualty_flows.R,9
 check_casualty_surge_kia_split.R,41
 check_casualty_surge_protocol.R,7
 check_casualty_surge_size_protocol.R,5

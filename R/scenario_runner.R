@@ -88,6 +88,10 @@ SCENARIO_TRANSPORT_HOLDERS <- data.frame(
   stringsAsFactors = FALSE
 )
 
+#' Per-casualty attributes the flow classification reads
+SCENARIO_FLOW_KEYS <- c("r2b", "r2e_arrival_time", "dow", "ame_rtd", "return_echelon",
+                        "ame_departure_time", "evacuation_reason")
+
 # ── Single-scenario execution ─────────────────────────────────────────────────
 
 #' Compute replication-level totals (casualty counts, DOW count, DOW/WIA rate)
@@ -123,12 +127,15 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #'
 #' @details The first half of summarise_scenario_totals(), separated so a
 #'   caller reducing one replication at a time can keep this frame and discard
-#'   the monitor.
+#'   the monitor. Each casualty is counted once: the monitor is read with
+#'   `ongoing = TRUE`, which lists a casualty still mid-activity at the horizon
+#'   twice.
 scenario_totals_by_replication <- function(mon, warm_up_days = 0) {
   warm_up_min <- as.integer(warm_up_days) * DAY_MIN
 
   arrivals <- mon$arrivals %>%
     filter(start_time >= warm_up_min) %>%
+    distinct(replication, name, .keep_all = TRUE) %>%
     mutate(casualty_type = stringr::str_extract(name, "^[^_]+"))
 
   totals_by_rep <- arrivals %>%
@@ -185,6 +192,112 @@ scenario_first_incision_by_replication <- function(mon, arrivals) {
     filter(is.finite(incision), incision >= 0) %>%
     group_by(replication) %>%
     summarise(first_incision_hours = mean(incision) / 60, .groups = "drop")
+}
+
+#' Classify each casualty by type, furthest echelon reached and outcome
+#'
+#' @param wide One row per casualty, carrying `name` and the attributes in
+#'   SCENARIO_FLOW_KEYS (NA where never set).
+#' @return Data frame of `type`, `echelon` and `outcome`, one row per casualty,
+#'   each a label of SCENARIO_FLOW_TYPES, SCENARIO_FLOW_ECHELONS and
+#'   SCENARIO_FLOW_OUTCOMES.
+#'
+#' @details A casualty killed in action is not treated. Any other reached R2E
+#'   if it arrived there or bypassed R2B for it (`r2b` of -1, the bypass route
+#'   recording no R2E arrival time), reached R2B if a team was selected for it,
+#'   and otherwise remained at R1. The outcome is the first of
+#'   SCENARIO_FLOW_OUTCOMES that applies. Fails on a casualty whose name carries
+#'   no known type, so a new generator cannot fall out of the flows unseen.
+classify_casualty_flows <- function(wide) {
+  #' Whether each value of an attribute was set
+  #'
+  #' @param x An attribute column.
+  #' @return TRUE where the attribute carries a value.
+  set <- function(x) !is.na(x)
+  prefix <- sub("_.*$", "", wide$name)
+  unknown <- setdiff(unique(prefix), names(SCENARIO_FLOW_TYPES))
+  if (length(unknown) > 0) {
+    stop(sprintf("classify_casualty_flows: unknown casualty type prefix %s",
+                 paste(unknown, collapse = ", ")), call. = FALSE)
+  }
+  kia <- prefix == "kia"
+  r2e <- set(wide$r2e_arrival_time) | (set(wide$r2b) & wide$r2b == -1)
+  r2b <- set(wide$r2b) & wide$r2b > 0
+  echelon <- ifelse(kia, "Not treated", ifelse(r2e, "R2E", ifelse(r2b, "R2B", "R1")))
+  returned_at <- c("Returned to duty from R1", "Returned to duty from R2B",
+                   "Returned to duty from R2E")
+  # Assigned from the lowest precedence to the highest, so a later rule
+  # overrides an earlier one and each casualty keeps the first of
+  # SCENARIO_FLOW_OUTCOMES that applies.
+  outcome <- rep("In care on the last day", nrow(wide))
+  outcome[set(wide$evacuation_reason) & wide$evacuation_reason > 0] <-
+    "Awaiting airlift on the last day"
+  outcome[set(wide$ame_departure_time)] <- "Evacuated to Role 4"
+  rtd <- set(wide$return_echelon)
+  outcome[rtd] <- returned_at[pmax(1, pmin(3, wide$return_echelon[rtd]))]
+  outcome[set(wide$ame_rtd) & wide$ame_rtd == 1] <- "Returned to duty awaiting airlift"
+  outcome[set(wide$dow) & wide$dow == 1] <- "Died of wounds"
+  outcome[kia] <- "Killed in action"
+  data.frame(type = unname(SCENARIO_FLOW_TYPES[prefix]), echelon = echelon, outcome = outcome,
+             stringsAsFactors = FALSE)
+}
+
+#' Count each replication's casualties by type, furthest echelon and outcome
+#'
+#' @param mon Named list with arrivals and attributes, as run_replications()
+#'   returns it or as one replication's worker builds it.
+#' @return Data frame of `replication`, `type`, `echelon`, `outcome` and
+#'   `casualties`, one row per flow a replication produced.
+#'
+#' @details Every casualty is counted once, the monitor read with `ongoing =
+#'   TRUE` listing one still mid-activity at the horizon twice, and a casualty
+#'   with no attribute set is kept, so the flows of a replication sum to its
+#'   casualty total. Only the attributes in SCENARIO_FLOW_KEYS are read, each at
+#'   its last value. Draws no random number.
+scenario_flows_by_replication <- function(mon) {
+  arrivals <- mon$arrivals[!duplicated(mon$arrivals[, c("name", "replication")]),
+                           c("name", "replication")]
+  last <- mon$attributes %>%
+    filter(key %in% SCENARIO_FLOW_KEYS) %>%
+    group_by(replication, name, key) %>%
+    summarise(value = dplyr::last(value, order_by = time), .groups = "drop") %>%
+    tidyr::pivot_wider(names_from = key, values_from = value)
+  for (k in setdiff(SCENARIO_FLOW_KEYS, names(last))) last[[k]] <- rep(NA_real_, nrow(last))
+  wide <- left_join(as.data.frame(arrivals), last, by = c("name", "replication"))
+  flows <- cbind(replication = wide$replication, classify_casualty_flows(wide))
+  counted <- aggregate(list(casualties = rep(1L, nrow(flows))),
+                       by = flows[, c("replication", "type", "echelon", "outcome")], FUN = sum)
+  counted[order(counted$replication, counted$type, counted$echelon, counted$outcome), ]
+}
+
+#' Mean and 95% interval of each flow across replications
+#'
+#' @param per_rep Per-replication flows of one scenario, from
+#'   scenario_flows_by_replication().
+#' @return Data frame of `type`, `echelon`, `outcome`, `n_reps`, `mean`,
+#'   `ci_lower` and `ci_upper`, one row per flow any replication produced.
+#'
+#' @details A flow a replication did not produce counts as zero in it, so its
+#'   mean is taken over every replication rather than over those it appeared in.
+#'   The Student t interval about the mean, the construction every replicated
+#'   experiment here uses.
+summarise_scenario_flows <- function(per_rep) {
+  reps <- sort(unique(per_rep$replication))
+  flows <- unique(per_rep[, c("type", "echelon", "outcome")])
+  out <- do.call(rbind, lapply(seq_len(nrow(flows)), function(i) {
+    f <- flows[i, ]
+    hit <- per_rep[per_rep$type == f$type & per_rep$echelon == f$echelon &
+                     per_rep$outcome == f$outcome, ]
+    x <- hit$casualties[match(reps, hit$replication)]
+    x[is.na(x)] <- 0
+    n <- length(x)
+    m <- mean(x)
+    e <- if (n > 1) qt(0.975, df = n - 1) * sd(x) / sqrt(n) else 0
+    data.frame(f, n_reps = n, mean = m, ci_lower = m - e, ci_upper = m + e, row.names = NULL)
+  }))
+  ord <- order(match(out$type, SCENARIO_FLOW_TYPES), match(out$echelon, SCENARIO_FLOW_ECHELONS),
+               match(out$outcome, SCENARIO_FLOW_OUTCOMES))
+  out[ord, ]
 }
 
 #' Summarise per-replication totals across replications
@@ -298,7 +411,8 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
       queue_kpi = summarise_queue_means(bind_rows(lapply(reduced, `[[`, "queue_means"))),
       totals = summarise_scenario_rep_totals(bind_rows(lapply(reduced, `[[`, "totals"))),
       queue_group_reps = bind_rows(lapply(reduced, `[[`, "groups")),
-      transport_holder_reps = holders
+      transport_holder_reps = holders,
+      flow_reps = scenario_cached_flows(reduced, cache_dir)
     ))
   }
 
@@ -321,6 +435,25 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
   )
 }
 
+#' The per-replication flows of a cached run, failing where a cache predates them
+#'
+#' @param reduced List of one reduction per replication, from
+#'   run_replications_reduced().
+#' @param cache_dir The cache the reductions were read from.
+#' @return The flows of every replication bound together.
+#'
+#' @details A replication saved before the flows were measured carries none,
+#'   and reading on would publish a flow table missing those replications.
+scenario_cached_flows <- function(reduced, cache_dir) {
+  missing <- vapply(reduced, function(r) is.null(r$flows), logical(1))
+  if (any(missing)) {
+    stop(sprintf(paste("%d cached replication(s) under %s predate the casualty flows;",
+                       "remove the cache and run again"), sum(missing), cache_dir),
+         call. = FALSE)
+  }
+  bind_rows(lapply(reduced, `[[`, "flows"))
+}
+
 #' Run replications, reducing and saving each one as it finishes
 #'
 #' @param n_iterations Number of replications.
@@ -331,8 +464,8 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
 #'   scenario_transport_establishment().
 #' @param cache_dir Directory each replication's reductions are saved to.
 #' @return List of one reduction per replication: `queue_means`, `totals`,
-#'   `groups` and `holders`, the per-replication frames the comparison
-#'   summarises.
+#'   `groups`, `holders` and `flows`, the per-replication frames the
+#'   comparison summarises.
 #'
 #' @details Each replication runs under the seed run_replications() would give
 #'   it, drawn from the caller's stream and with that stream restored after,
@@ -370,7 +503,8 @@ run_replications_reduced <- function(n_iterations, n_days, ot_hours, warm_up_day
       queue_means = replication_queue_means(mon, warm_up_days),
       totals = scenario_totals_by_replication(mon, warm_up_days),
       groups = scenario_queue_groups_by_replication(mon, n_days),
-      holders = scenario_transport_holders_by_replication(mon, n_days, establishment)
+      holders = scenario_transport_holders_by_replication(mon, n_days, establishment),
+      flows = scenario_flows_by_replication(mon)
     )
     partial <- paste0(path, ".partial")
     saveRDS(reduced, partial)
@@ -708,12 +842,15 @@ plot_scenario_comparison <- function(queue_table,
 #'   (the published per-pool queue comparison), queue_group_reps (its
 #'   per-replication values), transport_holder_table and
 #'   transport_holder_reps (the transport holders' queue and utilisation,
-#'   reduced and per replication), plot (ggplot object)
+#'   reduced and per replication), flow_table and flow_reps (the casualty
+#'   flows by type, furthest echelon and outcome, reduced and per
+#'   replication), plot (ggplot object)
 #'
-#' @details Writes six CSVs under output_dir, scenario_comparison_queues.csv,
+#' @details Writes eight CSVs under output_dir, scenario_comparison_queues.csv,
 #'   scenario_comparison_totals.csv, scenario_queue_group_replications.csv,
-#'   scenario_queue_groups.csv, scenario_transport_holder_replications.csv and
-#'   scenario_transport_holders.csv, and scenario_comparison.png under images_dir.
+#'   scenario_queue_groups.csv, scenario_transport_holder_replications.csv,
+#'   scenario_transport_holders.csv, scenario_flow_replications.csv and
+#'   scenario_flows.csv, and scenario_comparison.png under images_dir.
 #'   Each scenario is executed via run_scenario(), which sets env_data
 #'   globally per scenario in turn — scenarios are run sequentially, not
 #'   nested in parallel, since run_replications() already parallelises
@@ -773,6 +910,18 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
     cbind(scenario = r$scenario, per_rep)
   }))
 
+  # Every casualty's path through the echelons to its outcome, per replication
+  # and then reduced, behind the flow diagram and its table.
+  flow_replications <- bind_rows(lapply(results, function(r) {
+    per_rep <- if (is.null(r$mon)) r$flow_reps else scenario_flows_by_replication(r$mon)
+    cbind(scenario = r$scenario, per_rep)
+  }))
+
+  flow_table <- bind_rows(lapply(results, function(r) {
+    per_rep <- flow_replications[flow_replications$scenario == r$scenario, ]
+    cbind(scenario = r$scenario, summarise_scenario_flows(per_rep))
+  }))
+
   transport_holder_table <- bind_rows(lapply(results, function(r) {
     per_rep <- transport_holder_replications[transport_holder_replications$scenario == r$scenario, ]
     cbind(scenario = r$scenario, scenario_label = r$label,
@@ -789,6 +938,9 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
             file.path(output_dir, "scenario_transport_holder_replications.csv"), row.names = FALSE)
   write.csv(transport_holder_table,
             file.path(output_dir, "scenario_transport_holders.csv"), row.names = FALSE)
+  write.csv(flow_replications,
+            file.path(output_dir, "scenario_flow_replications.csv"), row.names = FALSE)
+  write.csv(flow_table, file.path(output_dir, "scenario_flows.csv"), row.names = FALSE)
   message(sprintf("Comparative scenario tables written to %s/", output_dir))
 
   comparison_plot <- plot_scenario_comparison(queue_table, images_dir = images_dir)
@@ -801,6 +953,8 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
     queue_group_reps   = queue_group_replications,
     transport_holder_table = transport_holder_table,
     transport_holder_reps  = transport_holder_replications,
+    flow_table         = flow_table,
+    flow_reps          = flow_replications,
     plot               = comparison_plot
   )
 }

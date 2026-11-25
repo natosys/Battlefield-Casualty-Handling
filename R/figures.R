@@ -7,7 +7,8 @@
 # data/ and returns a ggplot object; none runs the model. That is what lets
 # scripts/render_sweep_figures.R regenerate a figure from the repository alone,
 # and what lets a change to a title, label or layout cost seconds rather than
-# the hours of compute the measurement took. ggplot2 and dplyr only, and
+# the hours of compute the measurement took. ggplot2, dplyr and their
+# extensions only (ggalluvial and patchwork for the casualty flow diagram), and
 # independent of every other module under R/, so a regression check can source
 # it without simmer.
 
@@ -1212,4 +1213,107 @@ plot_role4_operations_over_time <- function(weekly_df) {
     theme_minimal(base_size = 12) +
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
           legend.position = "bottom")
+}
+
+#' Fill of each outcome in the casualty flow diagram
+#'
+#' @details Returns to duty in greens, evacuation in blue, the casualties still
+#'   in theatre at the close in amber and grey, and deaths in red and dark grey,
+#'   from the Okabe-Ito palette so the outcomes stay distinct to a reader with a
+#'   colour vision deficiency.
+FLOW_OUTCOME_FILLS <- c(
+  "Killed in action" = "#3B3B3B", "Died of wounds" = "#D55E00",
+  "Returned to duty from R1" = "#B8E0B0", "Returned to duty from R2B" = "#7FC97F",
+  "Returned to duty from R2E" = "#009E73", "Returned to duty awaiting airlift" = "#56B4E9",
+  "Evacuated to Role 4" = "#0072B2", "Awaiting airlift on the last day" = "#E69F00",
+  "In care on the last day" = "#999999"
+)
+
+#' Share of a panel's casualties below which an inner stratum is left unlabelled
+FLOW_LABEL_MIN_SHARE <- 0.025
+
+#' One intensity's casualty flow diagram
+#'
+#' @param flows One scenario's rows of `scenario_flows.csv`: `type`, `echelon`,
+#'   `outcome` and `mean`.
+#' @param title The panel's title.
+#' @return A ggplot object: three axes (casualty type, furthest echelon
+#'   reached, outcome) joined by ribbons whose width is the mean number of
+#'   casualties per campaign taking that path, filled by outcome.
+#'
+#' @details The casualty type and echelon strata are labelled inside, a
+#'   stratum under FLOW_LABEL_MIN_SHARE of the casualties left unlabelled so
+#'   small strata do not overprint; every outcome is labelled to the right of
+#'   its stratum, the labels repelled apart under a fixed seed so a re-render
+#'   is byte-identical. Killed in action is both a type and an outcome, so
+#'   strata are told apart by axis.
+plot_casualty_flow_panel <- function(flows, title) {
+  d <- flows
+  d$type <- factor(d$type, levels = unname(SCENARIO_FLOW_TYPES))
+  d$echelon <- factor(d$echelon, levels = SCENARIO_FLOW_ECHELONS)
+  d$outcome <- factor(d$outcome, levels = SCENARIO_FLOW_OUTCOMES)
+  min_label <- FLOW_LABEL_MIN_SHARE * sum(d$mean)
+  #' A stratum's name and its mean count, as its label prints them
+  #'
+  #' @param stratum Stratum names, carrying the suffix that tells a name
+  #'   repeated on two axes apart.
+  #' @param count Mean casualties in each stratum.
+  #' @param wrap Width to wrap the name at, or NULL to keep it on one line.
+  #' @return The labels.
+  stratum_label <- function(stratum, count, wrap = NULL) {
+    name <- sub("\\.[0-9]+$", "", stratum)
+    if (!is.null(wrap)) {
+      name <- vapply(name, function(x) paste(strwrap(x, wrap), collapse = "\n"), character(1))
+    }
+    paste0(name, if (is.null(wrap)) " (" else "\n(",
+           format(round(count), big.mark = ",", trim = TRUE), ")")
+  }
+  ggplot(d, aes(axis1 = type, axis2 = echelon, axis3 = outcome, y = mean)) +
+    ggalluvial::geom_alluvium(aes(fill = outcome), width = 0.25, alpha = 0.8,
+                              knot.pos = 0.35, discern = TRUE, show.legend = TRUE) +
+    ggalluvial::geom_stratum(width = 0.25, fill = "grey97", colour = "grey35", discern = TRUE) +
+    geom_text(stat = ggalluvial::StatStratum, discern = TRUE, min.y = min_label, size = 3,
+              na.rm = TRUE,
+              aes(label = ifelse(after_stat(x) < 3,
+                                 stratum_label(after_stat(stratum), after_stat(count), 14),
+                                 NA))) +
+    ggrepel::geom_text_repel(stat = ggalluvial::StatStratum, discern = TRUE, size = 3,
+                             hjust = 0, direction = "y", nudge_x = 0.2, seed = 1,
+                             segment.size = 0.3, segment.colour = "grey50", na.rm = TRUE,
+                             aes(label = ifelse(after_stat(x) == 3,
+                                                stratum_label(after_stat(stratum),
+                                                              after_stat(count)),
+                                                NA))) +
+    scale_x_discrete(limits = c("Casualty type", "Furthest echelon reached", "Outcome"),
+                     expand = expansion(add = c(0.25, 1.1))) +
+    scale_y_continuous(labels = scales::label_comma()) +
+    scale_fill_manual(values = FLOW_OUTCOME_FILLS, limits = names(FLOW_OUTCOME_FILLS),
+                      name = "Outcome") +
+    labs(title = title, x = NULL, y = "Mean casualties per campaign") +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.major.x = element_blank(), plot.title = element_text(face = "bold"))
+}
+
+#' The casualty flow diagram at both intensities
+#'
+#' @param flows `scenario_flows.csv` as tracked: `scenario`, `type`, `echelon`,
+#'   `outcome` and `mean`, for `moderate_intensity` and `high_intensity`.
+#' @return A patchwork of the two panels, moderate above high, sharing one
+#'   outcome legend.
+#'
+#' @details Each panel is scaled to its own casualty total, the high-intensity
+#'   campaign producing more than twice as many casualties, so the panels
+#'   compare shares rather than counts; the counts are in the strata labels.
+plot_casualty_flows <- function(flows) {
+  panels <- c(moderate_intensity = "Moderate intensity", high_intensity = "High intensity")
+  missing <- setdiff(names(panels), unique(flows$scenario))
+  if (length(missing) > 0) {
+    stop(sprintf("plot_casualty_flows: no flows for %s", paste(missing, collapse = ", ")),
+         call. = FALSE)
+  }
+  plots <- lapply(names(panels), function(sc) {
+    plot_casualty_flow_panel(flows[flows$scenario == sc, ], panels[[sc]])
+  })
+  patchwork::wrap_plots(plots, ncol = 1, guides = "collect") &
+    theme(legend.position = "right")
 }

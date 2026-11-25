@@ -8,7 +8,7 @@
 # scripts/render_sweep_figures.R regenerate a figure from the repository alone,
 # and what lets a change to a title, label or layout cost seconds rather than
 # the hours of compute the measurement took. ggplot2, dplyr and their
-# extensions only (ggalluvial and patchwork for the casualty flow diagram), and
+# extensions only (patchwork for the two-panel casualty flow diagram), and
 # independent of every other module under R/, so a regression check can source
 # it without simmer.
 
@@ -1218,92 +1218,239 @@ plot_role4_operations_over_time <- function(weekly_df) {
 #' Fill of each outcome in the casualty flow diagram
 #'
 #' @details Returns to duty in greens, evacuation in blue, the casualties still
-#'   in theatre at the close in amber and grey, and deaths in red and dark grey,
-#'   from the Okabe-Ito palette so the outcomes stay distinct to a reader with a
-#'   colour vision deficiency.
+#'   in theatre at the close in amber and grey, deaths in red and dark grey, and
+#'   the grouped small outcomes in purple, from the Okabe-Ito palette so the
+#'   outcomes stay distinct to a reader with a colour vision deficiency.
 FLOW_OUTCOME_FILLS <- c(
   "Killed in action" = "#3B3B3B", "Died of wounds" = "#D55E00",
   "Returned to duty from R1" = "#B8E0B0", "Returned to duty from R2B" = "#7FC97F",
   "Returned to duty from R2E" = "#009E73", "Returned to duty awaiting airlift" = "#56B4E9",
   "Evacuated to Role 4" = "#0072B2", "Awaiting airlift on the last day" = "#E69F00",
-  "In care on the last day" = "#999999"
+  "In care on the last day" = "#999999", "Other outcomes (see note)" = "#CC79A7"
 )
 
-#' Share of a panel's casualties below which an inner stratum is left unlabelled
-FLOW_LABEL_MIN_SHARE <- 0.025
+#' Share of a panel's casualties below which an outcome is grouped
+#'
+#' @details An outcome node at one echelon holding fewer than this share of the
+#'   panel's casualties is folded into that echelon's "Other outcomes" node, and
+#'   the note under the panel lists what each such node holds.
+FLOW_GROUP_MIN_SHARE <- 0.005
 
-#' One intensity's casualty flow diagram
+#' Column headings of the casualty flow diagram, left to right
+FLOW_COLUMNS <- c("Casualty type", "R1", "R2B", "R2E", "Outcome")
+
+#' Node order within each column of the casualty flow diagram, top to bottom
 #'
-#' @param flows One scenario's rows of `scenario_flows.csv`: `type`, `echelon`,
-#'   `outcome` and `mean`.
-#' @param title The panel's title.
-#' @return A ggplot object: three axes (casualty type, furthest echelon
-#'   reached, outcome) joined by ribbons whose width is the mean number of
-#'   casualties per campaign taking that path, filled by outcome.
+#' @details Column 3 holds the outcomes reached at R1 above the R2B and bypass
+#'   nodes, column 4 the outcomes reached at R2B above R2E, and column 5 the
+#'   outcomes reached at R2E, so each outcome sits just after the echelon where
+#'   it occurs. A node missing from its list is placed last.
+FLOW_NODE_ORDER <- list(
+  c("Killed in action", "Wounded in action", "Disease and non-battle injury"),
+  c("KIA", "R1"),
+  c("Returned to duty from R1", "Died of wounds at R1", "In care at R1 on the last day",
+    "Other outcomes at R1", "R2B", "Bypassed R2B"),
+  c("Returned to duty from R2B", "Died of wounds at R2B", "In care at R2B on the last day",
+    "Other outcomes at R2B", "R2E"),
+  c("Returned to duty from R2E", "Returned to duty awaiting airlift", "Evacuated to Role 4",
+    "Awaiting airlift on the last day", "In care at R2E on the last day",
+    "Died of wounds at R2E", "Other outcomes at R2E")
+)
+
+#' The node naming an outcome at the echelon where it occurred
 #'
-#' @details The casualty type and echelon strata are labelled inside, a
-#'   stratum under FLOW_LABEL_MIN_SHARE of the casualties left unlabelled so
-#'   small strata do not overprint; every outcome is labelled to the right of
-#'   its stratum, the labels repelled apart under a fixed seed so a re-render
-#'   is byte-identical. Killed in action is both a type and an outcome, so
-#'   strata are told apart by axis.
-plot_casualty_flow_panel <- function(flows, title) {
-  d <- flows
-  d$type <- factor(d$type, levels = unname(SCENARIO_FLOW_TYPES))
-  d$echelon <- factor(d$echelon, levels = SCENARIO_FLOW_ECHELONS)
-  d$outcome <- factor(d$outcome, levels = SCENARIO_FLOW_OUTCOMES)
-  min_label <- FLOW_LABEL_MIN_SHARE * sum(d$mean)
-  #' A stratum's name and its mean count, as its label prints them
-  #'
-  #' @param stratum Stratum names, carrying the suffix that tells a name
-  #'   repeated on two axes apart.
-  #' @param count Mean casualties in each stratum.
-  #' @param wrap Width to wrap the name at, or NULL to keep it on one line.
-  #' @return The labels.
-  stratum_label <- function(stratum, count, wrap = NULL) {
-    name <- sub("\\.[0-9]+$", "", stratum)
-    if (!is.null(wrap)) {
-      name <- vapply(name, function(x) paste(strwrap(x, wrap), collapse = "\n"), character(1))
-    }
-    paste0(name, if (is.null(wrap)) " (" else "\n(",
-           format(round(count), big.mark = ",", trim = TRUE), ")")
+#' @param outcome Outcome labels of SCENARIO_FLOW_OUTCOMES.
+#' @param echelon The echelon each outcome occurred at.
+#' @return The node labels: a death or a casualty still in care is named for
+#'   its echelon, every other outcome already naming its own.
+flow_terminal_node <- function(outcome, echelon) {
+  ifelse(outcome == "Died of wounds", paste("Died of wounds at", echelon),
+         ifelse(outcome == "In care on the last day",
+                paste("In care at", echelon, "on the last day"), outcome))
+}
+
+#' Fold each panel's small outcomes into one node per echelon
+#'
+#' @param d One scenario's flows: `type`, `via_r2b`, `echelon`, `outcome` and
+#'   `mean`.
+#' @return `d` with a `terminal` column naming each flow's outcome node and a
+#'   `fill` column naming its legend entry, a grouped flow taking "Other
+#'   outcomes at <echelon>" and "Other outcomes (see note)", and the attribute
+#'   `note`, one line per grouped node listing what it holds.
+#'
+#' @details Killed in action is never grouped, being the casualty type itself.
+flow_group_small <- function(d) {
+  d$terminal <- ifelse(d$type == "Killed in action", "KIA",
+                       flow_terminal_node(d$outcome, d$echelon))
+  d$fill <- d$outcome
+  sizes <- aggregate(mean ~ echelon + terminal, d[d$terminal != "KIA", ], sum)
+  small <- sizes[sizes$mean < FLOW_GROUP_MIN_SHARE * sum(d$mean), ]
+  notes <- character(0)
+  for (ech in intersect(SCENARIO_FLOW_ECHELONS, unique(small$echelon))) {
+    s <- small[small$echelon == ech, ]
+    s <- s[order(-s$mean), ]
+    hit <- d$echelon == ech & d$terminal %in% s$terminal
+    d$terminal[hit] <- paste("Other outcomes at", ech)
+    d$fill[hit] <- "Other outcomes (see note)"
+    what <- sub(paste0(" at ", ech), "", s$terminal)
+    notes <- c(notes, sprintf("Other outcomes at %s: %s.", ech,
+                              paste(sprintf("%s (%s)", tolower(what),
+                                            format(round(s$mean, 1), nsmall = 1, trim = TRUE)),
+                                    collapse = ", ")))
   }
-  ggplot(d, aes(axis1 = type, axis2 = echelon, axis3 = outcome, y = mean)) +
-    ggalluvial::geom_alluvium(aes(fill = outcome), width = 0.25, alpha = 0.8,
-                              knot.pos = 0.35, discern = TRUE, show.legend = TRUE) +
-    ggalluvial::geom_stratum(width = 0.25, fill = "grey97", colour = "grey35", discern = TRUE) +
-    geom_text(stat = ggalluvial::StatStratum, discern = TRUE, min.y = min_label, size = 3,
-              na.rm = TRUE,
-              aes(label = ifelse(after_stat(x) < 3,
-                                 stratum_label(after_stat(stratum), after_stat(count), 14),
-                                 NA))) +
-    ggrepel::geom_text_repel(stat = ggalluvial::StatStratum, discern = TRUE, size = 3,
-                             hjust = 0, direction = "y", nudge_x = 0.2, seed = 1,
-                             segment.size = 0.3, segment.colour = "grey50", na.rm = TRUE,
-                             aes(label = ifelse(after_stat(x) == 3,
-                                                stratum_label(after_stat(stratum),
-                                                              after_stat(count)),
-                                                NA))) +
-    scale_x_discrete(limits = c("Casualty type", "Furthest echelon reached", "Outcome"),
-                     expand = expansion(add = c(0.25, 1.1))) +
-    scale_y_continuous(labels = scales::label_comma()) +
-    scale_fill_manual(values = FLOW_OUTCOME_FILLS, limits = names(FLOW_OUTCOME_FILLS),
-                      name = "Outcome") +
-    labs(title = title, x = NULL, y = "Mean casualties per campaign") +
+  attr(d, "note") <- notes
+  d
+}
+
+#' The nodes a flow passes through, one per column it reaches
+#'
+#' @param type Casualty type.
+#' @param via Whether the casualty passed through R2B.
+#' @param echelon The furthest echelon reached.
+#' @param terminal The flow's outcome node.
+#' @return Character vector of node labels, starting in the first column.
+flow_path_nodes <- function(type, via, echelon, terminal) {
+  if (type == "Killed in action") return(c(type, "KIA"))
+  path <- c(type, "R1")
+  if (echelon == "R1") return(c(path, terminal))
+  path <- c(path, if (via) "R2B" else "Bypassed R2B")
+  if (echelon == "R2B") return(c(path, terminal))
+  c(path, "R2E", terminal)
+}
+
+#' Positions of the nodes and ribbon ends of one panel
+#'
+#' @param d One scenario's flows after flow_group_small().
+#' @return List of `nodes` (column, label, count, top) and `segments` (from and
+#'   to columns, outcome fill, count, and the top of the ribbon at each end).
+#'
+#' @details Nodes are stacked top-down in FLOW_NODE_ORDER with a gap between
+#'   them and each column is centred on the first. Within a node, ribbons leave
+#'   in the order of the node they go to and arrive in the order of the node
+#'   they came from, ties broken by outcome, so ribbons cross only between
+#'   columns and never inside a node.
+flow_layout <- function(d) {
+  total <- sum(d$mean)
+  gap <- 0.03 * total
+  paths <- lapply(seq_len(nrow(d)), function(i) {
+    flow_path_nodes(d$type[i], d$via_r2b[i], d$echelon[i], d$terminal[i])
+  })
+  #' Rank of a node within its column, unlisted nodes last
+  #'
+  #' @param col Column index.
+  #' @param node Node label.
+  #' @return The rank.
+  rank_of <- function(col, node) {
+    r <- match(node, FLOW_NODE_ORDER[[col]])
+    ifelse(is.na(r), 99L, r)
+  }
+  visits <- do.call(rbind, lapply(seq_along(paths), function(i) {
+    data.frame(col = seq_along(paths[[i]]), node = paths[[i]], n = d$mean[i])
+  }))
+  nodes <- aggregate(n ~ col + node, visits, sum)
+  nodes$rank <- mapply(rank_of, nodes$col, nodes$node)
+  nodes <- nodes[order(nodes$col, nodes$rank), ]
+  nodes$top <- stats::ave(nodes$n, nodes$col, FUN = function(x) {
+    -c(0, cumsum(head(x, -1))) - gap * (seq_along(x) - 1)
+  })
+  bottom <- nodes$top - nodes$n
+  centre <- stats::ave(seq_along(bottom), nodes$col, FUN = function(i) {
+    (max(nodes$top[i]) + min(bottom[i])) / 2
+  })
+  nodes$top <- nodes$top - centre
+  okey <- match(d$fill, names(FLOW_OUTCOME_FILLS)) * 10 + match(d$type, SCENARIO_FLOW_TYPES)
+  segs <- do.call(rbind, lapply(seq_along(paths), function(i) {
+    p <- paths[[i]]
+    data.frame(col = seq_len(length(p) - 1), from = head(p, -1), to = p[-1], n = d$mean[i],
+               fill = d$fill[i], okey = okey[i])
+  }))
+  segs$from_rank <- mapply(rank_of, segs$col, segs$from)
+  segs$to_rank <- mapply(rank_of, segs$col + 1, segs$to)
+  #' Stack the ribbons leaving or entering one node, top-down
+  #'
+  #' @param idx Indices of the ribbons at the node.
+  #' @param col The node's column.
+  #' @param node The node's label.
+  #' @param by The rank to order them by.
+  #' @return The top of each ribbon, in the order of `idx`.
+  stack <- function(idx, col, node, by) {
+    o <- idx[order(by[idx], segs$okey[idx])]
+    top <- nodes$top[nodes$col == col & nodes$node == node]
+    out <- top - c(0, cumsum(head(segs$n[o], -1)))
+    out[match(idx, o)]
+  }
+  segs$y0 <- NA_real_
+  segs$y1 <- NA_real_
+  for (g in split(seq_len(nrow(segs)), paste(segs$col, segs$from))) {
+    segs$y0[g] <- stack(g, segs$col[g[1]], segs$from[g[1]], segs$to_rank)
+  }
+  for (g in split(seq_len(nrow(segs)), paste(segs$col, segs$to))) {
+    segs$y1[g] <- stack(g, segs$col[g[1]] + 1, segs$to[g[1]], segs$from_rank)
+  }
+  list(nodes = nodes, segments = segs)
+}
+
+#' One intensity's casualty flow diagram, echelons left to right
+#'
+#' @param flows One scenario's rows of `scenario_flows.csv`.
+#' @param title The panel's title.
+#' @param fills The outcome fills the legend shows, shared by both panels.
+#' @return A ggplot object: casualty type, R1, R2B, R2E and outcome columns
+#'   joined by ribbons whose width is the mean number of casualties per
+#'   campaign taking that path, each ribbon filled by its outcome along its
+#'   whole length, with the grouped small outcomes listed in the caption.
+plot_casualty_flow_panel <- function(flows, title, fills) {
+  d <- flow_group_small(flows[flows$mean > 0, ])
+  lay <- flow_layout(d)
+  nodes <- lay$nodes
+  segs <- lay$segments
+  width <- 0.12
+  t <- seq(0, 1, length.out = 40)
+  ease <- 3 * t^2 - 2 * t^3
+  ribbons <- do.call(rbind, lapply(seq_len(nrow(segs)), function(k) {
+    s <- segs[k, ]
+    x <- s$col + width / 2 + t * (1 - width)
+    upper <- s$y0 + (s$y1 - s$y0) * ease
+    data.frame(id = k, fill = s$fill, x = c(x, rev(x)), y = c(upper, rev(upper - s$n)))
+  }))
+  first <- nodes$col == 1
+  nodes$label <- paste0(sub("Disease and non-battle injury", "Disease and\nnon-battle injury",
+                            nodes$node),
+                        " (", format(round(nodes$n), big.mark = ",", trim = TRUE), ")")
+  nodes$lab_x <- ifelse(first, nodes$col - width / 2 - 0.03, nodes$col + width / 2 + 0.03)
+  ggplot() +
+    geom_polygon(data = ribbons, aes(x, y, group = id, fill = fill), alpha = 0.75,
+                 show.legend = TRUE) +
+    geom_rect(data = nodes, aes(xmin = col - width / 2, xmax = col + width / 2,
+                                ymin = top - n, ymax = top),
+              fill = "grey92", colour = "grey35", linewidth = 0.3) +
+    geom_label(data = nodes, aes(x = lab_x, y = top - n / 2, label = label,
+                                 hjust = ifelse(col == 1, 1, 0)),
+               size = 2.8, linewidth = 0, fill = scales::alpha("white", 0.85),
+               label.padding = unit(0.1, "lines")) +
+    scale_fill_manual(values = FLOW_OUTCOME_FILLS[fills], limits = fills, name = "Outcome") +
+    scale_x_continuous(breaks = seq_along(FLOW_COLUMNS), labels = FLOW_COLUMNS,
+                       limits = c(-0.5, 6.3), expand = c(0, 0)) +
+    scale_y_continuous(labels = NULL) +
+    labs(title = title, x = NULL, y = NULL,
+         caption = paste(attr(d, "note"), collapse = "\n")) +
     theme_minimal(base_size = 12) +
-    theme(panel.grid.major.x = element_blank(), plot.title = element_text(face = "bold"))
+    theme(panel.grid = element_blank(), plot.title = element_text(face = "bold"),
+          axis.text.x = element_text(face = "bold"),
+          plot.caption = element_text(hjust = 0, size = 9, colour = "grey25"))
 }
 
 #' The casualty flow diagram at both intensities
 #'
-#' @param flows `scenario_flows.csv` as tracked: `scenario`, `type`, `echelon`,
-#'   `outcome` and `mean`, for `moderate_intensity` and `high_intensity`.
+#' @param flows `scenario_flows.csv` as tracked: `scenario`, `type`,
+#'   `via_r2b`, `echelon`, `outcome` and `mean`, for `moderate_intensity` and
+#'   `high_intensity`.
 #' @return A patchwork of the two panels, moderate above high, sharing one
-#'   outcome legend.
+#'   outcome legend that lists only the outcomes the campaigns produced.
 #'
 #' @details Each panel is scaled to its own casualty total, the high-intensity
 #'   campaign producing more than twice as many casualties, so the panels
-#'   compare shares rather than counts; the counts are in the strata labels.
+#'   compare shares rather than counts; the counts are in the node labels.
 plot_casualty_flows <- function(flows) {
   panels <- c(moderate_intensity = "Moderate intensity", high_intensity = "High intensity")
   missing <- setdiff(names(panels), unique(flows$scenario))
@@ -1311,8 +1458,12 @@ plot_casualty_flows <- function(flows) {
     stop(sprintf("plot_casualty_flows: no flows for %s", paste(missing, collapse = ", ")),
          call. = FALSE)
   }
+  grouped <- do.call(rbind, lapply(names(panels), function(sc) {
+    flow_group_small(flows[flows$scenario == sc & flows$mean > 0, ])[, c("fill"), drop = FALSE]
+  }))
+  fills <- intersect(names(FLOW_OUTCOME_FILLS), unique(grouped$fill))
   plots <- lapply(names(panels), function(sc) {
-    plot_casualty_flow_panel(flows[flows$scenario == sc, ], panels[[sc]])
+    plot_casualty_flow_panel(flows[flows$scenario == sc, ], panels[[sc]], fills)
   })
   patchwork::wrap_plots(plots, ncol = 1, guides = "collect") &
     theme(legend.position = "right")

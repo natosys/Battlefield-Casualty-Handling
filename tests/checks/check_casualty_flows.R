@@ -20,9 +20,9 @@
 #
 #   1. On hand-built casualties, each classification rule gives the path
 #      stated for it, death of wounds taking precedence over a return to duty,
-#      a casualty that bypassed R2B counting as reaching R2E, and a casualty
-#      with no attribute set remaining at R1 in care; a casualty of an unknown
-#      type stops the classification.
+#      a casualty that bypassed R2B counting as reaching R2E but not as passing
+#      through R2B, and a casualty with no attribute set remaining at R1 in
+#      care; a casualty of an unknown type stops the classification.
 #   2. The tracked flows carry both intensities at the protocol's replication
 #      count, every label is one of the documented ones, and no flow is
 #      impossible (a killed-in-action casualty is untreated and nothing else is;
@@ -31,7 +31,9 @@
 #   3. Each replication's flows sum to the casualties of the totals file: the
 #      mean of the per-replication sums equals the published casualty total.
 #   4. The summary is the reduction of the per-replication flows.
-#   5. docs/Results.md shows the diagram and prints both flow tables as
+#   5. The diagram groups an outcome under its share of a panel into the
+#      echelon's Other outcomes node, its note naming what the node holds.
+#   6. docs/Results.md shows the diagram and prints both flow tables as
 #      generated spans.
 
 suppressPackageStartupMessages({
@@ -41,6 +43,7 @@ suppressPackageStartupMessages({
 
 source("R/constants.R")
 source("R/scenario_runner.R")
+source("R/figures.R")
 
 #' Directory of the tracked comparative scenario evidence set
 EVIDENCE_DIR <- file.path("data", "scenarios")
@@ -104,6 +107,7 @@ toy <- data.frame(
   stringsAsFactors = FALSE
 )
 expected <- data.frame(
+  via_r2b = c(FALSE, TRUE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE, TRUE),
   type = c("Killed in action", "Wounded in action", "Wounded in action",
            "Disease and non-battle injury", "Wounded in action", "Wounded in action",
            "Wounded in action", "Disease and non-battle injury", "Wounded in action"),
@@ -114,11 +118,12 @@ expected <- data.frame(
               "In care on the last day", "In care on the last day"),
   stringsAsFactors = FALSE
 )
-got <- classify_casualty_flows(toy)
+got <- classify_casualty_flows(toy)[, c("via_r2b", "type", "echelon", "outcome")]
 for (i in seq_len(nrow(toy))) {
   report(identical(unlist(got[i, ]), unlist(expected[i, ])),
-         "%s takes %s / %s / %s (got %s)", toy$name[i], expected$type[i], expected$echelon[i],
-         expected$outcome[i], paste(unlist(got[i, ]), collapse = " / "))
+         "%s takes %s / %s / %s / %s (got %s)", toy$name[i],
+         if (expected$via_r2b[i]) "via R2B" else "not via R2B", expected$type[i],
+         expected$echelon[i], expected$outcome[i], paste(unlist(got[i, ]), collapse = " / "))
 }
 unknown <- tryCatch({
   classify_casualty_flows(transform(toy[1, ], name = "surgeon_1"))
@@ -158,6 +163,10 @@ if (!is.null(reps) && !is.null(flows) && !is.null(totals)) {
   #' @param echelon The echelon label it must come from.
   #' @return TRUE when no flow to `outcome` comes from another echelon.
   from <- function(outcome, echelon) all(reps$echelon[reps$outcome == outcome] == echelon)
+  via <- as.logical(reps$via_r2b)
+  report(!anyNA(via) && all(!via[reps$echelon %in% c("Not treated", "R1")]) &&
+           all(via[reps$echelon == "R2B"]),
+         "only a casualty reaching R2B or R2E can have passed through R2B, and all at R2B did")
   report(from("Returned to duty from R2E", "R2E") && from("Returned to duty from R2B", "R2B") &&
            from("Returned to duty awaiting airlift", "R2E") &&
            from("Evacuated to Role 4", "R2E") && from("Awaiting airlift on the last day", "R2E"),
@@ -185,7 +194,7 @@ if (!is.null(reps) && !is.null(flows) && !is.null(totals)) {
   #'
   #' @param d A flow summary.
   #' @return One string per row.
-  key <- function(d) paste(d$scenario, d$type, d$echelon, d$outcome)
+  key <- function(d) paste(d$scenario, d$type, as.logical(d$via_r2b), d$echelon, d$outcome)
   m <- match(key(flows), key(recomputed))
   report(nrow(flows) == nrow(recomputed) && !anyNA(m) &&
            all(abs(flows$mean - recomputed$mean[m]) < TOL) &&
@@ -195,7 +204,27 @@ if (!is.null(reps) && !is.null(flows) && !is.null(totals)) {
          nrow(flows))
 }
 
-# ── 5. The results paper publishes the flows ──────────────────────────────
+# ── 5. The diagram groups small outcomes and names what they hold ───────────
+
+cat("\n-- small outcomes are grouped and annotated --\n")
+toy_flows <- data.frame(
+  type = c("Killed in action", "Wounded in action", "Wounded in action", "Wounded in action"),
+  via_r2b = c(FALSE, TRUE, TRUE, FALSE),
+  echelon = c("Not treated", "R2E", "R2B", "R2E"),
+  outcome = c("Killed in action", "Evacuated to Role 4", "Died of wounds", "Died of wounds"),
+  mean = c(200, 795, 2, 3), stringsAsFactors = FALSE
+)
+grouped <- flow_group_small(toy_flows)
+note <- attr(grouped, "note")
+report(identical(grouped$terminal, c("KIA", "Evacuated to Role 4", "Other outcomes at R2B",
+                                     "Other outcomes at R2E")),
+       "outcomes under %.1f%% of the panel join their echelon's Other outcomes node (%s)",
+       100 * FLOW_GROUP_MIN_SHARE, paste(grouped$terminal, collapse = ", "))
+report(length(note) == 2 && grepl("^Other outcomes at R2B: died of wounds \\(2.0\\)", note[1]) &&
+         grepl("^Other outcomes at R2E: died of wounds \\(3.0\\)", note[2]),
+       "the note names what each grouped node holds (%s)", paste(note, collapse = " | "))
+
+# ── 6. The results paper publishes the flows ──────────────────────────────
 
 cat("\n-- the results paper shows the flows --\n")
 paper <- if (file.exists(RESULTS_PATH)) readLines(RESULTS_PATH, warn = FALSE) else character(0)

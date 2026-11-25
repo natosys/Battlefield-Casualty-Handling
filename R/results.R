@@ -165,7 +165,9 @@ SCENARIO_PROFILES <- c("moderate_intensity", "high_intensity")
 #' Casualties per campaign by one stage of the casualty flows, at each intensity
 #'
 #' @param data_dir The data directory.
-#' @param stage The flow column to group by, `outcome` or `echelon`.
+#' @param stage The flow column to group by: `outcome`, or `route`, the
+#'   furthest echelon reached with R2E divided by whether the casualty came
+#'   through R2B (flow_route()).
 #' @param levels The stage's labels in their row order.
 #' @param heading The table's first column heading.
 #' @return The table lines: for each label, the mean casualties per campaign and
@@ -178,12 +180,14 @@ SCENARIO_PROFILES <- c("moderate_intensity", "high_intensity")
 #'   label counting zero.
 flow_stage_table <- function(data_dir, stage, levels, heading) {
   d <- res_read("scenarios/scenario_flow_replications.csv", data_dir)
+  d$route <- flow_route(d)
   rows <- lapply(levels, function(lab) {
     cells <- unlist(lapply(SCENARIO_PROFILES, function(sc) {
       x <- d[d$scenario == sc, ]
       reps <- sort(unique(x$replication))
       total <- tapply(x$casualties, factor(x$replication, levels = reps), sum)
-      hit <- x[x[[stage]] == lab, ]
+      through <- lab == "Passed through R2B"
+      hit <- if (through) x[as.logical(x$via_r2b), ] else x[x[[stage]] == lab, ]
       n <- tapply(hit$casualties, factor(hit$replication, levels = reps), sum)
       n[is.na(n)] <- 0
       if (all(n == 0)) return(NULL)
@@ -194,7 +198,7 @@ flow_stage_table <- function(data_dir, stage, levels, heading) {
     }))
     if (length(cells) == 0) return(NULL)
     if (length(cells) == 2) {
-      at_moderate <- any(d$scenario == SCENARIO_PROFILES[1] & d[[stage]] == lab)
+      at_moderate <- any(d$scenario == SCENARIO_PROFILES[1] & d[[stage]] %in% lab)
       cells <- if (at_moderate) c(cells, "0.0 [0.0, 0.0]", "0.0% [0.0%, 0.0%]") else
         c("0.0 [0.0, 0.0]", "0.0% [0.0%, 0.0%]", cells)
     }
@@ -213,12 +217,31 @@ build_flow_outcomes <- function(data_dir) {
   flow_stage_table(data_dir, "outcome", SCENARIO_FLOW_OUTCOMES, "Outcome")
 }
 
+#' Routes of the echelon table, in its row order
+#'
+#' @details The furthest echelon reached, R2E divided by whether the casualty
+#'   came through R2B, and last every casualty who passed through R2B, whether
+#'   they stopped there or went on, which the rows above it divide.
+FLOW_ROUTES <- c("Not treated", "R1", "R2B", "R2E, via R2B", "R2E, bypassing R2B",
+                 "Passed through R2B")
+
+#' The route of each flow, as the echelon table names it
+#'
+#' @param d Per-replication flows carrying `echelon` and `via_r2b`.
+#' @return One route of FLOW_ROUTES per row, short of "Passed through R2B",
+#'   which flow_stage_table() reads from `via_r2b` instead.
+flow_route <- function(d) {
+  via <- as.logical(d$via_r2b)
+  ifelse(d$echelon != "R2E", d$echelon,
+         ifelse(via, "R2E, via R2B", "R2E, bypassing R2B"))
+}
+
 #' Furthest echelon reached table
 #'
 #' @param data_dir The data directory.
-#' @return The table lines, one row per echelon of SCENARIO_FLOW_ECHELONS.
+#' @return The table lines, one row per route of FLOW_ROUTES.
 build_flow_echelons <- function(data_dir) {
-  flow_stage_table(data_dir, "echelon", SCENARIO_FLOW_ECHELONS, "Furthest echelon reached")
+  flow_stage_table(data_dir, "route", FLOW_ROUTES, "Furthest echelon reached")
 }
 
 #' Comparative scenario totals table

@@ -162,6 +162,65 @@ res_sweep_table <- function(d, header, arms, rows) {
 #' The two scenario profiles the comparative tables compare
 SCENARIO_PROFILES <- c("moderate_intensity", "high_intensity")
 
+#' Casualties per campaign by one stage of the casualty flows, at each intensity
+#'
+#' @param data_dir The data directory.
+#' @param stage The flow column to group by, `outcome` or `echelon`.
+#' @param levels The stage's labels in their row order.
+#' @param heading The table's first column heading.
+#' @return The table lines: for each label, the mean casualties per campaign and
+#'   their share of the campaign's casualties, each with its 95% interval, at
+#'   each intensity. A label no replication produced is left out.
+#'
+#' @details Both columns are Student t intervals of per-replication values,
+#'   the count summed over the flows of one replication and the share taken
+#'   against that replication's casualties, a replication producing none of a
+#'   label counting zero.
+flow_stage_table <- function(data_dir, stage, levels, heading) {
+  d <- res_read("scenarios/scenario_flow_replications.csv", data_dir)
+  rows <- lapply(levels, function(lab) {
+    cells <- unlist(lapply(SCENARIO_PROFILES, function(sc) {
+      x <- d[d$scenario == sc, ]
+      reps <- sort(unique(x$replication))
+      total <- tapply(x$casualties, factor(x$replication, levels = reps), sum)
+      hit <- x[x[[stage]] == lab, ]
+      n <- tapply(hit$casualties, factor(hit$replication, levels = reps), sum)
+      n[is.na(n)] <- 0
+      if (all(n == 0)) return(NULL)
+      ci <- res_t_interval(as.numeric(n))
+      sh <- res_t_interval(100 * as.numeric(n) / as.numeric(total))
+      c(res_ci(ci[["mean"]], ci[["lower"]], ci[["upper"]], dp = 1L, big = TRUE, floor0 = TRUE),
+        res_ci(sh[["mean"]], sh[["lower"]], sh[["upper"]], dp = 1L, floor0 = TRUE, unit = "%"))
+    }))
+    if (length(cells) == 0) return(NULL)
+    if (length(cells) == 2) {
+      at_moderate <- any(d$scenario == SCENARIO_PROFILES[1] & d[[stage]] == lab)
+      cells <- if (at_moderate) c(cells, "0.0 [0.0, 0.0]", "0.0% [0.0%, 0.0%]") else
+        c("0.0 [0.0, 0.0]", "0.0% [0.0%, 0.0%]", cells)
+    }
+    c(lab, cells)
+  })
+  rows <- Filter(Negate(is.null), rows)
+  res_table(c(heading, "Moderate intensity: casualties/run", "Moderate intensity: share",
+              "High intensity: casualties/run", "High intensity: share"), rows)
+}
+
+#' Casualty outcomes table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines, one row per outcome of SCENARIO_FLOW_OUTCOMES.
+build_flow_outcomes <- function(data_dir) {
+  flow_stage_table(data_dir, "outcome", SCENARIO_FLOW_OUTCOMES, "Outcome")
+}
+
+#' Furthest echelon reached table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines, one row per echelon of SCENARIO_FLOW_ECHELONS.
+build_flow_echelons <- function(data_dir) {
+  flow_stage_table(data_dir, "echelon", SCENARIO_FLOW_ECHELONS, "Furthest echelon reached")
+}
+
 #' Comparative scenario totals table
 #'
 #' @param data_dir The data directory.
@@ -4164,6 +4223,8 @@ PLANNING_ONLY_TABLES <- c("adequacy_matrix", "adequacy_sizing")
 RESULTS_TABLES <- list(
   scenario_totals = build_scenario_totals,
   scenario_queue = build_scenario_queue,
+  flow_outcomes = build_flow_outcomes,
+  flow_echelons = build_flow_echelons,
   long_horizon_stability = build_long_horizon_stability,
   load_demand = build_load_demand,
   load_shortfall = build_load_shortfall,

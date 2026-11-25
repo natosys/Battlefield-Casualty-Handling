@@ -171,6 +171,10 @@ holders <- read_tracked("scenarios", "scenario_transport_holders.csv")
 # RENDERS: evacuation_asset_use.png
 save_figure(plot_evacuation_asset_use(holders), "evacuation_asset_use.png", 10, 4.8)
 
+# RENDERS: casualty_flows.png
+save_figure(plot_casualty_flows(read_tracked("scenarios", "scenario_flows.csv")),
+            "casualty_flows.png", 12, 11)
+
 post_op_rule <- env_json$vars$r2b$post_op_icu
 forward_shipped <- FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_dcs &
   FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_single_stage &

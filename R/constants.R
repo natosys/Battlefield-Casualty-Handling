@@ -116,3 +116,26 @@ SECTION_POOL_FMT <- "pool_%s_%s_%d"
 section_pool <- function(elm_type, type, team_id) {
   sprintf(SECTION_POOL_FMT, elm_type, type, as.integer(team_id))
 }
+
+#' Casualty types of the flow diagram, keyed by the arrival-name prefix
+#'
+#' @details Every casualty enters through a generator named for its type, a
+#'   casualty surge event's casualties included (`wia_cbt` and `kia_cbt`), so
+#'   the three prefixes cover every casualty the model produces.
+SCENARIO_FLOW_TYPES <- c(kia = "Killed in action", wia = "Wounded in action",
+                         dnbi = "Disease and non-battle injury")
+
+#' Furthest echelons of the flow diagram, in its order
+SCENARIO_FLOW_ECHELONS <- c("Not treated", "R1", "R2B", "R2E")
+
+#' Outcomes of the flow diagram, in its order
+#'
+#' @details Each casualty takes exactly one, the first that applies in this
+#'   order: killed in action, died of wounds, returned to duty while awaiting
+#'   airlift, returned to duty from the echelon recorded, evacuated to Role 4,
+#'   awaiting airlift on the last day (an evacuation decided and no sortie
+#'   boarded), and otherwise still in care in theatre on the last day.
+SCENARIO_FLOW_OUTCOMES <- c("Killed in action", "Died of wounds", "Returned to duty from R1",
+                            "Returned to duty from R2B", "Returned to duty from R2E",
+                            "Returned to duty awaiting airlift", "Evacuated to Role 4",
+                            "Awaiting airlift on the last day", "In care on the last day")

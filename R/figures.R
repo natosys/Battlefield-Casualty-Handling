@@ -1430,7 +1430,7 @@ plot_casualty_flow_panel <- function(flows, title, fills) {
                label.padding = unit(0.1, "lines")) +
     scale_fill_manual(values = FLOW_OUTCOME_FILLS[fills], limits = fills, name = "Outcome") +
     scale_x_continuous(breaks = seq_along(FLOW_COLUMNS), labels = FLOW_COLUMNS,
-                       limits = c(-0.5, 6.3), expand = c(0, 0)) +
+                       limits = c(-0.5, 6.9), expand = c(0, 0)) +
     scale_y_continuous(labels = NULL) +
     labs(title = title, x = NULL, y = NULL,
          caption = paste(attr(d, "note"), collapse = "\n")) +

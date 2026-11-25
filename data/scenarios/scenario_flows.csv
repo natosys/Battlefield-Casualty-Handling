@@ -1,47 +1,69 @@
-"scenario","type","echelon","outcome","n_reps","mean","ci_lower","ci_upper"
-"moderate_intensity","Killed in action","Not treated","Killed in action",30,881.5,853.056530282845,909.943469717155
-"moderate_intensity","Wounded in action","R1","Died of wounds",30,0.566666666666667,0.332891156036373,0.800442177296961
-"moderate_intensity","Wounded in action","R1","In care on the last day",30,0.1,-0.0503250583594583,0.250325058359458
-"moderate_intensity","Wounded in action","R2B","Died of wounds",30,2.36666666666667,1.51469925086266,3.21863408247067
-"moderate_intensity","Wounded in action","R2B","Returned to duty from R2B",30,28.5333333333333,26.6786184602195,30.3880482064472
-"moderate_intensity","Wounded in action","R2B","In care on the last day",30,1.46666666666667,1.02015581824077,1.91317751509256
-"moderate_intensity","Wounded in action","R2E","Died of wounds",30,16.3666666666667,13.2742628219459,19.4590705113874
-"moderate_intensity","Wounded in action","R2E","Returned to duty from R2E",30,352.066666666667,344.25620410137,359.877129231964
-"moderate_intensity","Wounded in action","R2E","Returned to duty awaiting airlift",30,0.333333333333333,-0.0978389338153612,0.764505600482028
-"moderate_intensity","Wounded in action","R2E","Evacuated to Role 4",30,1875.73333333333,1832.85847473519,1918.60819193148
-"moderate_intensity","Wounded in action","R2E","Awaiting airlift on the last day",30,26.7,19.5838668981157,33.8161331018843
-"moderate_intensity","Wounded in action","R2E","In care on the last day",30,22.5333333333333,19.8340054161452,25.2326612505215
-"moderate_intensity","Disease and non-battle injury","R1","Died of wounds",30,0.2,0.0480841559817748,0.351915844018225
-"moderate_intensity","Disease and non-battle injury","R1","In care on the last day",30,0.0333333333333333,-0.0348409880710901,0.101507654737757
-"moderate_intensity","Disease and non-battle injury","R2B","Died of wounds",30,0.2,0.0480841559817748,0.351915844018225
-"moderate_intensity","Disease and non-battle injury","R2B","Returned to duty from R2B",30,275.266666666667,269.84756590687,280.685767426463
-"moderate_intensity","Disease and non-battle injury","R2B","In care on the last day",30,7,6.44528176925855,7.55471823074145
-"moderate_intensity","Disease and non-battle injury","R2E","Died of wounds",30,1.96666666666667,1.39923731998482,2.53409601334851
-"moderate_intensity","Disease and non-battle injury","R2E","Returned to duty from R2E",30,1373.66666666667,1347.16048373266,1400.17284960067
-"moderate_intensity","Disease and non-battle injury","R2E","Returned to duty awaiting airlift",30,0.0333333333333333,-0.0348409880710901,0.101507654737757
-"moderate_intensity","Disease and non-battle injury","R2E","Evacuated to Role 4",30,460.533333333333,450.954031802232,470.112634864435
-"moderate_intensity","Disease and non-battle injury","R2E","Awaiting airlift on the last day",30,6.4,5.07853589130897,7.72146410869103
-"moderate_intensity","Disease and non-battle injury","R2E","In care on the last day",30,38.5666666666667,34.4777553107451,42.6555780225882
-"high_intensity","Killed in action","Not treated","Killed in action",30,2032.9,2009.97329730281,2055.82670269719
-"high_intensity","Wounded in action","R1","Died of wounds",30,2.86666666666667,2.18210825875736,3.55122507457597
-"high_intensity","Wounded in action","R1","In care on the last day",30,0.3,0.125958536380845,0.474041463619155
-"high_intensity","Wounded in action","R2B","Died of wounds",30,18.0666666666667,16.5508878934966,19.5824454398368
-"high_intensity","Wounded in action","R2B","Returned to duty from R2B",30,77.3666666666667,74.8675792057768,79.8657541275565
-"high_intensity","Wounded in action","R2B","In care on the last day",30,6.3,4.27568218853903,8.32431781146097
-"high_intensity","Wounded in action","R2E","Died of wounds",30,593.966666666667,485.225157516005,702.708175817329
-"high_intensity","Wounded in action","R2E","Returned to duty from R2E",30,1229.8,1209.99541324416,1249.60458675584
-"high_intensity","Wounded in action","R2E","Returned to duty awaiting airlift",30,1323.03333333333,1296.84556445306,1349.22110221361
-"high_intensity","Wounded in action","R2E","Evacuated to Role 4",30,3604.13333333333,3580.51568485441,3627.75098181226
-"high_intensity","Wounded in action","R2E","Awaiting airlift on the last day",30,1435.7,1399.1235262748,1472.2764737252
-"high_intensity","Wounded in action","R2E","In care on the last day",30,161,131.197604950104,190.802395049896
-"high_intensity","Disease and non-battle injury","R1","Died of wounds",30,0.0666666666666667,-0.0280695066564651,0.161402839989798
-"high_intensity","Disease and non-battle injury","R1","In care on the last day",30,0.0666666666666667,-0.0280695066564651,0.161402839989798
-"high_intensity","Disease and non-battle injury","R2B","Died of wounds",30,0.5,0.245229384436995,0.754770615563005
-"high_intensity","Disease and non-battle injury","R2B","Returned to duty from R2B",30,221.433333333333,217.172819098442,225.693847568224
-"high_intensity","Disease and non-battle injury","R2B","In care on the last day",30,5.6,4.92344839861882,6.27655160138118
-"high_intensity","Disease and non-battle injury","R2E","Died of wounds",30,21.7666666666667,17.3130408099974,26.2202925233359
-"high_intensity","Disease and non-battle injury","R2E","Returned to duty from R2E",30,1341.43333333333,1312.88863269733,1369.97803396934
-"high_intensity","Disease and non-battle injury","R2E","Returned to duty awaiting airlift",30,61.4333333333333,58.912790247487,63.9538764191796
-"high_intensity","Disease and non-battle injury","R2E","Evacuated to Role 4",30,304.666666666667,294.365877467251,314.967455866083
-"high_intensity","Disease and non-battle injury","R2E","Awaiting airlift on the last day",30,61.6666666666667,57.8746830067366,65.4586503265967
-"high_intensity","Disease and non-battle injury","R2E","In care on the last day",30,38.3333333333333,33.805139614207,42.8615270524597
+"scenario","type","via_r2b","echelon","outcome","n_reps","mean","ci_lower","ci_upper"
+"moderate_intensity","Killed in action",FALSE,"Not treated","Killed in action",30,881.5,853.056530282845,909.943469717155
+"moderate_intensity","Wounded in action",TRUE,"R2B","Died of wounds",30,2.36666666666667,1.51469925086266,3.21863408247067
+"moderate_intensity","Wounded in action",TRUE,"R2B","Returned to duty from R2B",30,28.5333333333333,26.6786184602195,30.3880482064472
+"moderate_intensity","Wounded in action",TRUE,"R2B","In care on the last day",30,1.46666666666667,1.02015581824077,1.91317751509256
+"moderate_intensity","Wounded in action",TRUE,"R2E","Died of wounds",30,15.6666666666667,12.6246596282383,18.708673705095
+"moderate_intensity","Wounded in action",TRUE,"R2E","Returned to duty from R2E",30,235.866666666667,229.447785301476,242.285548031857
+"moderate_intensity","Wounded in action",TRUE,"R2E","Returned to duty awaiting airlift",30,0.333333333333333,-0.0978389338153612,0.764505600482028
+"moderate_intensity","Wounded in action",TRUE,"R2E","Evacuated to Role 4",30,1658.73333333333,1622.18871304093,1695.27795362573
+"moderate_intensity","Wounded in action",TRUE,"R2E","Awaiting airlift on the last day",30,24.3333333333333,17.5349696534969,31.1316970131697
+"moderate_intensity","Wounded in action",TRUE,"R2E","In care on the last day",30,16.6333333333333,14.3983038356781,18.8683628309886
+"moderate_intensity","Wounded in action",FALSE,"R1","Died of wounds",30,0.566666666666667,0.332891156036373,0.800442177296961
+"moderate_intensity","Wounded in action",FALSE,"R1","In care on the last day",30,0.1,-0.0503250583594583,0.250325058359458
+"moderate_intensity","Wounded in action",FALSE,"R2E","Died of wounds",30,0.7,0.387586011711981,1.01241398828802
+"moderate_intensity","Wounded in action",FALSE,"R2E","Returned to duty from R2E",30,116.2,111.899368259832,120.500631740168
+"moderate_intensity","Wounded in action",FALSE,"R2E","Evacuated to Role 4",30,217,208.386782478704,225.613217521296
+"moderate_intensity","Wounded in action",FALSE,"R2E","Awaiting airlift on the last day",30,2.36666666666667,1.62318815311467,3.11014518021866
+"moderate_intensity","Wounded in action",FALSE,"R2E","In care on the last day",30,5.9,4.78904776631995,7.01095223368005
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2B","Died of wounds",30,0.2,0.0480841559817748,0.351915844018225
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2B","Returned to duty from R2B",30,275.266666666667,269.84756590687,280.685767426463
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2B","In care on the last day",30,7,6.44528176925855,7.55471823074145
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2E","Died of wounds",30,1.8,1.26829454593621,2.33170545406379
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2E","Returned to duty from R2E",30,91.9666666666667,87.4553337592372,96.4779995740961
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2E","Returned to duty awaiting airlift",30,0.0333333333333333,-0.0348409880710901,0.101507654737757
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2E","Evacuated to Role 4",30,299.1,292.646295303727,305.553704696273
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2E","Awaiting airlift on the last day",30,5.13333333333333,3.86332333842467,6.403343328242
+"moderate_intensity","Disease and non-battle injury",TRUE,"R2E","In care on the last day",30,4.96666666666667,4.26305865011622,5.67027468321712
+"moderate_intensity","Disease and non-battle injury",FALSE,"R1","Died of wounds",30,0.2,0.0480841559817748,0.351915844018225
+"moderate_intensity","Disease and non-battle injury",FALSE,"R1","In care on the last day",30,0.0333333333333333,-0.0348409880710901,0.101507654737757
+"moderate_intensity","Disease and non-battle injury",FALSE,"R2E","Died of wounds",30,0.166666666666667,0.0251274357983306,0.308205897535003
+"moderate_intensity","Disease and non-battle injury",FALSE,"R2E","Returned to duty from R2E",30,1281.7,1256.57867564225,1306.82132435775
+"moderate_intensity","Disease and non-battle injury",FALSE,"R2E","Evacuated to Role 4",30,161.433333333333,155.594213032001,167.272453634666
+"moderate_intensity","Disease and non-battle injury",FALSE,"R2E","Awaiting airlift on the last day",30,1.26666666666667,0.900629686684229,1.6327036466491
+"moderate_intensity","Disease and non-battle injury",FALSE,"R2E","In care on the last day",30,33.6,29.7685772026401,37.43142279736
+"high_intensity","Killed in action",FALSE,"Not treated","Killed in action",30,2032.9,2009.97329730281,2055.82670269719
+"high_intensity","Wounded in action",TRUE,"R2B","Died of wounds",30,18.0666666666667,16.5508878934966,19.5824454398368
+"high_intensity","Wounded in action",TRUE,"R2B","Returned to duty from R2B",30,77.3666666666667,74.8675792057768,79.8657541275565
+"high_intensity","Wounded in action",TRUE,"R2B","In care on the last day",30,6.3,4.27568218853903,8.32431781146097
+"high_intensity","Wounded in action",TRUE,"R2E","Died of wounds",30,560.733333333333,457.584268245364,663.882398421303
+"high_intensity","Wounded in action",TRUE,"R2E","Returned to duty from R2E",30,770.133333333333,757.572022035468,782.694644631198
+"high_intensity","Wounded in action",TRUE,"R2E","Returned to duty awaiting airlift",30,1283.83333333333,1258.81981501066,1308.84685165601
+"high_intensity","Wounded in action",TRUE,"R2E","Evacuated to Role 4",30,2769.06666666667,2752.0246097271,2786.10872360623
+"high_intensity","Wounded in action",TRUE,"R2E","Awaiting airlift on the last day",30,1370,1335.82653173226,1404.17346826774
+"high_intensity","Wounded in action",TRUE,"R2E","In care on the last day",30,140.666666666667,112.465515682889,168.867817650445
+"high_intensity","Wounded in action",FALSE,"R1","Died of wounds",30,2.86666666666667,2.18210825875736,3.55122507457597
+"high_intensity","Wounded in action",FALSE,"R1","In care on the last day",30,0.3,0.125958536380845,0.474041463619155
+"high_intensity","Wounded in action",FALSE,"R2E","Died of wounds",30,33.2333333333333,27.15299511564,39.3136715510267
+"high_intensity","Wounded in action",FALSE,"R2E","Returned to duty from R2E",30,459.666666666667,448.829086227958,470.504247105376
+"high_intensity","Wounded in action",FALSE,"R2E","Returned to duty awaiting airlift",30,39.2,36.4136105152211,41.9863894847789
+"high_intensity","Wounded in action",FALSE,"R2E","Evacuated to Role 4",30,835.066666666667,815.069398229036,855.063935104297
+"high_intensity","Wounded in action",FALSE,"R2E","Awaiting airlift on the last day",30,65.7,60.2084383530604,71.1915616469396
+"high_intensity","Wounded in action",FALSE,"R2E","In care on the last day",30,20.3333333333333,17.9206809957882,22.7459856708785
+"high_intensity","Disease and non-battle injury",TRUE,"R2B","Died of wounds",30,0.5,0.245229384436995,0.754770615563005
+"high_intensity","Disease and non-battle injury",TRUE,"R2B","Returned to duty from R2B",30,221.433333333333,217.172819098442,225.693847568224
+"high_intensity","Disease and non-battle injury",TRUE,"R2B","In care on the last day",30,5.6,4.92344839861882,6.27655160138118
+"high_intensity","Disease and non-battle injury",TRUE,"R2E","Died of wounds",30,21.3666666666667,16.9316483012478,25.8016850320855
+"high_intensity","Disease and non-battle injury",TRUE,"R2E","Returned to duty from R2E",30,79,74.8919472612767,83.1080527387233
+"high_intensity","Disease and non-battle injury",TRUE,"R2E","Returned to duty awaiting airlift",30,60,57.5900062333313,62.4099937666687
+"high_intensity","Disease and non-battle injury",TRUE,"R2E","Evacuated to Role 4",30,147.266666666667,142.122483731823,152.41084960151
+"high_intensity","Disease and non-battle injury",TRUE,"R2E","Awaiting airlift on the last day",30,58.5333333333333,54.9173674678731,62.1492991987936
+"high_intensity","Disease and non-battle injury",TRUE,"R2E","In care on the last day",30,8.03333333333333,5.98696776795719,10.0796988987095
+"high_intensity","Disease and non-battle injury",FALSE,"R1","Died of wounds",30,0.0666666666666667,-0.0280695066564651,0.161402839989798
+"high_intensity","Disease and non-battle injury",FALSE,"R1","In care on the last day",30,0.0666666666666667,-0.0280695066564651,0.161402839989798
+"high_intensity","Disease and non-battle injury",FALSE,"R2E","Died of wounds",30,0.4,0.148076072840695,0.651923927159305
+"high_intensity","Disease and non-battle injury",FALSE,"R2E","Returned to duty from R2E",30,1262.43333333333,1235.15349510071,1289.71317156596
+"high_intensity","Disease and non-battle injury",FALSE,"R2E","Returned to duty awaiting airlift",30,1.43333333333333,0.956113083502369,1.9105535831643
+"high_intensity","Disease and non-battle injury",FALSE,"R2E","Evacuated to Role 4",30,157.4,150.93271335979,163.86728664021
+"high_intensity","Disease and non-battle injury",FALSE,"R2E","Awaiting airlift on the last day",30,3.13333333333333,2.53096790821302,3.73569875845365
+"high_intensity","Disease and non-battle injury",FALSE,"R2E","In care on the last day",30,30.3,26.9917585302687,33.6082414697313

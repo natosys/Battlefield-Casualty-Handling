@@ -194,13 +194,14 @@ scenario_first_incision_by_replication <- function(mon, arrivals) {
     summarise(first_incision_hours = mean(incision) / 60, .groups = "drop")
 }
 
-#' Classify each casualty by type, furthest echelon reached and outcome
+#' Classify each casualty by type, route, furthest echelon reached and outcome
 #'
 #' @param wide One row per casualty, carrying `name` and the attributes in
 #'   SCENARIO_FLOW_KEYS (NA where never set).
-#' @return Data frame of `type`, `echelon` and `outcome`, one row per casualty,
-#'   each a label of SCENARIO_FLOW_TYPES, SCENARIO_FLOW_ECHELONS and
-#'   SCENARIO_FLOW_OUTCOMES.
+#' @return Data frame of `type`, `via_r2b`, `echelon` and `outcome`, one row per
+#'   casualty: the labels are those of SCENARIO_FLOW_TYPES,
+#'   SCENARIO_FLOW_ECHELONS and SCENARIO_FLOW_OUTCOMES, and `via_r2b` is TRUE
+#'   for a casualty who passed through R2B, whether or not they went on to R2E.
 #'
 #' @details A casualty killed in action is not treated. Any other reached R2E
 #'   if it arrived there or bypassed R2B for it (`r2b` of -1, the bypass route
@@ -238,16 +239,16 @@ classify_casualty_flows <- function(wide) {
   outcome[set(wide$ame_rtd) & wide$ame_rtd == 1] <- "Returned to duty awaiting airlift"
   outcome[set(wide$dow) & wide$dow == 1] <- "Died of wounds"
   outcome[kia] <- "Killed in action"
-  data.frame(type = unname(SCENARIO_FLOW_TYPES[prefix]), echelon = echelon, outcome = outcome,
-             stringsAsFactors = FALSE)
+  data.frame(type = unname(SCENARIO_FLOW_TYPES[prefix]), via_r2b = !kia & r2b,
+             echelon = echelon, outcome = outcome, stringsAsFactors = FALSE)
 }
 
-#' Count each replication's casualties by type, furthest echelon and outcome
+#' Count each replication's casualties by type, route, furthest echelon and outcome
 #'
 #' @param mon Named list with arrivals and attributes, as run_replications()
 #'   returns it or as one replication's worker builds it.
-#' @return Data frame of `replication`, `type`, `echelon`, `outcome` and
-#'   `casualties`, one row per flow a replication produced.
+#' @return Data frame of `replication`, `type`, `via_r2b`, `echelon`, `outcome`
+#'   and `casualties`, one row per flow a replication produced.
 #'
 #' @details Every casualty is counted once, the monitor read with `ongoing =
 #'   TRUE` listing one still mid-activity at the horizon twice, and a casualty
@@ -266,16 +267,19 @@ scenario_flows_by_replication <- function(mon) {
   wide <- left_join(as.data.frame(arrivals), last, by = c("name", "replication"))
   flows <- cbind(replication = wide$replication, classify_casualty_flows(wide))
   counted <- aggregate(list(casualties = rep(1L, nrow(flows))),
-                       by = flows[, c("replication", "type", "echelon", "outcome")], FUN = sum)
-  counted[order(counted$replication, counted$type, counted$echelon, counted$outcome), ]
+                       by = flows[, c("replication", "type", "via_r2b", "echelon", "outcome")],
+                       FUN = sum)
+  counted[order(counted$replication, counted$type, counted$via_r2b, counted$echelon,
+                counted$outcome), ]
 }
 
 #' Mean and 95% interval of each flow across replications
 #'
 #' @param per_rep Per-replication flows of one scenario, from
 #'   scenario_flows_by_replication().
-#' @return Data frame of `type`, `echelon`, `outcome`, `n_reps`, `mean`,
-#'   `ci_lower` and `ci_upper`, one row per flow any replication produced.
+#' @return Data frame of `type`, `via_r2b`, `echelon`, `outcome`, `n_reps`,
+#'   `mean`, `ci_lower` and `ci_upper`, one row per flow any replication
+#'   produced.
 #'
 #' @details A flow a replication did not produce counts as zero in it, so its
 #'   mean is taken over every replication rather than over those it appeared in.
@@ -283,11 +287,11 @@ scenario_flows_by_replication <- function(mon) {
 #'   experiment here uses.
 summarise_scenario_flows <- function(per_rep) {
   reps <- sort(unique(per_rep$replication))
-  flows <- unique(per_rep[, c("type", "echelon", "outcome")])
+  flows <- unique(per_rep[, c("type", "via_r2b", "echelon", "outcome")])
   out <- do.call(rbind, lapply(seq_len(nrow(flows)), function(i) {
     f <- flows[i, ]
-    hit <- per_rep[per_rep$type == f$type & per_rep$echelon == f$echelon &
-                     per_rep$outcome == f$outcome, ]
+    hit <- per_rep[per_rep$type == f$type & per_rep$via_r2b == f$via_r2b &
+                     per_rep$echelon == f$echelon & per_rep$outcome == f$outcome, ]
     x <- hit$casualties[match(reps, hit$replication)]
     x[is.na(x)] <- 0
     n <- length(x)
@@ -295,7 +299,8 @@ summarise_scenario_flows <- function(per_rep) {
     e <- if (n > 1) qt(0.975, df = n - 1) * sd(x) / sqrt(n) else 0
     data.frame(f, n_reps = n, mean = m, ci_lower = m - e, ci_upper = m + e, row.names = NULL)
   }))
-  ord <- order(match(out$type, SCENARIO_FLOW_TYPES), match(out$echelon, SCENARIO_FLOW_ECHELONS),
+  ord <- order(match(out$type, SCENARIO_FLOW_TYPES), !out$via_r2b,
+               match(out$echelon, SCENARIO_FLOW_ECHELONS),
                match(out$outcome, SCENARIO_FLOW_OUTCOMES))
   out[ord, ]
 }

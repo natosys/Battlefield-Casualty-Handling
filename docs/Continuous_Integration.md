@@ -367,6 +367,7 @@ seconds.
 | `check_baseline_reproduction.R` | fast | 37 s | Seed-42 tracked evidence set reproduction |
 | `check_bed_queue_coverage.R` | fast | 27 s | a bed queue figure covers every bed type its echelon fields |
 | `check_capacity_sweep_protocol.R` | fast | 7 s | the transport fleet-size sweep and the forward ICU share frontier agree with their published tables |
+| `check_casualty_flows.R` | fast | 9 s | every casualty takes exactly one flow, and the tracked flows reconcile with the comparative scenario totals |
 | `check_casualty_surge_kia_split.R` | fast | 41 s | a casualty surge event's casualty count is a total, split between the wounded and the immediately killed |
 | `check_casualty_surge_protocol.R` | fast | 7 s | the casualty surge stress test's parameters, its responses and its published table agree |
 | `check_casualty_surge_size_protocol.R` | fast | 5 s | the casualty surge event size sweep's parameters, its evidence set and its summary agree |

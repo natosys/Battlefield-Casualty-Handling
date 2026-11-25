@@ -209,6 +209,10 @@ scenario_first_incision_by_replication <- function(mon, arrivals) {
 #'   SCENARIO_FLOW_OUTCOMES that applies. Fails on a casualty whose name carries
 #'   no known type, so a new generator cannot fall out of the flows unseen.
 classify_casualty_flows <- function(wide) {
+  #' Whether each value of an attribute was set
+  #'
+  #' @param x An attribute column.
+  #' @return TRUE where the attribute carries a value.
   set <- function(x) !is.na(x)
   prefix <- sub("_.*$", "", wide$name)
   unknown <- setdiff(unique(prefix), names(SCENARIO_FLOW_TYPES))
@@ -222,13 +226,18 @@ classify_casualty_flows <- function(wide) {
   echelon <- ifelse(kia, "Not treated", ifelse(r2e, "R2E", ifelse(r2b, "R2B", "R1")))
   returned_at <- c("Returned to duty from R1", "Returned to duty from R2B",
                    "Returned to duty from R2E")
-  outcome <- ifelse(kia, "Killed in action",
-    ifelse(set(wide$dow) & wide$dow == 1, "Died of wounds",
-    ifelse(set(wide$ame_rtd) & wide$ame_rtd == 1, "Returned to duty awaiting airlift",
-    ifelse(set(wide$return_echelon), returned_at[pmax(1, pmin(3, wide$return_echelon))],
-    ifelse(set(wide$ame_departure_time), "Evacuated to Role 4",
-    ifelse(set(wide$evacuation_reason) & wide$evacuation_reason > 0,
-           "Awaiting airlift on the last day", "In care on the last day"))))))
+  # Assigned from the lowest precedence to the highest, so a later rule
+  # overrides an earlier one and each casualty keeps the first of
+  # SCENARIO_FLOW_OUTCOMES that applies.
+  outcome <- rep("In care on the last day", nrow(wide))
+  outcome[set(wide$evacuation_reason) & wide$evacuation_reason > 0] <-
+    "Awaiting airlift on the last day"
+  outcome[set(wide$ame_departure_time)] <- "Evacuated to Role 4"
+  rtd <- set(wide$return_echelon)
+  outcome[rtd] <- returned_at[pmax(1, pmin(3, wide$return_echelon[rtd]))]
+  outcome[set(wide$ame_rtd) & wide$ame_rtd == 1] <- "Returned to duty awaiting airlift"
+  outcome[set(wide$dow) & wide$dow == 1] <- "Died of wounds"
+  outcome[kia] <- "Killed in action"
   data.frame(type = unname(SCENARIO_FLOW_TYPES[prefix]), echelon = echelon, outcome = outcome,
              stringsAsFactors = FALSE)
 }

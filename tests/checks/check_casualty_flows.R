@@ -152,6 +152,11 @@ if (!is.null(reps) && !is.null(flows) && !is.null(totals)) {
   report(all((reps$echelon == "Not treated") == kia_type) &&
            all((reps$outcome == "Killed in action") == kia_type),
          "only killed-in-action casualties are untreated, and all of them are")
+  #' Whether every flow to an outcome comes from one echelon
+  #'
+  #' @param outcome The outcome label.
+  #' @param echelon The echelon label it must come from.
+  #' @return TRUE when no flow to `outcome` comes from another echelon.
   from <- function(outcome, echelon) all(reps$echelon[reps$outcome == outcome] == echelon)
   report(from("Returned to duty from R2E", "R2E") && from("Returned to duty from R2B", "R2B") &&
            from("Returned to duty awaiting airlift", "R2E") &&
@@ -176,6 +181,10 @@ if (!is.null(reps) && !is.null(flows) && !is.null(totals)) {
   recomputed <- bind_rows(lapply(SCENARIO_PROTOCOL_PROFILES, function(sc) {
     cbind(scenario = sc, summarise_scenario_flows(reps[reps$scenario == sc, ]))
   }))
+  #' The key identifying each flow of a summary
+  #'
+  #' @param d A flow summary.
+  #' @return One string per row.
   key <- function(d) paste(d$scenario, d$type, d$echelon, d$outcome)
   m <- match(key(flows), key(recomputed))
   report(nrow(flows) == nrow(recomputed) && !anyNA(m) &&

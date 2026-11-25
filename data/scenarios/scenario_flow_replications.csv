@@ -1,0 +1,1091 @@
+"scenario","replication","type","echelon","outcome","casualties"
+"moderate_intensity",1,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",1,"Disease and non-battle injury","R2B","Returned to duty from R2B",289
+"moderate_intensity",1,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",13
+"moderate_intensity",1,"Disease and non-battle injury","R2E","Died of wounds",3
+"moderate_intensity",1,"Disease and non-battle injury","R2E","Evacuated to Role 4",437
+"moderate_intensity",1,"Disease and non-battle injury","R2E","In care on the last day",53
+"moderate_intensity",1,"Disease and non-battle injury","R2E","Returned to duty from R2E",1330
+"moderate_intensity",1,"Killed in action","Not treated","Killed in action",993
+"moderate_intensity",1,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",1,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",1,"Wounded in action","R2B","In care on the last day",3
+"moderate_intensity",1,"Wounded in action","R2B","Returned to duty from R2B",19
+"moderate_intensity",1,"Wounded in action","R2E","Awaiting airlift on the last day",54
+"moderate_intensity",1,"Wounded in action","R2E","Died of wounds",28
+"moderate_intensity",1,"Wounded in action","R2E","Evacuated to Role 4",2152
+"moderate_intensity",1,"Wounded in action","R2E","In care on the last day",20
+"moderate_intensity",1,"Wounded in action","R2E","Returned to duty awaiting airlift",5
+"moderate_intensity",1,"Wounded in action","R2E","Returned to duty from R2E",363
+"moderate_intensity",2,"Disease and non-battle injury","R2B","In care on the last day",9
+"moderate_intensity",2,"Disease and non-battle injury","R2B","Returned to duty from R2B",269
+"moderate_intensity",2,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",10
+"moderate_intensity",2,"Disease and non-battle injury","R2E","Died of wounds",1
+"moderate_intensity",2,"Disease and non-battle injury","R2E","Evacuated to Role 4",445
+"moderate_intensity",2,"Disease and non-battle injury","R2E","In care on the last day",33
+"moderate_intensity",2,"Disease and non-battle injury","R2E","Returned to duty from R2E",1426
+"moderate_intensity",2,"Killed in action","Not treated","Killed in action",955
+"moderate_intensity",2,"Wounded in action","R2B","Died of wounds",4
+"moderate_intensity",2,"Wounded in action","R2B","In care on the last day",2
+"moderate_intensity",2,"Wounded in action","R2B","Returned to duty from R2B",32
+"moderate_intensity",2,"Wounded in action","R2E","Awaiting airlift on the last day",65
+"moderate_intensity",2,"Wounded in action","R2E","Died of wounds",8
+"moderate_intensity",2,"Wounded in action","R2E","Evacuated to Role 4",1916
+"moderate_intensity",2,"Wounded in action","R2E","In care on the last day",33
+"moderate_intensity",2,"Wounded in action","R2E","Returned to duty from R2E",347
+"moderate_intensity",3,"Disease and non-battle injury","R1","Died of wounds",1
+"moderate_intensity",3,"Disease and non-battle injury","R2B","In care on the last day",10
+"moderate_intensity",3,"Disease and non-battle injury","R2B","Returned to duty from R2B",276
+"moderate_intensity",3,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",2
+"moderate_intensity",3,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",3,"Disease and non-battle injury","R2E","Evacuated to Role 4",483
+"moderate_intensity",3,"Disease and non-battle injury","R2E","In care on the last day",30
+"moderate_intensity",3,"Disease and non-battle injury","R2E","Returned to duty from R2E",1339
+"moderate_intensity",3,"Killed in action","Not treated","Killed in action",929
+"moderate_intensity",3,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",3,"Wounded in action","R2B","Died of wounds",4
+"moderate_intensity",3,"Wounded in action","R2B","Returned to duty from R2B",30
+"moderate_intensity",3,"Wounded in action","R2E","Awaiting airlift on the last day",11
+"moderate_intensity",3,"Wounded in action","R2E","Died of wounds",16
+"moderate_intensity",3,"Wounded in action","R2E","Evacuated to Role 4",1890
+"moderate_intensity",3,"Wounded in action","R2E","In care on the last day",24
+"moderate_intensity",3,"Wounded in action","R2E","Returned to duty from R2E",321
+"moderate_intensity",4,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",4,"Disease and non-battle injury","R2B","Returned to duty from R2B",276
+"moderate_intensity",4,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",7
+"moderate_intensity",4,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",4,"Disease and non-battle injury","R2E","Evacuated to Role 4",472
+"moderate_intensity",4,"Disease and non-battle injury","R2E","In care on the last day",46
+"moderate_intensity",4,"Disease and non-battle injury","R2E","Returned to duty from R2E",1354
+"moderate_intensity",4,"Killed in action","Not treated","Killed in action",909
+"moderate_intensity",4,"Wounded in action","R2B","Died of wounds",2
+"moderate_intensity",4,"Wounded in action","R2B","In care on the last day",3
+"moderate_intensity",4,"Wounded in action","R2B","Returned to duty from R2B",33
+"moderate_intensity",4,"Wounded in action","R2E","Awaiting airlift on the last day",18
+"moderate_intensity",4,"Wounded in action","R2E","Died of wounds",21
+"moderate_intensity",4,"Wounded in action","R2E","Evacuated to Role 4",2024
+"moderate_intensity",4,"Wounded in action","R2E","In care on the last day",29
+"moderate_intensity",4,"Wounded in action","R2E","Returned to duty from R2E",414
+"moderate_intensity",5,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",5,"Disease and non-battle injury","R2B","Returned to duty from R2B",271
+"moderate_intensity",5,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",8
+"moderate_intensity",5,"Disease and non-battle injury","R2E","Died of wounds",1
+"moderate_intensity",5,"Disease and non-battle injury","R2E","Evacuated to Role 4",478
+"moderate_intensity",5,"Disease and non-battle injury","R2E","In care on the last day",49
+"moderate_intensity",5,"Disease and non-battle injury","R2E","Returned to duty from R2E",1480
+"moderate_intensity",5,"Killed in action","Not treated","Killed in action",880
+"moderate_intensity",5,"Wounded in action","R2B","Died of wounds",2
+"moderate_intensity",5,"Wounded in action","R2B","In care on the last day",2
+"moderate_intensity",5,"Wounded in action","R2B","Returned to duty from R2B",27
+"moderate_intensity",5,"Wounded in action","R2E","Awaiting airlift on the last day",15
+"moderate_intensity",5,"Wounded in action","R2E","Died of wounds",18
+"moderate_intensity",5,"Wounded in action","R2E","Evacuated to Role 4",1811
+"moderate_intensity",5,"Wounded in action","R2E","In care on the last day",26
+"moderate_intensity",5,"Wounded in action","R2E","Returned to duty from R2E",357
+"moderate_intensity",6,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",6,"Disease and non-battle injury","R2B","Returned to duty from R2B",251
+"moderate_intensity",6,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",6,"Disease and non-battle injury","R2E","Evacuated to Role 4",443
+"moderate_intensity",6,"Disease and non-battle injury","R2E","In care on the last day",46
+"moderate_intensity",6,"Disease and non-battle injury","R2E","Returned to duty from R2E",1338
+"moderate_intensity",6,"Killed in action","Not treated","Killed in action",974
+"moderate_intensity",6,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",6,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",6,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",6,"Wounded in action","R2B","Returned to duty from R2B",33
+"moderate_intensity",6,"Wounded in action","R2E","Awaiting airlift on the last day",30
+"moderate_intensity",6,"Wounded in action","R2E","Died of wounds",7
+"moderate_intensity",6,"Wounded in action","R2E","Evacuated to Role 4",1640
+"moderate_intensity",6,"Wounded in action","R2E","In care on the last day",27
+"moderate_intensity",6,"Wounded in action","R2E","Returned to duty from R2E",340
+"moderate_intensity",7,"Disease and non-battle injury","R2B","In care on the last day",5
+"moderate_intensity",7,"Disease and non-battle injury","R2B","Returned to duty from R2B",287
+"moderate_intensity",7,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",7,"Disease and non-battle injury","R2E","Died of wounds",1
+"moderate_intensity",7,"Disease and non-battle injury","R2E","Evacuated to Role 4",502
+"moderate_intensity",7,"Disease and non-battle injury","R2E","In care on the last day",36
+"moderate_intensity",7,"Disease and non-battle injury","R2E","Returned to duty from R2E",1391
+"moderate_intensity",7,"Killed in action","Not treated","Killed in action",974
+"moderate_intensity",7,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",7,"Wounded in action","R2B","In care on the last day",5
+"moderate_intensity",7,"Wounded in action","R2B","Returned to duty from R2B",22
+"moderate_intensity",7,"Wounded in action","R2E","Awaiting airlift on the last day",70
+"moderate_intensity",7,"Wounded in action","R2E","Died of wounds",11
+"moderate_intensity",7,"Wounded in action","R2E","Evacuated to Role 4",1753
+"moderate_intensity",7,"Wounded in action","R2E","In care on the last day",47
+"moderate_intensity",7,"Wounded in action","R2E","Returned to duty from R2E",328
+"moderate_intensity",8,"Disease and non-battle injury","R1","Died of wounds",1
+"moderate_intensity",8,"Disease and non-battle injury","R2B","In care on the last day",5
+"moderate_intensity",8,"Disease and non-battle injury","R2B","Returned to duty from R2B",273
+"moderate_intensity",8,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",8,"Disease and non-battle injury","R2E","Died of wounds",4
+"moderate_intensity",8,"Disease and non-battle injury","R2E","Evacuated to Role 4",478
+"moderate_intensity",8,"Disease and non-battle injury","R2E","In care on the last day",28
+"moderate_intensity",8,"Disease and non-battle injury","R2E","Returned to duty from R2E",1358
+"moderate_intensity",8,"Killed in action","Not treated","Killed in action",816
+"moderate_intensity",8,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",8,"Wounded in action","R2B","Died of wounds",2
+"moderate_intensity",8,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",8,"Wounded in action","R2B","Returned to duty from R2B",30
+"moderate_intensity",8,"Wounded in action","R2E","Awaiting airlift on the last day",16
+"moderate_intensity",8,"Wounded in action","R2E","Died of wounds",15
+"moderate_intensity",8,"Wounded in action","R2E","Evacuated to Role 4",1908
+"moderate_intensity",8,"Wounded in action","R2E","In care on the last day",13
+"moderate_intensity",8,"Wounded in action","R2E","Returned to duty from R2E",348
+"moderate_intensity",9,"Disease and non-battle injury","R1","Died of wounds",1
+"moderate_intensity",9,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",9,"Disease and non-battle injury","R2B","Returned to duty from R2B",256
+"moderate_intensity",9,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",5
+"moderate_intensity",9,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",9,"Disease and non-battle injury","R2E","Evacuated to Role 4",424
+"moderate_intensity",9,"Disease and non-battle injury","R2E","In care on the last day",39
+"moderate_intensity",9,"Disease and non-battle injury","R2E","Returned to duty from R2E",1325
+"moderate_intensity",9,"Killed in action","Not treated","Killed in action",886
+"moderate_intensity",9,"Wounded in action","R2B","In care on the last day",2
+"moderate_intensity",9,"Wounded in action","R2B","Returned to duty from R2B",36
+"moderate_intensity",9,"Wounded in action","R2E","Awaiting airlift on the last day",9
+"moderate_intensity",9,"Wounded in action","R2E","Died of wounds",15
+"moderate_intensity",9,"Wounded in action","R2E","Evacuated to Role 4",2054
+"moderate_intensity",9,"Wounded in action","R2E","In care on the last day",20
+"moderate_intensity",9,"Wounded in action","R2E","Returned to duty from R2E",335
+"moderate_intensity",10,"Disease and non-battle injury","R2B","In care on the last day",4
+"moderate_intensity",10,"Disease and non-battle injury","R2B","Returned to duty from R2B",283
+"moderate_intensity",10,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",10,"Disease and non-battle injury","R2E","Died of wounds",4
+"moderate_intensity",10,"Disease and non-battle injury","R2E","Evacuated to Role 4",458
+"moderate_intensity",10,"Disease and non-battle injury","R2E","In care on the last day",37
+"moderate_intensity",10,"Disease and non-battle injury","R2E","Returned to duty from R2E",1368
+"moderate_intensity",10,"Killed in action","Not treated","Killed in action",710
+"moderate_intensity",10,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",10,"Wounded in action","R2B","Died of wounds",2
+"moderate_intensity",10,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",10,"Wounded in action","R2B","Returned to duty from R2B",33
+"moderate_intensity",10,"Wounded in action","R2E","Awaiting airlift on the last day",24
+"moderate_intensity",10,"Wounded in action","R2E","Died of wounds",9
+"moderate_intensity",10,"Wounded in action","R2E","Evacuated to Role 4",1778
+"moderate_intensity",10,"Wounded in action","R2E","In care on the last day",23
+"moderate_intensity",10,"Wounded in action","R2E","Returned to duty from R2E",346
+"moderate_intensity",11,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",11,"Disease and non-battle injury","R2B","Returned to duty from R2B",274
+"moderate_intensity",11,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",11,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",11,"Disease and non-battle injury","R2E","Evacuated to Role 4",463
+"moderate_intensity",11,"Disease and non-battle injury","R2E","In care on the last day",51
+"moderate_intensity",11,"Disease and non-battle injury","R2E","Returned to duty from R2E",1354
+"moderate_intensity",11,"Killed in action","Not treated","Killed in action",860
+"moderate_intensity",11,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",11,"Wounded in action","R2B","In care on the last day",3
+"moderate_intensity",11,"Wounded in action","R2B","Returned to duty from R2B",32
+"moderate_intensity",11,"Wounded in action","R2E","Awaiting airlift on the last day",8
+"moderate_intensity",11,"Wounded in action","R2E","Died of wounds",13
+"moderate_intensity",11,"Wounded in action","R2E","Evacuated to Role 4",1863
+"moderate_intensity",11,"Wounded in action","R2E","In care on the last day",28
+"moderate_intensity",11,"Wounded in action","R2E","Returned to duty from R2E",370
+"moderate_intensity",12,"Disease and non-battle injury","R2B","In care on the last day",8
+"moderate_intensity",12,"Disease and non-battle injury","R2B","Returned to duty from R2B",272
+"moderate_intensity",12,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",12,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",12,"Disease and non-battle injury","R2E","Evacuated to Role 4",433
+"moderate_intensity",12,"Disease and non-battle injury","R2E","In care on the last day",41
+"moderate_intensity",12,"Disease and non-battle injury","R2E","Returned to duty from R2E",1290
+"moderate_intensity",12,"Killed in action","Not treated","Killed in action",750
+"moderate_intensity",12,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",12,"Wounded in action","R2B","Returned to duty from R2B",31
+"moderate_intensity",12,"Wounded in action","R2E","Awaiting airlift on the last day",10
+"moderate_intensity",12,"Wounded in action","R2E","Died of wounds",8
+"moderate_intensity",12,"Wounded in action","R2E","Evacuated to Role 4",1723
+"moderate_intensity",12,"Wounded in action","R2E","In care on the last day",16
+"moderate_intensity",12,"Wounded in action","R2E","Returned to duty from R2E",332
+"moderate_intensity",13,"Disease and non-battle injury","R2B","Died of wounds",1
+"moderate_intensity",13,"Disease and non-battle injury","R2B","In care on the last day",9
+"moderate_intensity",13,"Disease and non-battle injury","R2B","Returned to duty from R2B",287
+"moderate_intensity",13,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",5
+"moderate_intensity",13,"Disease and non-battle injury","R2E","Died of wounds",6
+"moderate_intensity",13,"Disease and non-battle injury","R2E","Evacuated to Role 4",469
+"moderate_intensity",13,"Disease and non-battle injury","R2E","In care on the last day",28
+"moderate_intensity",13,"Disease and non-battle injury","R2E","Returned to duty from R2E",1403
+"moderate_intensity",13,"Killed in action","Not treated","Killed in action",786
+"moderate_intensity",13,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",13,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",13,"Wounded in action","R2B","Returned to duty from R2B",32
+"moderate_intensity",13,"Wounded in action","R2E","Awaiting airlift on the last day",35
+"moderate_intensity",13,"Wounded in action","R2E","Died of wounds",18
+"moderate_intensity",13,"Wounded in action","R2E","Evacuated to Role 4",1948
+"moderate_intensity",13,"Wounded in action","R2E","In care on the last day",26
+"moderate_intensity",13,"Wounded in action","R2E","Returned to duty from R2E",345
+"moderate_intensity",14,"Disease and non-battle injury","R1","Died of wounds",1
+"moderate_intensity",14,"Disease and non-battle injury","R2B","In care on the last day",8
+"moderate_intensity",14,"Disease and non-battle injury","R2B","Returned to duty from R2B",288
+"moderate_intensity",14,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",14,"Disease and non-battle injury","R2E","Evacuated to Role 4",453
+"moderate_intensity",14,"Disease and non-battle injury","R2E","In care on the last day",52
+"moderate_intensity",14,"Disease and non-battle injury","R2E","Returned to duty from R2E",1384
+"moderate_intensity",14,"Killed in action","Not treated","Killed in action",872
+"moderate_intensity",14,"Wounded in action","R2B","Died of wounds",4
+"moderate_intensity",14,"Wounded in action","R2B","Returned to duty from R2B",24
+"moderate_intensity",14,"Wounded in action","R2E","Awaiting airlift on the last day",26
+"moderate_intensity",14,"Wounded in action","R2E","Died of wounds",17
+"moderate_intensity",14,"Wounded in action","R2E","Evacuated to Role 4",1937
+"moderate_intensity",14,"Wounded in action","R2E","In care on the last day",16
+"moderate_intensity",14,"Wounded in action","R2E","Returned to duty from R2E",380
+"moderate_intensity",15,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",15,"Disease and non-battle injury","R2B","Returned to duty from R2B",262
+"moderate_intensity",15,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",15,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",15,"Disease and non-battle injury","R2E","Evacuated to Role 4",464
+"moderate_intensity",15,"Disease and non-battle injury","R2E","In care on the last day",22
+"moderate_intensity",15,"Disease and non-battle injury","R2E","Returned to duty from R2E",1372
+"moderate_intensity",15,"Killed in action","Not treated","Killed in action",902
+"moderate_intensity",15,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",15,"Wounded in action","R2B","Returned to duty from R2B",33
+"moderate_intensity",15,"Wounded in action","R2E","Awaiting airlift on the last day",19
+"moderate_intensity",15,"Wounded in action","R2E","Died of wounds",15
+"moderate_intensity",15,"Wounded in action","R2E","Evacuated to Role 4",1968
+"moderate_intensity",15,"Wounded in action","R2E","In care on the last day",23
+"moderate_intensity",15,"Wounded in action","R2E","Returned to duty from R2E",363
+"moderate_intensity",16,"Disease and non-battle injury","R1","Died of wounds",1
+"moderate_intensity",16,"Disease and non-battle injury","R1","In care on the last day",1
+"moderate_intensity",16,"Disease and non-battle injury","R2B","Died of wounds",1
+"moderate_intensity",16,"Disease and non-battle injury","R2B","In care on the last day",10
+"moderate_intensity",16,"Disease and non-battle injury","R2B","Returned to duty from R2B",276
+"moderate_intensity",16,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",8
+"moderate_intensity",16,"Disease and non-battle injury","R2E","Died of wounds",3
+"moderate_intensity",16,"Disease and non-battle injury","R2E","Evacuated to Role 4",459
+"moderate_intensity",16,"Disease and non-battle injury","R2E","In care on the last day",51
+"moderate_intensity",16,"Disease and non-battle injury","R2E","Returned to duty from R2E",1218
+"moderate_intensity",16,"Killed in action","Not treated","Killed in action",871
+"moderate_intensity",16,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",16,"Wounded in action","R2B","Died of wounds",3
+"moderate_intensity",16,"Wounded in action","R2B","Returned to duty from R2B",28
+"moderate_intensity",16,"Wounded in action","R2E","Awaiting airlift on the last day",48
+"moderate_intensity",16,"Wounded in action","R2E","Died of wounds",15
+"moderate_intensity",16,"Wounded in action","R2E","Evacuated to Role 4",1745
+"moderate_intensity",16,"Wounded in action","R2E","In care on the last day",24
+"moderate_intensity",16,"Wounded in action","R2E","Returned to duty from R2E",346
+"moderate_intensity",17,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",17,"Disease and non-battle injury","R2B","Returned to duty from R2B",263
+"moderate_intensity",17,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",17,"Disease and non-battle injury","R2E","Died of wounds",1
+"moderate_intensity",17,"Disease and non-battle injury","R2E","Evacuated to Role 4",469
+"moderate_intensity",17,"Disease and non-battle injury","R2E","In care on the last day",47
+"moderate_intensity",17,"Disease and non-battle injury","R2E","Returned to duty from R2E",1494
+"moderate_intensity",17,"Killed in action","Not treated","Killed in action",1040
+"moderate_intensity",17,"Wounded in action","R2B","Died of wounds",3
+"moderate_intensity",17,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",17,"Wounded in action","R2B","Returned to duty from R2B",25
+"moderate_intensity",17,"Wounded in action","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",17,"Wounded in action","R2E","Died of wounds",12
+"moderate_intensity",17,"Wounded in action","R2E","Evacuated to Role 4",1861
+"moderate_intensity",17,"Wounded in action","R2E","In care on the last day",14
+"moderate_intensity",17,"Wounded in action","R2E","Returned to duty from R2E",358
+"moderate_intensity",18,"Disease and non-battle injury","R2B","In care on the last day",8
+"moderate_intensity",18,"Disease and non-battle injury","R2B","Returned to duty from R2B",289
+"moderate_intensity",18,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",10
+"moderate_intensity",18,"Disease and non-battle injury","R2E","Evacuated to Role 4",479
+"moderate_intensity",18,"Disease and non-battle injury","R2E","In care on the last day",55
+"moderate_intensity",18,"Disease and non-battle injury","R2E","Returned to duty from R2E",1348
+"moderate_intensity",18,"Killed in action","Not treated","Killed in action",889
+"moderate_intensity",18,"Wounded in action","R2B","Died of wounds",2
+"moderate_intensity",18,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",18,"Wounded in action","R2B","Returned to duty from R2B",27
+"moderate_intensity",18,"Wounded in action","R2E","Awaiting airlift on the last day",15
+"moderate_intensity",18,"Wounded in action","R2E","Died of wounds",13
+"moderate_intensity",18,"Wounded in action","R2E","Evacuated to Role 4",1908
+"moderate_intensity",18,"Wounded in action","R2E","In care on the last day",20
+"moderate_intensity",18,"Wounded in action","R2E","Returned to duty from R2E",346
+"moderate_intensity",19,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",19,"Disease and non-battle injury","R2B","Returned to duty from R2B",292
+"moderate_intensity",19,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",7
+"moderate_intensity",19,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",19,"Disease and non-battle injury","R2E","Evacuated to Role 4",410
+"moderate_intensity",19,"Disease and non-battle injury","R2E","In care on the last day",44
+"moderate_intensity",19,"Disease and non-battle injury","R2E","Returned to duty from R2E",1392
+"moderate_intensity",19,"Killed in action","Not treated","Killed in action",862
+"moderate_intensity",19,"Wounded in action","R1","Died of wounds",2
+"moderate_intensity",19,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",19,"Wounded in action","R2B","In care on the last day",2
+"moderate_intensity",19,"Wounded in action","R2B","Returned to duty from R2B",21
+"moderate_intensity",19,"Wounded in action","R2E","Awaiting airlift on the last day",30
+"moderate_intensity",19,"Wounded in action","R2E","Died of wounds",12
+"moderate_intensity",19,"Wounded in action","R2E","Evacuated to Role 4",1748
+"moderate_intensity",19,"Wounded in action","R2E","In care on the last day",22
+"moderate_intensity",19,"Wounded in action","R2E","Returned to duty from R2E",342
+"moderate_intensity",20,"Disease and non-battle injury","R1","Died of wounds",1
+"moderate_intensity",20,"Disease and non-battle injury","R2B","Died of wounds",1
+"moderate_intensity",20,"Disease and non-battle injury","R2B","In care on the last day",8
+"moderate_intensity",20,"Disease and non-battle injury","R2B","Returned to duty from R2B",246
+"moderate_intensity",20,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",20,"Disease and non-battle injury","R2E","Died of wounds",1
+"moderate_intensity",20,"Disease and non-battle injury","R2E","Evacuated to Role 4",415
+"moderate_intensity",20,"Disease and non-battle injury","R2E","In care on the last day",26
+"moderate_intensity",20,"Disease and non-battle injury","R2E","Returned to duty from R2E",1454
+"moderate_intensity",20,"Killed in action","Not treated","Killed in action",785
+"moderate_intensity",20,"Wounded in action","R1","Died of wounds",2
+"moderate_intensity",20,"Wounded in action","R1","In care on the last day",2
+"moderate_intensity",20,"Wounded in action","R2B","Died of wounds",3
+"moderate_intensity",20,"Wounded in action","R2B","In care on the last day",2
+"moderate_intensity",20,"Wounded in action","R2B","Returned to duty from R2B",37
+"moderate_intensity",20,"Wounded in action","R2E","Awaiting airlift on the last day",19
+"moderate_intensity",20,"Wounded in action","R2E","Died of wounds",10
+"moderate_intensity",20,"Wounded in action","R2E","Evacuated to Role 4",1900
+"moderate_intensity",20,"Wounded in action","R2E","In care on the last day",22
+"moderate_intensity",20,"Wounded in action","R2E","Returned to duty from R2E",345
+"moderate_intensity",21,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",21,"Disease and non-battle injury","R2B","Returned to duty from R2B",280
+"moderate_intensity",21,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",21,"Disease and non-battle injury","R2E","Died of wounds",5
+"moderate_intensity",21,"Disease and non-battle injury","R2E","Evacuated to Role 4",483
+"moderate_intensity",21,"Disease and non-battle injury","R2E","In care on the last day",37
+"moderate_intensity",21,"Disease and non-battle injury","R2E","Returned to duty from R2E",1444
+"moderate_intensity",21,"Killed in action","Not treated","Killed in action",827
+"moderate_intensity",21,"Wounded in action","R2B","Died of wounds",12
+"moderate_intensity",21,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",21,"Wounded in action","R2B","Returned to duty from R2B",28
+"moderate_intensity",21,"Wounded in action","R2E","Awaiting airlift on the last day",11
+"moderate_intensity",21,"Wounded in action","R2E","Died of wounds",52
+"moderate_intensity",21,"Wounded in action","R2E","Evacuated to Role 4",1907
+"moderate_intensity",21,"Wounded in action","R2E","In care on the last day",19
+"moderate_intensity",21,"Wounded in action","R2E","Returned to duty awaiting airlift",1
+"moderate_intensity",21,"Wounded in action","R2E","Returned to duty from R2E",362
+"moderate_intensity",22,"Disease and non-battle injury","R2B","In care on the last day",5
+"moderate_intensity",22,"Disease and non-battle injury","R2B","Returned to duty from R2B",302
+"moderate_intensity",22,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",8
+"moderate_intensity",22,"Disease and non-battle injury","R2E","Died of wounds",1
+"moderate_intensity",22,"Disease and non-battle injury","R2E","Evacuated to Role 4",519
+"moderate_intensity",22,"Disease and non-battle injury","R2E","In care on the last day",27
+"moderate_intensity",22,"Disease and non-battle injury","R2E","Returned to duty from R2E",1495
+"moderate_intensity",22,"Killed in action","Not treated","Killed in action",1022
+"moderate_intensity",22,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",22,"Wounded in action","R2B","In care on the last day",3
+"moderate_intensity",22,"Wounded in action","R2B","Returned to duty from R2B",21
+"moderate_intensity",22,"Wounded in action","R2E","Awaiting airlift on the last day",54
+"moderate_intensity",22,"Wounded in action","R2E","Died of wounds",14
+"moderate_intensity",22,"Wounded in action","R2E","Evacuated to Role 4",1762
+"moderate_intensity",22,"Wounded in action","R2E","In care on the last day",26
+"moderate_intensity",22,"Wounded in action","R2E","Returned to duty from R2E",324
+"moderate_intensity",23,"Disease and non-battle injury","R2B","In care on the last day",7
+"moderate_intensity",23,"Disease and non-battle injury","R2B","Returned to duty from R2B",271
+"moderate_intensity",23,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",3
+"moderate_intensity",23,"Disease and non-battle injury","R2E","Died of wounds",3
+"moderate_intensity",23,"Disease and non-battle injury","R2E","Evacuated to Role 4",440
+"moderate_intensity",23,"Disease and non-battle injury","R2E","In care on the last day",34
+"moderate_intensity",23,"Disease and non-battle injury","R2E","Returned to duty from R2E",1317
+"moderate_intensity",23,"Killed in action","Not treated","Killed in action",850
+"moderate_intensity",23,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",23,"Wounded in action","R2B","Died of wounds",3
+"moderate_intensity",23,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",23,"Wounded in action","R2B","Returned to duty from R2B",22
+"moderate_intensity",23,"Wounded in action","R2E","Awaiting airlift on the last day",16
+"moderate_intensity",23,"Wounded in action","R2E","Died of wounds",16
+"moderate_intensity",23,"Wounded in action","R2E","Evacuated to Role 4",1845
+"moderate_intensity",23,"Wounded in action","R2E","In care on the last day",15
+"moderate_intensity",23,"Wounded in action","R2E","Returned to duty from R2E",337
+"moderate_intensity",24,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",24,"Disease and non-battle injury","R2B","Returned to duty from R2B",266
+"moderate_intensity",24,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",3
+"moderate_intensity",24,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",24,"Disease and non-battle injury","R2E","Evacuated to Role 4",447
+"moderate_intensity",24,"Disease and non-battle injury","R2E","In care on the last day",17
+"moderate_intensity",24,"Disease and non-battle injury","R2E","Returned to duty from R2E",1266
+"moderate_intensity",24,"Killed in action","Not treated","Killed in action",946
+"moderate_intensity",24,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",24,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",24,"Wounded in action","R2B","Returned to duty from R2B",32
+"moderate_intensity",24,"Wounded in action","R2E","Awaiting airlift on the last day",5
+"moderate_intensity",24,"Wounded in action","R2E","Died of wounds",16
+"moderate_intensity",24,"Wounded in action","R2E","Evacuated to Role 4",1773
+"moderate_intensity",24,"Wounded in action","R2E","In care on the last day",13
+"moderate_intensity",24,"Wounded in action","R2E","Returned to duty from R2E",350
+"moderate_intensity",25,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",25,"Disease and non-battle injury","R2B","Returned to duty from R2B",276
+"moderate_intensity",25,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",20
+"moderate_intensity",25,"Disease and non-battle injury","R2E","Evacuated to Role 4",470
+"moderate_intensity",25,"Disease and non-battle injury","R2E","In care on the last day",36
+"moderate_intensity",25,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",1
+"moderate_intensity",25,"Disease and non-battle injury","R2E","Returned to duty from R2E",1413
+"moderate_intensity",25,"Killed in action","Not treated","Killed in action",826
+"moderate_intensity",25,"Wounded in action","R2B","Died of wounds",5
+"moderate_intensity",25,"Wounded in action","R2B","In care on the last day",2
+"moderate_intensity",25,"Wounded in action","R2B","Returned to duty from R2B",30
+"moderate_intensity",25,"Wounded in action","R2E","Awaiting airlift on the last day",62
+"moderate_intensity",25,"Wounded in action","R2E","Died of wounds",22
+"moderate_intensity",25,"Wounded in action","R2E","Evacuated to Role 4",1901
+"moderate_intensity",25,"Wounded in action","R2E","In care on the last day",33
+"moderate_intensity",25,"Wounded in action","R2E","Returned to duty awaiting airlift",4
+"moderate_intensity",25,"Wounded in action","R2E","Returned to duty from R2E",385
+"moderate_intensity",26,"Disease and non-battle injury","R2B","In care on the last day",9
+"moderate_intensity",26,"Disease and non-battle injury","R2B","Returned to duty from R2B",287
+"moderate_intensity",26,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",9
+"moderate_intensity",26,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",26,"Disease and non-battle injury","R2E","Evacuated to Role 4",460
+"moderate_intensity",26,"Disease and non-battle injury","R2E","In care on the last day",59
+"moderate_intensity",26,"Disease and non-battle injury","R2E","Returned to duty from R2E",1366
+"moderate_intensity",26,"Killed in action","Not treated","Killed in action",888
+"moderate_intensity",26,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",26,"Wounded in action","R1","In care on the last day",1
+"moderate_intensity",26,"Wounded in action","R2B","Died of wounds",4
+"moderate_intensity",26,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",26,"Wounded in action","R2B","Returned to duty from R2B",23
+"moderate_intensity",26,"Wounded in action","R2E","Awaiting airlift on the last day",36
+"moderate_intensity",26,"Wounded in action","R2E","Died of wounds",17
+"moderate_intensity",26,"Wounded in action","R2E","Evacuated to Role 4",2120
+"moderate_intensity",26,"Wounded in action","R2E","In care on the last day",26
+"moderate_intensity",26,"Wounded in action","R2E","Returned to duty from R2E",368
+"moderate_intensity",27,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",27,"Disease and non-battle injury","R2B","Returned to duty from R2B",299
+"moderate_intensity",27,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",27,"Disease and non-battle injury","R2E","Died of wounds",1
+"moderate_intensity",27,"Disease and non-battle injury","R2E","Evacuated to Role 4",446
+"moderate_intensity",27,"Disease and non-battle injury","R2E","In care on the last day",23
+"moderate_intensity",27,"Disease and non-battle injury","R2E","Returned to duty from R2E",1227
+"moderate_intensity",27,"Killed in action","Not treated","Killed in action",878
+"moderate_intensity",27,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",27,"Wounded in action","R2B","Died of wounds",1
+"moderate_intensity",27,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",27,"Wounded in action","R2B","Returned to duty from R2B",23
+"moderate_intensity",27,"Wounded in action","R2E","Awaiting airlift on the last day",7
+"moderate_intensity",27,"Wounded in action","R2E","Died of wounds",16
+"moderate_intensity",27,"Wounded in action","R2E","Evacuated to Role 4",1823
+"moderate_intensity",27,"Wounded in action","R2E","In care on the last day",14
+"moderate_intensity",27,"Wounded in action","R2E","Returned to duty from R2E",320
+"moderate_intensity",28,"Disease and non-battle injury","R2B","Died of wounds",1
+"moderate_intensity",28,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",28,"Disease and non-battle injury","R2B","Returned to duty from R2B",241
+"moderate_intensity",28,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",28,"Disease and non-battle injury","R2E","Died of wounds",4
+"moderate_intensity",28,"Disease and non-battle injury","R2E","Evacuated to Role 4",435
+"moderate_intensity",28,"Disease and non-battle injury","R2E","In care on the last day",28
+"moderate_intensity",28,"Disease and non-battle injury","R2E","Returned to duty from R2E",1365
+"moderate_intensity",28,"Killed in action","Not treated","Killed in action",861
+"moderate_intensity",28,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",28,"Wounded in action","R2B","Died of wounds",2
+"moderate_intensity",28,"Wounded in action","R2B","In care on the last day",1
+"moderate_intensity",28,"Wounded in action","R2B","Returned to duty from R2B",36
+"moderate_intensity",28,"Wounded in action","R2E","Awaiting airlift on the last day",42
+"moderate_intensity",28,"Wounded in action","R2E","Died of wounds",26
+"moderate_intensity",28,"Wounded in action","R2E","Evacuated to Role 4",1863
+"moderate_intensity",28,"Wounded in action","R2E","In care on the last day",16
+"moderate_intensity",28,"Wounded in action","R2E","Returned to duty from R2E",385
+"moderate_intensity",29,"Disease and non-battle injury","R2B","Died of wounds",1
+"moderate_intensity",29,"Disease and non-battle injury","R2B","In care on the last day",6
+"moderate_intensity",29,"Disease and non-battle injury","R2B","Returned to duty from R2B",279
+"moderate_intensity",29,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",6
+"moderate_intensity",29,"Disease and non-battle injury","R2E","Died of wounds",2
+"moderate_intensity",29,"Disease and non-battle injury","R2E","Evacuated to Role 4",477
+"moderate_intensity",29,"Disease and non-battle injury","R2E","In care on the last day",40
+"moderate_intensity",29,"Disease and non-battle injury","R2E","Returned to duty from R2E",1431
+"moderate_intensity",29,"Killed in action","Not treated","Killed in action",829
+"moderate_intensity",29,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",29,"Wounded in action","R2B","Died of wounds",4
+"moderate_intensity",29,"Wounded in action","R2B","In care on the last day",3
+"moderate_intensity",29,"Wounded in action","R2B","Returned to duty from R2B",27
+"moderate_intensity",29,"Wounded in action","R2E","Awaiting airlift on the last day",14
+"moderate_intensity",29,"Wounded in action","R2E","Died of wounds",14
+"moderate_intensity",29,"Wounded in action","R2E","Evacuated to Role 4",1868
+"moderate_intensity",29,"Wounded in action","R2E","In care on the last day",21
+"moderate_intensity",29,"Wounded in action","R2E","Returned to duty from R2E",344
+"moderate_intensity",30,"Disease and non-battle injury","R2B","Died of wounds",1
+"moderate_intensity",30,"Disease and non-battle injury","R2B","In care on the last day",8
+"moderate_intensity",30,"Disease and non-battle injury","R2B","Returned to duty from R2B",277
+"moderate_intensity",30,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",4
+"moderate_intensity",30,"Disease and non-battle injury","R2E","Evacuated to Role 4",505
+"moderate_intensity",30,"Disease and non-battle injury","R2E","In care on the last day",42
+"moderate_intensity",30,"Disease and non-battle injury","R2E","Returned to duty from R2E",1468
+"moderate_intensity",30,"Killed in action","Not treated","Killed in action",875
+"moderate_intensity",30,"Wounded in action","R1","Died of wounds",1
+"moderate_intensity",30,"Wounded in action","R2B","Returned to duty from R2B",29
+"moderate_intensity",30,"Wounded in action","R2E","Awaiting airlift on the last day",26
+"moderate_intensity",30,"Wounded in action","R2E","Died of wounds",17
+"moderate_intensity",30,"Wounded in action","R2E","Evacuated to Role 4",1883
+"moderate_intensity",30,"Wounded in action","R2E","In care on the last day",20
+"moderate_intensity",30,"Wounded in action","R2E","Returned to duty from R2E",361
+"high_intensity",1,"Disease and non-battle injury","R2B","In care on the last day",4
+"high_intensity",1,"Disease and non-battle injury","R2B","Returned to duty from R2B",215
+"high_intensity",1,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",62
+"high_intensity",1,"Disease and non-battle injury","R2E","Died of wounds",20
+"high_intensity",1,"Disease and non-battle injury","R2E","Evacuated to Role 4",291
+"high_intensity",1,"Disease and non-battle injury","R2E","In care on the last day",40
+"high_intensity",1,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",55
+"high_intensity",1,"Disease and non-battle injury","R2E","Returned to duty from R2E",1265
+"high_intensity",1,"Killed in action","Not treated","Killed in action",1960
+"high_intensity",1,"Wounded in action","R1","Died of wounds",5
+"high_intensity",1,"Wounded in action","R2B","Died of wounds",21
+"high_intensity",1,"Wounded in action","R2B","In care on the last day",4
+"high_intensity",1,"Wounded in action","R2B","Returned to duty from R2B",80
+"high_intensity",1,"Wounded in action","R2E","Awaiting airlift on the last day",1595
+"high_intensity",1,"Wounded in action","R2E","Died of wounds",556
+"high_intensity",1,"Wounded in action","R2E","Evacuated to Role 4",3639
+"high_intensity",1,"Wounded in action","R2E","In care on the last day",232
+"high_intensity",1,"Wounded in action","R2E","Returned to duty awaiting airlift",1488
+"high_intensity",1,"Wounded in action","R2E","Returned to duty from R2E",1314
+"high_intensity",2,"Disease and non-battle injury","R2B","In care on the last day",5
+"high_intensity",2,"Disease and non-battle injury","R2B","Returned to duty from R2B",249
+"high_intensity",2,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",63
+"high_intensity",2,"Disease and non-battle injury","R2E","Died of wounds",24
+"high_intensity",2,"Disease and non-battle injury","R2E","Evacuated to Role 4",307
+"high_intensity",2,"Disease and non-battle injury","R2E","In care on the last day",32
+"high_intensity",2,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",58
+"high_intensity",2,"Disease and non-battle injury","R2E","Returned to duty from R2E",1234
+"high_intensity",2,"Killed in action","Not treated","Killed in action",2135
+"high_intensity",2,"Wounded in action","R1","Died of wounds",2
+"high_intensity",2,"Wounded in action","R2B","Died of wounds",18
+"high_intensity",2,"Wounded in action","R2B","In care on the last day",6
+"high_intensity",2,"Wounded in action","R2B","Returned to duty from R2B",66
+"high_intensity",2,"Wounded in action","R2E","Awaiting airlift on the last day",1404
+"high_intensity",2,"Wounded in action","R2E","Died of wounds",612
+"high_intensity",2,"Wounded in action","R2E","Evacuated to Role 4",3656
+"high_intensity",2,"Wounded in action","R2E","In care on the last day",190
+"high_intensity",2,"Wounded in action","R2E","Returned to duty awaiting airlift",1342
+"high_intensity",2,"Wounded in action","R2E","Returned to duty from R2E",1235
+"high_intensity",3,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",3,"Disease and non-battle injury","R2B","In care on the last day",9
+"high_intensity",3,"Disease and non-battle injury","R2B","Returned to duty from R2B",208
+"high_intensity",3,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",46
+"high_intensity",3,"Disease and non-battle injury","R2E","Died of wounds",34
+"high_intensity",3,"Disease and non-battle injury","R2E","Evacuated to Role 4",268
+"high_intensity",3,"Disease and non-battle injury","R2E","In care on the last day",45
+"high_intensity",3,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",59
+"high_intensity",3,"Disease and non-battle injury","R2E","Returned to duty from R2E",1211
+"high_intensity",3,"Killed in action","Not treated","Killed in action",1950
+"high_intensity",3,"Wounded in action","R1","In care on the last day",1
+"high_intensity",3,"Wounded in action","R2B","Died of wounds",21
+"high_intensity",3,"Wounded in action","R2B","In care on the last day",24
+"high_intensity",3,"Wounded in action","R2B","Returned to duty from R2B",83
+"high_intensity",3,"Wounded in action","R2E","Awaiting airlift on the last day",1359
+"high_intensity",3,"Wounded in action","R2E","Died of wounds",918
+"high_intensity",3,"Wounded in action","R2E","Evacuated to Role 4",3723
+"high_intensity",3,"Wounded in action","R2E","In care on the last day",331
+"high_intensity",3,"Wounded in action","R2E","Returned to duty awaiting airlift",1353
+"high_intensity",3,"Wounded in action","R2E","Returned to duty from R2E",1253
+"high_intensity",4,"Disease and non-battle injury","R1","In care on the last day",1
+"high_intensity",4,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",4,"Disease and non-battle injury","R2B","Returned to duty from R2B",222
+"high_intensity",4,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",67
+"high_intensity",4,"Disease and non-battle injury","R2E","Died of wounds",15
+"high_intensity",4,"Disease and non-battle injury","R2E","Evacuated to Role 4",344
+"high_intensity",4,"Disease and non-battle injury","R2E","In care on the last day",34
+"high_intensity",4,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",67
+"high_intensity",4,"Disease and non-battle injury","R2E","Returned to duty from R2E",1367
+"high_intensity",4,"Killed in action","Not treated","Killed in action",2031
+"high_intensity",4,"Wounded in action","R1","Died of wounds",3
+"high_intensity",4,"Wounded in action","R2B","Died of wounds",13
+"high_intensity",4,"Wounded in action","R2B","In care on the last day",3
+"high_intensity",4,"Wounded in action","R2B","Returned to duty from R2B",77
+"high_intensity",4,"Wounded in action","R2E","Awaiting airlift on the last day",1495
+"high_intensity",4,"Wounded in action","R2E","Died of wounds",275
+"high_intensity",4,"Wounded in action","R2E","Evacuated to Role 4",3541
+"high_intensity",4,"Wounded in action","R2E","In care on the last day",91
+"high_intensity",4,"Wounded in action","R2E","Returned to duty awaiting airlift",1347
+"high_intensity",4,"Wounded in action","R2E","Returned to duty from R2E",1201
+"high_intensity",5,"Disease and non-battle injury","R2B","In care on the last day",9
+"high_intensity",5,"Disease and non-battle injury","R2B","Returned to duty from R2B",211
+"high_intensity",5,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",66
+"high_intensity",5,"Disease and non-battle injury","R2E","Died of wounds",12
+"high_intensity",5,"Disease and non-battle injury","R2E","Evacuated to Role 4",333
+"high_intensity",5,"Disease and non-battle injury","R2E","In care on the last day",52
+"high_intensity",5,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",67
+"high_intensity",5,"Disease and non-battle injury","R2E","Returned to duty from R2E",1444
+"high_intensity",5,"Killed in action","Not treated","Killed in action",2086
+"high_intensity",5,"Wounded in action","R1","Died of wounds",3
+"high_intensity",5,"Wounded in action","R2B","Died of wounds",19
+"high_intensity",5,"Wounded in action","R2B","In care on the last day",17
+"high_intensity",5,"Wounded in action","R2B","Returned to duty from R2B",72
+"high_intensity",5,"Wounded in action","R2E","Awaiting airlift on the last day",1473
+"high_intensity",5,"Wounded in action","R2E","Died of wounds",298
+"high_intensity",5,"Wounded in action","R2E","Evacuated to Role 4",3519
+"high_intensity",5,"Wounded in action","R2E","In care on the last day",246
+"high_intensity",5,"Wounded in action","R2E","Returned to duty awaiting airlift",1291
+"high_intensity",5,"Wounded in action","R2E","Returned to duty from R2E",1183
+"high_intensity",6,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",6,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",6,"Disease and non-battle injury","R2B","Returned to duty from R2B",214
+"high_intensity",6,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",75
+"high_intensity",6,"Disease and non-battle injury","R2E","Died of wounds",27
+"high_intensity",6,"Disease and non-battle injury","R2E","Evacuated to Role 4",307
+"high_intensity",6,"Disease and non-battle injury","R2E","In care on the last day",51
+"high_intensity",6,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",68
+"high_intensity",6,"Disease and non-battle injury","R2E","Returned to duty from R2E",1366
+"high_intensity",6,"Killed in action","Not treated","Killed in action",2027
+"high_intensity",6,"Wounded in action","R1","Died of wounds",4
+"high_intensity",6,"Wounded in action","R1","In care on the last day",1
+"high_intensity",6,"Wounded in action","R2B","Died of wounds",13
+"high_intensity",6,"Wounded in action","R2B","In care on the last day",2
+"high_intensity",6,"Wounded in action","R2B","Returned to duty from R2B",75
+"high_intensity",6,"Wounded in action","R2E","Awaiting airlift on the last day",1455
+"high_intensity",6,"Wounded in action","R2E","Died of wounds",837
+"high_intensity",6,"Wounded in action","R2E","Evacuated to Role 4",3621
+"high_intensity",6,"Wounded in action","R2E","In care on the last day",69
+"high_intensity",6,"Wounded in action","R2E","Returned to duty awaiting airlift",1288
+"high_intensity",6,"Wounded in action","R2E","Returned to duty from R2E",1231
+"high_intensity",7,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",7,"Disease and non-battle injury","R2B","In care on the last day",5
+"high_intensity",7,"Disease and non-battle injury","R2B","Returned to duty from R2B",230
+"high_intensity",7,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",66
+"high_intensity",7,"Disease and non-battle injury","R2E","Died of wounds",13
+"high_intensity",7,"Disease and non-battle injury","R2E","Evacuated to Role 4",340
+"high_intensity",7,"Disease and non-battle injury","R2E","In care on the last day",30
+"high_intensity",7,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",64
+"high_intensity",7,"Disease and non-battle injury","R2E","Returned to duty from R2E",1471
+"high_intensity",7,"Killed in action","Not treated","Killed in action",2063
+"high_intensity",7,"Wounded in action","R1","Died of wounds",2
+"high_intensity",7,"Wounded in action","R2B","Died of wounds",15
+"high_intensity",7,"Wounded in action","R2B","In care on the last day",8
+"high_intensity",7,"Wounded in action","R2B","Returned to duty from R2B",73
+"high_intensity",7,"Wounded in action","R2E","Awaiting airlift on the last day",1330
+"high_intensity",7,"Wounded in action","R2E","Died of wounds",324
+"high_intensity",7,"Wounded in action","R2E","Evacuated to Role 4",3558
+"high_intensity",7,"Wounded in action","R2E","In care on the last day",124
+"high_intensity",7,"Wounded in action","R2E","Returned to duty awaiting airlift",1291
+"high_intensity",7,"Wounded in action","R2E","Returned to duty from R2E",1181
+"high_intensity",8,"Disease and non-battle injury","R2B","In care on the last day",7
+"high_intensity",8,"Disease and non-battle injury","R2B","Returned to duty from R2B",228
+"high_intensity",8,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",45
+"high_intensity",8,"Disease and non-battle injury","R2E","Died of wounds",49
+"high_intensity",8,"Disease and non-battle injury","R2E","Evacuated to Role 4",264
+"high_intensity",8,"Disease and non-battle injury","R2E","In care on the last day",27
+"high_intensity",8,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",56
+"high_intensity",8,"Disease and non-battle injury","R2E","Returned to duty from R2E",1290
+"high_intensity",8,"Killed in action","Not treated","Killed in action",1887
+"high_intensity",8,"Wounded in action","R1","Died of wounds",4
+"high_intensity",8,"Wounded in action","R2B","Died of wounds",21
+"high_intensity",8,"Wounded in action","R2B","In care on the last day",2
+"high_intensity",8,"Wounded in action","R2B","Returned to duty from R2B",84
+"high_intensity",8,"Wounded in action","R2E","Awaiting airlift on the last day",1335
+"high_intensity",8,"Wounded in action","R2E","Died of wounds",1201
+"high_intensity",8,"Wounded in action","R2E","Evacuated to Role 4",3585
+"high_intensity",8,"Wounded in action","R2E","In care on the last day",153
+"high_intensity",8,"Wounded in action","R2E","Returned to duty awaiting airlift",1157
+"high_intensity",8,"Wounded in action","R2E","Returned to duty from R2E",1251
+"high_intensity",9,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",9,"Disease and non-battle injury","R2B","In care on the last day",5
+"high_intensity",9,"Disease and non-battle injury","R2B","Returned to duty from R2B",209
+"high_intensity",9,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",60
+"high_intensity",9,"Disease and non-battle injury","R2E","Died of wounds",45
+"high_intensity",9,"Disease and non-battle injury","R2E","Evacuated to Role 4",316
+"high_intensity",9,"Disease and non-battle injury","R2E","In care on the last day",37
+"high_intensity",9,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",56
+"high_intensity",9,"Disease and non-battle injury","R2E","Returned to duty from R2E",1319
+"high_intensity",9,"Killed in action","Not treated","Killed in action",2126
+"high_intensity",9,"Wounded in action","R1","Died of wounds",6
+"high_intensity",9,"Wounded in action","R2B","Died of wounds",25
+"high_intensity",9,"Wounded in action","R2B","In care on the last day",6
+"high_intensity",9,"Wounded in action","R2B","Returned to duty from R2B",86
+"high_intensity",9,"Wounded in action","R2E","Awaiting airlift on the last day",1297
+"high_intensity",9,"Wounded in action","R2E","Died of wounds",1180
+"high_intensity",9,"Wounded in action","R2E","Evacuated to Role 4",3554
+"high_intensity",9,"Wounded in action","R2E","In care on the last day",201
+"high_intensity",9,"Wounded in action","R2E","Returned to duty awaiting airlift",1244
+"high_intensity",9,"Wounded in action","R2E","Returned to duty from R2E",1247
+"high_intensity",10,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",10,"Disease and non-battle injury","R2B","In care on the last day",4
+"high_intensity",10,"Disease and non-battle injury","R2B","Returned to duty from R2B",220
+"high_intensity",10,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",58
+"high_intensity",10,"Disease and non-battle injury","R2E","Died of wounds",23
+"high_intensity",10,"Disease and non-battle injury","R2E","Evacuated to Role 4",328
+"high_intensity",10,"Disease and non-battle injury","R2E","In care on the last day",22
+"high_intensity",10,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",77
+"high_intensity",10,"Disease and non-battle injury","R2E","Returned to duty from R2E",1461
+"high_intensity",10,"Killed in action","Not treated","Killed in action",2073
+"high_intensity",10,"Wounded in action","R1","Died of wounds",2
+"high_intensity",10,"Wounded in action","R2B","Died of wounds",16
+"high_intensity",10,"Wounded in action","R2B","In care on the last day",6
+"high_intensity",10,"Wounded in action","R2B","Returned to duty from R2B",81
+"high_intensity",10,"Wounded in action","R2E","Awaiting airlift on the last day",1356
+"high_intensity",10,"Wounded in action","R2E","Died of wounds",760
+"high_intensity",10,"Wounded in action","R2E","Evacuated to Role 4",3620
+"high_intensity",10,"Wounded in action","R2E","In care on the last day",206
+"high_intensity",10,"Wounded in action","R2E","Returned to duty awaiting airlift",1339
+"high_intensity",10,"Wounded in action","R2E","Returned to duty from R2E",1323
+"high_intensity",11,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",11,"Disease and non-battle injury","R2B","Returned to duty from R2B",226
+"high_intensity",11,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",46
+"high_intensity",11,"Disease and non-battle injury","R2E","Died of wounds",17
+"high_intensity",11,"Disease and non-battle injury","R2E","Evacuated to Role 4",280
+"high_intensity",11,"Disease and non-battle injury","R2E","In care on the last day",34
+"high_intensity",11,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",73
+"high_intensity",11,"Disease and non-battle injury","R2E","Returned to duty from R2E",1366
+"high_intensity",11,"Killed in action","Not treated","Killed in action",2014
+"high_intensity",11,"Wounded in action","R1","Died of wounds",3
+"high_intensity",11,"Wounded in action","R2B","Died of wounds",16
+"high_intensity",11,"Wounded in action","R2B","In care on the last day",6
+"high_intensity",11,"Wounded in action","R2B","Returned to duty from R2B",83
+"high_intensity",11,"Wounded in action","R2E","Awaiting airlift on the last day",1435
+"high_intensity",11,"Wounded in action","R2E","Died of wounds",342
+"high_intensity",11,"Wounded in action","R2E","Evacuated to Role 4",3550
+"high_intensity",11,"Wounded in action","R2E","In care on the last day",102
+"high_intensity",11,"Wounded in action","R2E","Returned to duty awaiting airlift",1339
+"high_intensity",11,"Wounded in action","R2E","Returned to duty from R2E",1170
+"high_intensity",12,"Disease and non-battle injury","R1","In care on the last day",1
+"high_intensity",12,"Disease and non-battle injury","R2B","Died of wounds",2
+"high_intensity",12,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",12,"Disease and non-battle injury","R2B","Returned to duty from R2B",210
+"high_intensity",12,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",63
+"high_intensity",12,"Disease and non-battle injury","R2E","Died of wounds",26
+"high_intensity",12,"Disease and non-battle injury","R2E","Evacuated to Role 4",269
+"high_intensity",12,"Disease and non-battle injury","R2E","In care on the last day",63
+"high_intensity",12,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",51
+"high_intensity",12,"Disease and non-battle injury","R2E","Returned to duty from R2E",1348
+"high_intensity",12,"Killed in action","Not treated","Killed in action",2027
+"high_intensity",12,"Wounded in action","R1","Died of wounds",7
+"high_intensity",12,"Wounded in action","R2B","Died of wounds",23
+"high_intensity",12,"Wounded in action","R2B","In care on the last day",2
+"high_intensity",12,"Wounded in action","R2B","Returned to duty from R2B",81
+"high_intensity",12,"Wounded in action","R2E","Awaiting airlift on the last day",1355
+"high_intensity",12,"Wounded in action","R2E","Died of wounds",913
+"high_intensity",12,"Wounded in action","R2E","Evacuated to Role 4",3657
+"high_intensity",12,"Wounded in action","R2E","In care on the last day",314
+"high_intensity",12,"Wounded in action","R2E","Returned to duty awaiting airlift",1300
+"high_intensity",12,"Wounded in action","R2E","Returned to duty from R2E",1288
+"high_intensity",13,"Disease and non-battle injury","R2B","In care on the last day",9
+"high_intensity",13,"Disease and non-battle injury","R2B","Returned to duty from R2B",217
+"high_intensity",13,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",69
+"high_intensity",13,"Disease and non-battle injury","R2E","Died of wounds",8
+"high_intensity",13,"Disease and non-battle injury","R2E","Evacuated to Role 4",302
+"high_intensity",13,"Disease and non-battle injury","R2E","In care on the last day",36
+"high_intensity",13,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",62
+"high_intensity",13,"Disease and non-battle injury","R2E","Returned to duty from R2E",1428
+"high_intensity",13,"Killed in action","Not treated","Killed in action",2005
+"high_intensity",13,"Wounded in action","R1","Died of wounds",4
+"high_intensity",13,"Wounded in action","R2B","Died of wounds",14
+"high_intensity",13,"Wounded in action","R2B","In care on the last day",4
+"high_intensity",13,"Wounded in action","R2B","Returned to duty from R2B",74
+"high_intensity",13,"Wounded in action","R2E","Awaiting airlift on the last day",1368
+"high_intensity",13,"Wounded in action","R2E","Died of wounds",282
+"high_intensity",13,"Wounded in action","R2E","Evacuated to Role 4",3495
+"high_intensity",13,"Wounded in action","R2E","In care on the last day",77
+"high_intensity",13,"Wounded in action","R2E","Returned to duty awaiting airlift",1349
+"high_intensity",13,"Wounded in action","R2E","Returned to duty from R2E",1162
+"high_intensity",14,"Disease and non-battle injury","R2B","Died of wounds",2
+"high_intensity",14,"Disease and non-battle injury","R2B","In care on the last day",7
+"high_intensity",14,"Disease and non-battle injury","R2B","Returned to duty from R2B",212
+"high_intensity",14,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",53
+"high_intensity",14,"Disease and non-battle injury","R2E","Died of wounds",32
+"high_intensity",14,"Disease and non-battle injury","R2E","Evacuated to Role 4",253
+"high_intensity",14,"Disease and non-battle injury","R2E","In care on the last day",18
+"high_intensity",14,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",60
+"high_intensity",14,"Disease and non-battle injury","R2E","Returned to duty from R2E",1283
+"high_intensity",14,"Killed in action","Not treated","Killed in action",2066
+"high_intensity",14,"Wounded in action","R2B","Died of wounds",23
+"high_intensity",14,"Wounded in action","R2B","In care on the last day",5
+"high_intensity",14,"Wounded in action","R2B","Returned to duty from R2B",87
+"high_intensity",14,"Wounded in action","R2E","Awaiting airlift on the last day",1342
+"high_intensity",14,"Wounded in action","R2E","Died of wounds",933
+"high_intensity",14,"Wounded in action","R2E","Evacuated to Role 4",3581
+"high_intensity",14,"Wounded in action","R2E","In care on the last day",73
+"high_intensity",14,"Wounded in action","R2E","Returned to duty awaiting airlift",1240
+"high_intensity",14,"Wounded in action","R2E","Returned to duty from R2E",1246
+"high_intensity",15,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",15,"Disease and non-battle injury","R2B","In care on the last day",3
+"high_intensity",15,"Disease and non-battle injury","R2B","Returned to duty from R2B",224
+"high_intensity",15,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",61
+"high_intensity",15,"Disease and non-battle injury","R2E","Died of wounds",9
+"high_intensity",15,"Disease and non-battle injury","R2E","Evacuated to Role 4",327
+"high_intensity",15,"Disease and non-battle injury","R2E","In care on the last day",20
+"high_intensity",15,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",67
+"high_intensity",15,"Disease and non-battle injury","R2E","Returned to duty from R2E",1377
+"high_intensity",15,"Killed in action","Not treated","Killed in action",2082
+"high_intensity",15,"Wounded in action","R1","Died of wounds",4
+"high_intensity",15,"Wounded in action","R1","In care on the last day",1
+"high_intensity",15,"Wounded in action","R2B","Died of wounds",18
+"high_intensity",15,"Wounded in action","R2B","In care on the last day",10
+"high_intensity",15,"Wounded in action","R2B","Returned to duty from R2B",70
+"high_intensity",15,"Wounded in action","R2E","Awaiting airlift on the last day",1508
+"high_intensity",15,"Wounded in action","R2E","Died of wounds",327
+"high_intensity",15,"Wounded in action","R2E","Evacuated to Role 4",3498
+"high_intensity",15,"Wounded in action","R2E","In care on the last day",163
+"high_intensity",15,"Wounded in action","R2E","Returned to duty awaiting airlift",1387
+"high_intensity",15,"Wounded in action","R2E","Returned to duty from R2E",1187
+"high_intensity",16,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",16,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",16,"Disease and non-battle injury","R2B","Returned to duty from R2B",224
+"high_intensity",16,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",60
+"high_intensity",16,"Disease and non-battle injury","R2E","Died of wounds",13
+"high_intensity",16,"Disease and non-battle injury","R2E","Evacuated to Role 4",317
+"high_intensity",16,"Disease and non-battle injury","R2E","In care on the last day",51
+"high_intensity",16,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",57
+"high_intensity",16,"Disease and non-battle injury","R2E","Returned to duty from R2E",1305
+"high_intensity",16,"Killed in action","Not treated","Killed in action",1950
+"high_intensity",16,"Wounded in action","R2B","Died of wounds",15
+"high_intensity",16,"Wounded in action","R2B","In care on the last day",3
+"high_intensity",16,"Wounded in action","R2B","Returned to duty from R2B",65
+"high_intensity",16,"Wounded in action","R2E","Awaiting airlift on the last day",1375
+"high_intensity",16,"Wounded in action","R2E","Died of wounds",441
+"high_intensity",16,"Wounded in action","R2E","Evacuated to Role 4",3537
+"high_intensity",16,"Wounded in action","R2E","In care on the last day",67
+"high_intensity",16,"Wounded in action","R2E","Returned to duty awaiting airlift",1254
+"high_intensity",16,"Wounded in action","R2E","Returned to duty from R2E",1138
+"high_intensity",17,"Disease and non-battle injury","R2B","In care on the last day",3
+"high_intensity",17,"Disease and non-battle injury","R2B","Returned to duty from R2B",231
+"high_intensity",17,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",61
+"high_intensity",17,"Disease and non-battle injury","R2E","Died of wounds",24
+"high_intensity",17,"Disease and non-battle injury","R2E","Evacuated to Role 4",338
+"high_intensity",17,"Disease and non-battle injury","R2E","In care on the last day",33
+"high_intensity",17,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",57
+"high_intensity",17,"Disease and non-battle injury","R2E","Returned to duty from R2E",1402
+"high_intensity",17,"Killed in action","Not treated","Killed in action",2051
+"high_intensity",17,"Wounded in action","R1","Died of wounds",4
+"high_intensity",17,"Wounded in action","R1","In care on the last day",1
+"high_intensity",17,"Wounded in action","R2B","Died of wounds",11
+"high_intensity",17,"Wounded in action","R2B","In care on the last day",14
+"high_intensity",17,"Wounded in action","R2B","Returned to duty from R2B",67
+"high_intensity",17,"Wounded in action","R2E","Awaiting airlift on the last day",1568
+"high_intensity",17,"Wounded in action","R2E","Died of wounds",462
+"high_intensity",17,"Wounded in action","R2E","Evacuated to Role 4",3637
+"high_intensity",17,"Wounded in action","R2E","In care on the last day",190
+"high_intensity",17,"Wounded in action","R2E","Returned to duty awaiting airlift",1317
+"high_intensity",17,"Wounded in action","R2E","Returned to duty from R2E",1159
+"high_intensity",18,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",18,"Disease and non-battle injury","R2B","Returned to duty from R2B",226
+"high_intensity",18,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",87
+"high_intensity",18,"Disease and non-battle injury","R2E","Died of wounds",13
+"high_intensity",18,"Disease and non-battle injury","R2E","Evacuated to Role 4",366
+"high_intensity",18,"Disease and non-battle injury","R2E","In care on the last day",36
+"high_intensity",18,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",62
+"high_intensity",18,"Disease and non-battle injury","R2E","Returned to duty from R2E",1409
+"high_intensity",18,"Killed in action","Not treated","Killed in action",2060
+"high_intensity",18,"Wounded in action","R1","Died of wounds",2
+"high_intensity",18,"Wounded in action","R1","In care on the last day",1
+"high_intensity",18,"Wounded in action","R2B","Died of wounds",23
+"high_intensity",18,"Wounded in action","R2B","In care on the last day",5
+"high_intensity",18,"Wounded in action","R2B","Returned to duty from R2B",73
+"high_intensity",18,"Wounded in action","R2E","Awaiting airlift on the last day",1525
+"high_intensity",18,"Wounded in action","R2E","Died of wounds",422
+"high_intensity",18,"Wounded in action","R2E","Evacuated to Role 4",3632
+"high_intensity",18,"Wounded in action","R2E","In care on the last day",178
+"high_intensity",18,"Wounded in action","R2E","Returned to duty awaiting airlift",1313
+"high_intensity",18,"Wounded in action","R2E","Returned to duty from R2E",1230
+"high_intensity",19,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",19,"Disease and non-battle injury","R2B","In care on the last day",3
+"high_intensity",19,"Disease and non-battle injury","R2B","Returned to duty from R2B",225
+"high_intensity",19,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",62
+"high_intensity",19,"Disease and non-battle injury","R2E","Died of wounds",43
+"high_intensity",19,"Disease and non-battle injury","R2E","Evacuated to Role 4",285
+"high_intensity",19,"Disease and non-battle injury","R2E","In care on the last day",49
+"high_intensity",19,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",52
+"high_intensity",19,"Disease and non-battle injury","R2E","Returned to duty from R2E",1314
+"high_intensity",19,"Killed in action","Not treated","Killed in action",2073
+"high_intensity",19,"Wounded in action","R1","Died of wounds",3
+"high_intensity",19,"Wounded in action","R1","In care on the last day",1
+"high_intensity",19,"Wounded in action","R2B","Died of wounds",21
+"high_intensity",19,"Wounded in action","R2B","In care on the last day",5
+"high_intensity",19,"Wounded in action","R2B","Returned to duty from R2B",82
+"high_intensity",19,"Wounded in action","R2E","Awaiting airlift on the last day",1451
+"high_intensity",19,"Wounded in action","R2E","Died of wounds",822
+"high_intensity",19,"Wounded in action","R2E","Evacuated to Role 4",3655
+"high_intensity",19,"Wounded in action","R2E","In care on the last day",112
+"high_intensity",19,"Wounded in action","R2E","Returned to duty awaiting airlift",1244
+"high_intensity",19,"Wounded in action","R2E","Returned to duty from R2E",1248
+"high_intensity",20,"Disease and non-battle injury","R2B","Died of wounds",1
+"high_intensity",20,"Disease and non-battle injury","R2B","In care on the last day",5
+"high_intensity",20,"Disease and non-battle injury","R2B","Returned to duty from R2B",204
+"high_intensity",20,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",52
+"high_intensity",20,"Disease and non-battle injury","R2E","Died of wounds",28
+"high_intensity",20,"Disease and non-battle injury","R2E","Evacuated to Role 4",294
+"high_intensity",20,"Disease and non-battle injury","R2E","In care on the last day",40
+"high_intensity",20,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",65
+"high_intensity",20,"Disease and non-battle injury","R2E","Returned to duty from R2E",1359
+"high_intensity",20,"Killed in action","Not treated","Killed in action",1950
+"high_intensity",20,"Wounded in action","R1","Died of wounds",4
+"high_intensity",20,"Wounded in action","R2B","Died of wounds",18
+"high_intensity",20,"Wounded in action","R2B","In care on the last day",4
+"high_intensity",20,"Wounded in action","R2B","Returned to duty from R2B",91
+"high_intensity",20,"Wounded in action","R2E","Awaiting airlift on the last day",1519
+"high_intensity",20,"Wounded in action","R2E","Died of wounds",597
+"high_intensity",20,"Wounded in action","R2E","Evacuated to Role 4",3706
+"high_intensity",20,"Wounded in action","R2E","In care on the last day",202
+"high_intensity",20,"Wounded in action","R2E","Returned to duty awaiting airlift",1375
+"high_intensity",20,"Wounded in action","R2E","Returned to duty from R2E",1325
+"high_intensity",21,"Disease and non-battle injury","R2B","In care on the last day",4
+"high_intensity",21,"Disease and non-battle injury","R2B","Returned to duty from R2B",215
+"high_intensity",21,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",52
+"high_intensity",21,"Disease and non-battle injury","R2E","Died of wounds",18
+"high_intensity",21,"Disease and non-battle injury","R2E","Evacuated to Role 4",283
+"high_intensity",21,"Disease and non-battle injury","R2E","In care on the last day",31
+"high_intensity",21,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",56
+"high_intensity",21,"Disease and non-battle injury","R2E","Returned to duty from R2E",1302
+"high_intensity",21,"Killed in action","Not treated","Killed in action",2086
+"high_intensity",21,"Wounded in action","R1","Died of wounds",5
+"high_intensity",21,"Wounded in action","R2B","Died of wounds",15
+"high_intensity",21,"Wounded in action","R2B","In care on the last day",19
+"high_intensity",21,"Wounded in action","R2B","Returned to duty from R2B",73
+"high_intensity",21,"Wounded in action","R2E","Awaiting airlift on the last day",1484
+"high_intensity",21,"Wounded in action","R2E","Died of wounds",542
+"high_intensity",21,"Wounded in action","R2E","Evacuated to Role 4",3668
+"high_intensity",21,"Wounded in action","R2E","In care on the last day",135
+"high_intensity",21,"Wounded in action","R2E","Returned to duty awaiting airlift",1386
+"high_intensity",21,"Wounded in action","R2E","Returned to duty from R2E",1325
+"high_intensity",22,"Disease and non-battle injury","R2B","In care on the last day",4
+"high_intensity",22,"Disease and non-battle injury","R2B","Returned to duty from R2B",240
+"high_intensity",22,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",56
+"high_intensity",22,"Disease and non-battle injury","R2E","Died of wounds",12
+"high_intensity",22,"Disease and non-battle injury","R2E","Evacuated to Role 4",321
+"high_intensity",22,"Disease and non-battle injury","R2E","In care on the last day",37
+"high_intensity",22,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",68
+"high_intensity",22,"Disease and non-battle injury","R2E","Returned to duty from R2E",1324
+"high_intensity",22,"Killed in action","Not treated","Killed in action",2114
+"high_intensity",22,"Wounded in action","R1","Died of wounds",1
+"high_intensity",22,"Wounded in action","R2B","Died of wounds",18
+"high_intensity",22,"Wounded in action","R2B","In care on the last day",4
+"high_intensity",22,"Wounded in action","R2B","Returned to duty from R2B",75
+"high_intensity",22,"Wounded in action","R2E","Awaiting airlift on the last day",1431
+"high_intensity",22,"Wounded in action","R2E","Died of wounds",322
+"high_intensity",22,"Wounded in action","R2E","Evacuated to Role 4",3551
+"high_intensity",22,"Wounded in action","R2E","In care on the last day",128
+"high_intensity",22,"Wounded in action","R2E","Returned to duty awaiting airlift",1259
+"high_intensity",22,"Wounded in action","R2E","Returned to duty from R2E",1187
+"high_intensity",23,"Disease and non-battle injury","R2B","In care on the last day",9
+"high_intensity",23,"Disease and non-battle injury","R2B","Returned to duty from R2B",223
+"high_intensity",23,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",85
+"high_intensity",23,"Disease and non-battle injury","R2E","Died of wounds",10
+"high_intensity",23,"Disease and non-battle injury","R2E","Evacuated to Role 4",315
+"high_intensity",23,"Disease and non-battle injury","R2E","In care on the last day",32
+"high_intensity",23,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",64
+"high_intensity",23,"Disease and non-battle injury","R2E","Returned to duty from R2E",1429
+"high_intensity",23,"Killed in action","Not treated","Killed in action",1976
+"high_intensity",23,"Wounded in action","R2B","Died of wounds",24
+"high_intensity",23,"Wounded in action","R2B","Returned to duty from R2B",78
+"high_intensity",23,"Wounded in action","R2E","Awaiting airlift on the last day",1560
+"high_intensity",23,"Wounded in action","R2E","Died of wounds",491
+"high_intensity",23,"Wounded in action","R2E","Evacuated to Role 4",3598
+"high_intensity",23,"Wounded in action","R2E","In care on the last day",52
+"high_intensity",23,"Wounded in action","R2E","Returned to duty awaiting airlift",1333
+"high_intensity",23,"Wounded in action","R2E","Returned to duty from R2E",1181
+"high_intensity",24,"Disease and non-battle injury","R2B","Died of wounds",2
+"high_intensity",24,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",24,"Disease and non-battle injury","R2B","Returned to duty from R2B",216
+"high_intensity",24,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",70
+"high_intensity",24,"Disease and non-battle injury","R2E","Died of wounds",16
+"high_intensity",24,"Disease and non-battle injury","R2E","Evacuated to Role 4",295
+"high_intensity",24,"Disease and non-battle injury","R2E","In care on the last day",59
+"high_intensity",24,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",57
+"high_intensity",24,"Disease and non-battle injury","R2E","Returned to duty from R2E",1190
+"high_intensity",24,"Killed in action","Not treated","Killed in action",1965
+"high_intensity",24,"Wounded in action","R1","Died of wounds",3
+"high_intensity",24,"Wounded in action","R1","In care on the last day",1
+"high_intensity",24,"Wounded in action","R2B","Died of wounds",14
+"high_intensity",24,"Wounded in action","R2B","In care on the last day",6
+"high_intensity",24,"Wounded in action","R2B","Returned to duty from R2B",80
+"high_intensity",24,"Wounded in action","R2E","Awaiting airlift on the last day",1504
+"high_intensity",24,"Wounded in action","R2E","Died of wounds",509
+"high_intensity",24,"Wounded in action","R2E","Evacuated to Role 4",3635
+"high_intensity",24,"Wounded in action","R2E","In care on the last day",147
+"high_intensity",24,"Wounded in action","R2E","Returned to duty awaiting airlift",1328
+"high_intensity",24,"Wounded in action","R2E","Returned to duty from R2E",1217
+"high_intensity",25,"Disease and non-battle injury","R1","Died of wounds",1
+"high_intensity",25,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",25,"Disease and non-battle injury","R2B","Returned to duty from R2B",211
+"high_intensity",25,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",53
+"high_intensity",25,"Disease and non-battle injury","R2E","Died of wounds",49
+"high_intensity",25,"Disease and non-battle injury","R2E","Evacuated to Role 4",288
+"high_intensity",25,"Disease and non-battle injury","R2E","In care on the last day",66
+"high_intensity",25,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",55
+"high_intensity",25,"Disease and non-battle injury","R2E","Returned to duty from R2E",1393
+"high_intensity",25,"Killed in action","Not treated","Killed in action",2094
+"high_intensity",25,"Wounded in action","R1","Died of wounds",1
+"high_intensity",25,"Wounded in action","R2B","Died of wounds",18
+"high_intensity",25,"Wounded in action","R2B","In care on the last day",3
+"high_intensity",25,"Wounded in action","R2B","Returned to duty from R2B",88
+"high_intensity",25,"Wounded in action","R2E","Awaiting airlift on the last day",1219
+"high_intensity",25,"Wounded in action","R2E","Died of wounds",1294
+"high_intensity",25,"Wounded in action","R2E","Evacuated to Role 4",3706
+"high_intensity",25,"Wounded in action","R2E","In care on the last day",354
+"high_intensity",25,"Wounded in action","R2E","Returned to duty awaiting airlift",1228
+"high_intensity",25,"Wounded in action","R2E","Returned to duty from R2E",1258
+"high_intensity",26,"Disease and non-battle injury","R2B","In care on the last day",4
+"high_intensity",26,"Disease and non-battle injury","R2B","Returned to duty from R2B",208
+"high_intensity",26,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",63
+"high_intensity",26,"Disease and non-battle injury","R2E","Died of wounds",14
+"high_intensity",26,"Disease and non-battle injury","R2E","Evacuated to Role 4",272
+"high_intensity",26,"Disease and non-battle injury","R2E","In care on the last day",28
+"high_intensity",26,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",54
+"high_intensity",26,"Disease and non-battle injury","R2E","Returned to duty from R2E",1220
+"high_intensity",26,"Killed in action","Not treated","Killed in action",2038
+"high_intensity",26,"Wounded in action","R1","Died of wounds",1
+"high_intensity",26,"Wounded in action","R2B","Died of wounds",11
+"high_intensity",26,"Wounded in action","R2B","In care on the last day",3
+"high_intensity",26,"Wounded in action","R2B","Returned to duty from R2B",80
+"high_intensity",26,"Wounded in action","R2E","Awaiting airlift on the last day",1511
+"high_intensity",26,"Wounded in action","R2E","Died of wounds",387
+"high_intensity",26,"Wounded in action","R2E","Evacuated to Role 4",3569
+"high_intensity",26,"Wounded in action","R2E","In care on the last day",198
+"high_intensity",26,"Wounded in action","R2E","Returned to duty awaiting airlift",1284
+"high_intensity",26,"Wounded in action","R2E","Returned to duty from R2E",1225
+"high_intensity",27,"Disease and non-battle injury","R2B","In care on the last day",7
+"high_intensity",27,"Disease and non-battle injury","R2B","Returned to duty from R2B",235
+"high_intensity",27,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",58
+"high_intensity",27,"Disease and non-battle injury","R2E","Died of wounds",15
+"high_intensity",27,"Disease and non-battle injury","R2E","Evacuated to Role 4",311
+"high_intensity",27,"Disease and non-battle injury","R2E","In care on the last day",28
+"high_intensity",27,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",57
+"high_intensity",27,"Disease and non-battle injury","R2E","Returned to duty from R2E",1325
+"high_intensity",27,"Killed in action","Not treated","Killed in action",2005
+"high_intensity",27,"Wounded in action","R1","Died of wounds",4
+"high_intensity",27,"Wounded in action","R2B","Died of wounds",26
+"high_intensity",27,"Wounded in action","R2B","In care on the last day",4
+"high_intensity",27,"Wounded in action","R2B","Returned to duty from R2B",76
+"high_intensity",27,"Wounded in action","R2E","Awaiting airlift on the last day",1469
+"high_intensity",27,"Wounded in action","R2E","Died of wounds",425
+"high_intensity",27,"Wounded in action","R2E","Evacuated to Role 4",3657
+"high_intensity",27,"Wounded in action","R2E","In care on the last day",138
+"high_intensity",27,"Wounded in action","R2E","Returned to duty awaiting airlift",1431
+"high_intensity",27,"Wounded in action","R2E","Returned to duty from R2E",1179
+"high_intensity",28,"Disease and non-battle injury","R2B","In care on the last day",3
+"high_intensity",28,"Disease and non-battle injury","R2B","Returned to duty from R2B",249
+"high_intensity",28,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",68
+"high_intensity",28,"Disease and non-battle injury","R2E","Died of wounds",17
+"high_intensity",28,"Disease and non-battle injury","R2E","Evacuated to Role 4",320
+"high_intensity",28,"Disease and non-battle injury","R2E","In care on the last day",43
+"high_intensity",28,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",76
+"high_intensity",28,"Disease and non-battle injury","R2E","Returned to duty from R2E",1443
+"high_intensity",28,"Killed in action","Not treated","Killed in action",2056
+"high_intensity",28,"Wounded in action","R1","Died of wounds",2
+"high_intensity",28,"Wounded in action","R2B","Died of wounds",17
+"high_intensity",28,"Wounded in action","R2B","In care on the last day",7
+"high_intensity",28,"Wounded in action","R2B","Returned to duty from R2B",68
+"high_intensity",28,"Wounded in action","R2E","Awaiting airlift on the last day",1538
+"high_intensity",28,"Wounded in action","R2E","Died of wounds",437
+"high_intensity",28,"Wounded in action","R2E","Evacuated to Role 4",3625
+"high_intensity",28,"Wounded in action","R2E","In care on the last day",197
+"high_intensity",28,"Wounded in action","R2E","Returned to duty awaiting airlift",1446
+"high_intensity",28,"Wounded in action","R2E","Returned to duty from R2E",1268
+"high_intensity",29,"Disease and non-battle injury","R1","Died of wounds",1
+"high_intensity",29,"Disease and non-battle injury","R2B","In care on the last day",6
+"high_intensity",29,"Disease and non-battle injury","R2B","Returned to duty from R2B",221
+"high_intensity",29,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",72
+"high_intensity",29,"Disease and non-battle injury","R2E","Died of wounds",15
+"high_intensity",29,"Disease and non-battle injury","R2E","Evacuated to Role 4",330
+"high_intensity",29,"Disease and non-battle injury","R2E","In care on the last day",46
+"high_intensity",29,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",60
+"high_intensity",29,"Disease and non-battle injury","R2E","Returned to duty from R2E",1327
+"high_intensity",29,"Killed in action","Not treated","Killed in action",2080
+"high_intensity",29,"Wounded in action","R1","Died of wounds",5
+"high_intensity",29,"Wounded in action","R1","In care on the last day",1
+"high_intensity",29,"Wounded in action","R2B","Died of wounds",17
+"high_intensity",29,"Wounded in action","R2B","In care on the last day",3
+"high_intensity",29,"Wounded in action","R2B","Returned to duty from R2B",79
+"high_intensity",29,"Wounded in action","R2E","Awaiting airlift on the last day",1553
+"high_intensity",29,"Wounded in action","R2E","Died of wounds",482
+"high_intensity",29,"Wounded in action","R2E","Evacuated to Role 4",3639
+"high_intensity",29,"Wounded in action","R2E","In care on the last day",104
+"high_intensity",29,"Wounded in action","R2E","Returned to duty awaiting airlift",1359
+"high_intensity",29,"Wounded in action","R2E","Returned to duty from R2E",1286
+"high_intensity",30,"Disease and non-battle injury","R2B","In care on the last day",5
+"high_intensity",30,"Disease and non-battle injury","R2B","Returned to duty from R2B",220
+"high_intensity",30,"Disease and non-battle injury","R2E","Awaiting airlift on the last day",51
+"high_intensity",30,"Disease and non-battle injury","R2E","Died of wounds",12
+"high_intensity",30,"Disease and non-battle injury","R2E","Evacuated to Role 4",276
+"high_intensity",30,"Disease and non-battle injury","R2E","In care on the last day",30
+"high_intensity",30,"Disease and non-battle injury","R2E","Returned to duty awaiting airlift",63
+"high_intensity",30,"Disease and non-battle injury","R2E","Returned to duty from R2E",1271
+"high_intensity",30,"Killed in action","Not treated","Killed in action",1957
+"high_intensity",30,"Wounded in action","R1","Died of wounds",2
+"high_intensity",30,"Wounded in action","R1","In care on the last day",1
+"high_intensity",30,"Wounded in action","R2B","Died of wounds",18
+"high_intensity",30,"Wounded in action","R2B","In care on the last day",4
+"high_intensity",30,"Wounded in action","R2B","Returned to duty from R2B",74
+"high_intensity",30,"Wounded in action","R2E","Awaiting airlift on the last day",1257
+"high_intensity",30,"Wounded in action","R2E","Died of wounds",428
+"high_intensity",30,"Wounded in action","R2E","Evacuated to Role 4",3512
+"high_intensity",30,"Wounded in action","R2E","In care on the last day",56
+"high_intensity",30,"Wounded in action","R2E","Returned to duty awaiting airlift",1379
+"high_intensity",30,"Wounded in action","R2E","Returned to duty from R2E",1196

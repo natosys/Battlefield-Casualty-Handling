@@ -85,9 +85,10 @@ AIRLIFT_ROUTE_STANDARD <- 2
 #'   so each is bounded without reference to the others.
 #'
 #'   Each stay is bounded by the attribute its own exit route sets. The staging
-#'   stay ends at `ame_hold_end`, which a casualty records both on boarding a
-#'   sortie and on dying while waiting for one, rather than at the departure
-#'   time, which the second of those never reaches.
+#'   stay ends at `ame_hold_end`, which a casualty records on boarding a
+#'   sortie, on dying while waiting for one and on returning to duty while
+#'   waiting for one, rather than at the departure time, which the last two
+#'   never reach.
 #'
 #'   `unexplained_bed_days` is what makes the split checkable. Reporting
 #'   recovery as the remainder of the measured total would make the components

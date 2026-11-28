@@ -61,6 +61,7 @@ This document is the design record for the replicated experiments reported in th
   - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
   - [Post-Definitive Intensive Care Share Sweep](#post-definitive-intensive-care-share-sweep)
   - [Forward Evacuation Delay Sweep](#forward-evacuation-delay-sweep)
+  - [High-Intensity Mortality Under Okinawa's Flow and Capacity](#high-intensity-mortality-under-okinawas-flow-and-capacity)
   - [Adequacy Verdict Criteria](#adequacy-verdict-criteria)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
@@ -373,6 +374,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Priority 1 triage share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
 | Post-definitive intensive care share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and occupancy, campaign counts and holding bed-days, daily queue classification; Student $t$, paired $t$ |
 | Forward evacuation delay sweep | default; `high_intensity` | 360 d | 30 per arm | 7 delays | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
+| High-intensity mortality under Okinawa's flow and capacity | `high_intensity` | 360 d; 82 d | 30 per arm; 3 measurements of 50 | 7 arms | one control seed, not one casualty stream; one control seed per measurement | campaign counts and closing-window queues, daily queue classification; pooled per-replication rate; Student $t$, paired $t$ |
 | Treated-cohort mortality at the anchor horizons | default and both profiles | 30 d (Ajax Bay), 82 d (Okinawa) | 3 measurements of 50 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Casualty surge event stress test | default and `high_intensity`, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts and died-of-wounds rates; Student $t$ |
@@ -892,6 +894,26 @@ Rscript scripts/run_evac_delay_sweep.R --scenario high_intensity --refresh-basel
 ```
 
 Every casualty is held for its drawn delay after R1 treatment and the R1 died-of-wounds check, seizing no vehicle, before the road move to Role 2; battle fatigue casualties wait without risk. The prolonged-care multiplier and everything else are held at their shipped values, so the sweep measures the delay alone. Each replication is reduced inside the forked worker to the triage share sweep's responses and a daily series of the R2B theatres, holding beds and reception overflow and of the R2E theatres, intensive care, holding beds and the overflow behind them, with the casualties held forward, those who died while held, the mean delay drawn and the PMV ambulance fleet's utilisation over the campaign. The time to first incision is measured from arrival and so carries the delay. Each pool's daily series is classified by the late-half fit of [Classifying Stability](#classifying-stability). The arms are paired on one control seed each, and with the delay on each casualty draws its delay and the wait moves every later event, so the arms do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. Each finished replication is saved under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight. `tests/checks/check_evac_delay_sweep.R` asserts the protocol against these markers, that no casualty boards an ambulance before its wait ends, and that the arm without a delay equals the triage share sweep's shipped arm replication by replication. The tracked evidence set is `data/evac_delay/`.
+
+### High-Intensity Mortality Under Okinawa's Flow and Capacity
+
+<!-- OKINAWA_FLOW replications=30 -->
+<!-- OKINAWA_FLOW days=360 -->
+<!-- OKINAWA_FLOW seed=42 -->
+<!-- OKINAWA_FLOW window_days=90 -->
+<!-- OKINAWA_FLOW anchor_days=82 -->
+<!-- OKINAWA_FLOW anchor_replications=50 -->
+<!-- OKINAWA_FLOW anchor_seeds=42;777;20260808 -->
+<!-- OKINAWA_FLOW baseline=Shipped -->
+<!-- OKINAWA_FLOW scenario=high_intensity -->
+<!-- OKINAWA_FLOW arms=shipped;daily;daily_beds4;daily_beds4_surg2;daily_beds4_single;daily_beds4_single_r2e2;daily_all8 -->
+Seven arms of the `high_intensity` profile, each measured under two protocols. The arms bring the profile's evacuation tempo, capacity and surgical pathway towards Okinawa's one step at a time: the shipped configuration (a sortie every seven days); daily sorties; daily sorties with the R2B and R2E intensive care and holding beds multiplied by four, Okinawa having fielded 3.3 to 4.3 times the model's beds per daily battle casualty; that arm with R2B and R2E theatres and surgical sections doubled; that bed arm with single-stage surgery, every priority's damage control rate set to zero since damage control surgery postdates 1945; the single-stage arm with two R2E surgical sections instead of three, 0.8 times the shipped sections and the upper end of an informed estimate of Okinawa's surgical teams per daily casualty; and daily sorties with every section, bed pool and vehicle multiplied by eight, at which no pool queues. The bed ratio, the pathway and the surgical ratio are set from the historical record before the arms are run, so an arm's rate is a prediction rather than a fit. The establishment counts are set on the resolved configuration before the resources are built (`set_okinawa_establishment()`), and the sortie interval and damage control rates on the described one (`set_okinawa_variables()`); each fails where it cannot find what it sets rather than leaving the shipped value in force. Invoked as:
+
+```
+Rscript scripts/run_okinawa_flow.R --refresh-baseline
+```
+
+The sustained protocol runs 30 replications of 360 days at control seed 42 per arm, each reduced inside the forked worker to the triage share sweep's responses and daily series, with the treated casualties who died awaiting strategic airlift; each R2E pool's daily series is classified by the late-half fit of [Classifying Stability](#classifying-stability), and every arm is differenced against the shipped arm within replication. The arms are paired on one control seed each, but a changed establishment, tempo or pathway changes the draws each replication takes, so they do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. The anchor protocol is the calibration check's: the treated-cohort rate pooled over three measurements of 50 replications at Okinawa's 82 days, at control seeds 42, 777 and 20260808, with the replication seeds drawn exactly as the replication framework draws them, so the shipped arm reproduces the high-intensity measurement of [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon) at the anchor horizon. Each anchor replication is reduced inside its worker to the cohort's counts, since an arm at eight times the establishment carries monitoring data beyond what the parent can hold. Each finished replication is saved under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight. `tests/checks/check_okinawa_flow.R` asserts the protocol against these markers, that each arm sets exactly the counts and variables it names, that the setters refuse what they cannot apply, and that the shipped arm's anchor rate reproduces the calibration check's. The tracked evidence set is `data/okinawa_flow/`.
 
 ### Adequacy Verdict Criteria
 

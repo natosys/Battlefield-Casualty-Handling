@@ -98,7 +98,7 @@ ANCHOR_PATH <- file.path("data", "calibration", "dow_calibration_anchor.csv")
 TOL <- 1e-8
 
 #' Generated spans Results.md must carry for the experiment
-SPANS <- c("table:okinawa_flow", "table:okinawa_flow_paired")
+SPANS <- c("okinawa_flow", "okinawa_flow_paired")
 
 # ── 1. The code's parameters are the ones the methods paper documents ───────
 

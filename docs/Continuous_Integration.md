@@ -405,7 +405,7 @@ seconds.
 | `check_long_horizon_warmup.R` | fast | 8 s | the sustained-horizon Welch diagnostic is correct and the tracked plot and CSV reproduce it |
 | `check_markdown.R` | fast | 6 s | Markdown TOC, link and table checks |
 | `check_measurement_reproducibility.R` | fast | 175 s | a measurement is a function of its control seed |
-| `check_okinawa_flow.R` | fast | not yet measured | the Okinawa flow and capacity arms set what they claim, and the experiment's protocol, evidence and published section agree |
+| `check_okinawa_flow.R` | fast | 11 s | the Okinawa flow and capacity arms set what they claim, and the experiment's protocol, evidence and published section agree |
 | `check_ot_bed_sweep_protocol.R` | fast | 12 s | the R2E operating theatre sweep's parameters, its responses and its published section agree |
 | `check_planning_implications.R` | fast | 8 s | the planning paper quotes the results paper faithfully |
 | `check_policy_sweep_protocol.R` | fast | 22 s | the evacuation policy sweep's parameters, its responses and its published table agree |

@@ -1687,6 +1687,84 @@ build_evac_delay_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference against no delay", arms), rows)
 }
 
+#' Arms of the Okinawa flow and capacity experiment, in the order measured
+#'
+#' @details Written out rather than read from R/okinawa_flow.R so that this file
+#'   stays base R and independent of the model; `tests/checks/check_okinawa_flow.R`
+#'   holds the two lists equal through the evidence it reads.
+OKINAWA_FLOW_ARM_ORDER <- c(
+  "Shipped", "Daily sorties", "Daily, beds x4", "Daily, beds x4, surgery x2",
+  "Daily, beds x4, single-stage", "Daily, beds x4, single-stage, R2E sections 2",
+  "Daily, every establishment x8"
+)
+
+#' Responses of the Okinawa flow experiment's main table, as label, response,
+#' decimal places and scale
+OKINAWA_FLOW_ROWS <- list(
+  list("Treated-cohort rate, 360 days (%)", "treated_dow_rate", 2L, 100),
+  list("Died of wounds, 360 days", "total_dow", 1L, 1),
+  list("Treated casualties died awaiting airlift", "dow_awaiting_airlift", 1L, 1),
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1)
+)
+
+#' Okinawa flow and capacity table: each arm's rate at both horizons and its R2E state
+#'
+#' @param data_dir The data directory.
+#' @return The table lines, one row per arm in OKINAWA_FLOW_ARM_ORDER.
+#'
+#' @details The 82-day rate is the anchor protocol's pooled rate and the
+#'   360-day columns the sustained protocol's means; the R2E theatre queue's
+#'   classification is read from the stability file the experiment wrote from
+#'   its own daily series.
+build_okinawa_flow <- function(data_dir) {
+  anchor <- res_read("okinawa_flow/okinawa_flow_anchor_summary.csv", data_dir)
+  d <- res_read("okinawa_flow/okinawa_flow_summary.csv", data_dir)
+  st <- res_read("okinawa_flow/okinawa_flow_stability.csv", data_dir)
+  rows <- lapply(OKINAWA_FLOW_ARM_ORDER, function(a) {
+    an <- anchor[anchor$arm == a, ]
+    if (nrow(an) != 1L) stop(sprintf("expected one anchor row for arm '%s'", a), call. = FALSE)
+    cells <- vapply(OKINAWA_FLOW_ROWS, function(r) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1))
+    s <- st[st$arm == a & st$pool == "R2E operating theatres", ]
+    if (nrow(s) != 1L) stop(sprintf("expected one theatre stability row for arm '%s'", a),
+                            call. = FALSE)
+    c(a, res_ci(an$rate, an$ci_lower, an$ci_upper, dp = 2L, scale = 100, floor0 = TRUE),
+      cells, res_stability_cell(s))
+  })
+  header <- c("Arm", "Treated-cohort rate, 82 days (%)",
+              vapply(OKINAWA_FLOW_ROWS, `[[`, character(1), 1L),
+              "R2E theatre queue, late-half classification")
+  res_table(header, rows)
+}
+
+#' Okinawa flow and capacity table of paired differences against the shipped arm
+#'
+#' @param data_dir The data directory.
+#' @return The table lines, one row per arm other than the shipped one.
+build_okinawa_flow_paired <- function(data_dir) {
+  d <- res_read("okinawa_flow/okinawa_flow_paired.csv", data_dir)
+  keep <- OKINAWA_FLOW_ROWS[vapply(OKINAWA_FLOW_ROWS, function(r) r[[2]] %in% d$response,
+                                   logical(1))]
+  rows <- lapply(setdiff(OKINAWA_FLOW_ARM_ORDER, "Shipped"), function(a) {
+    c(a, vapply(keep, function(r) {
+      x <- d[d$to == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
+                                      r[[2]], a, nrow(x)), call. = FALSE)
+      paste0(sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+                     res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE)), res_holm_mark(x))
+    }, character(1)))
+  })
+  res_table(c("Paired difference against the shipped arm",
+              vapply(keep, `[[`, character(1), 1L)), rows)
+}
+
 #' The two R2B holding sweep tables
 #'
 #' @param data_dir The data directory.
@@ -4312,6 +4390,8 @@ RESULTS_TABLES <- list(
   evac_delay_high = function(dd) build_evac_delay(dd, "_high_intensity"),
   evac_delay_paired = build_evac_delay_paired,
   evac_delay_paired_high = function(dd) build_evac_delay_paired(dd, "_high_intensity"),
+  okinawa_flow = build_okinawa_flow,
+  okinawa_flow_paired = build_okinawa_flow_paired,
   policy_establishment_high = build_policy_establishment_high,
   policy_establishment_high_stability = build_policy_establishment_high_stability,
   policy_establishment_high_paired = build_policy_establishment_high_paired,
